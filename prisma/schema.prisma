@@ -1,12 +1,394 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
+// Configuración básica del generador y la fuente de datos
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // O mysql, según tu preferencia
+}
+
+// --- SEGURIDAD Y ACCESO ---
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String
+  code  Int    @unique
+  users User[]
+}
+
+model User {
+  id       Int       @id @default(autoincrement())
+  ci       String    @unique
+  password String    @db.VarChar(255)
+  name     String
+  roleId   Int
+  role     Role      @relation(fields: [roleId], references: [id])
+  doctors  Doctor[]
+  patients Patient[]
+  purchases Purchase[]
+  stockMovements StockMovement[]
+}
+
+// --- DOMINIO CLÍNICO ---
+
+model Doctor {
+  id                   Int                    @id @default(autoincrement())
+  userId               Int
+  user                 User                   @relation(fields: [userId], references: [id])
+  specialtyId          Int
+  specialty            MedicalSpecialty       @relation(fields: [specialtyId], references: [id])
+  appointments         Appointment[]
+  consultations        Consultation[]
+  availabilities       DoctorAvailability[]
+  scheduleOverrides    DoctorScheduleOverride[]
+}
+
+model Patient {
+  id             Int            @id @default(autoincrement())
+  userId         Int
+  user           User           @relation(fields: [userId], references: [id])
+  tipo_sangre    Int?
+  medicalHistory String?        @db.Text
+  appointments   Appointment[]
+  consultations  Consultation[]
+}
+
+model MedicalSpecialty {
+  id                   Int      @id @default(autoincrement())
+  name                 String
+  consultationPrice    Decimal  @db.Decimal(12, 2)
+  commissionPercentage Decimal  @db.Decimal(5, 2)
+  doctors              Doctor[]
+}
+
+model Appointment {
+  id                Int               @id @default(autoincrement())
+  doctorId          Int
+  doctor            Doctor            @relation(fields: [doctorId], references: [id])
+  patientId         Int
+  patient           Patient           @relation(fields: [patientId], references: [id])
+  statusId          Int
+  status            StatusAppointment @relation(fields: [statusId], references: [id])
+  typeId            Int
+  type              AppointmentType   @relation(fields: [typeId], references: [id])
+  reasonVisit       String?           @db.Text
+  price             Decimal           @db.Decimal(12, 2)
+  startDatetime     DateTime
+  endDatetime       DateTime
+  consultation      Consultation? // Relación 1:1 opcional
+}
+
+model Consultation {
+  id               Int                @id @default(autoincrement())
+  appointmentId    Int?               @unique
+  appointment      Appointment?       @relation(fields: [appointmentId], references: [id])
+  date             DateTime           @db.Date
+  startedAt        DateTime
+  finishedAt       DateTime
+  patientId        Int
+  patient          Patient            @relation(fields: [patientId], references: [id])
+  doctorId         Int
+  doctor           Doctor             @relation(fields: [doctorId], references: [id])
+  symptoms         String?            @db.Text
+  diagnosis        String?            @db.Text
+  physicalExam     String?            @db.Text
+  supplyConsultations SupplyConsultation[]
+  invoices         Invoice[]
+  prescriptions    Prescription[]
+}
+
+// --- GESTIÓN DE SUMINISTROS (SCM) ---
+
+model Product {
+  id                 Int                @id @default(autoincrement())
+  categoryId         Int
+  category           Category           @relation(fields: [categoryId], references: [id])
+  unitId             Int
+  unit               MeasurementUnit    @relation(fields: [unitId], references: [id])
+  name               String
+  sku                String             @unique
+  description        String?            @db.Text
+  imageUrl           String?
+  costPrice          Decimal            @db.Decimal(12, 2)
+  minStock           Int                @default(0)
+  isPerishable       Boolean            @default(false)
+  isActive           Boolean            @default(true)
+  type               String
+  purchaseItems      PurchaseItem[]
+  stockLots          StockLot[]
+  stockMovements     StockMovement[]
+  supplyConsultations SupplyConsultation[]
+  invoiceDetails     InvoiceDetail[]
+  prescriptions      Prescription[]
+}
+
+model Supplier {
+  id             Int              @id @default(autoincrement())
+  name           String
+  contact        String?
+  phone          String?
+  purchases      Purchase[]
+  invoiceExpenses InvoiceExpense[]
+}
+
+model Purchase {
+  id               Int               @id @default(autoincrement())
+  supplierId       Int
+  supplier         Supplier          @relation(fields: [supplierId], references: [id])
+  userId           Int
+  user             User              @relation(fields: [userId], references: [id])
+  subTotal         Decimal           @db.Decimal(12, 2)
+  taxAmount        Decimal           @db.Decimal(12, 2)
+  totalCost        Decimal           @db.Decimal(12, 2)
+  status           String
+  exchangeRateId   Int
+  exchangeRate     ExchangeRate      @relation(fields: [exchangeRateId], references: [id])
+  reference        String?
+  observation      String?           @db.Text
+  date             DateTime          @db.Date
+  conditions       String?
+  paymentStatus    Int
+  remainingBalance Decimal           @db.Decimal(12, 2)
+  paymentDueDate   DateTime?
+  discount         Decimal           @default(0) @db.Decimal(12, 2)
+  items            PurchaseItem[]
+  payments         PurchasePayment[]
+}
+
+model PurchaseItem {
+  id             Int      @id @default(autoincrement())
+  purchaseId     Int
+  purchase       Purchase @relation(fields: [purchaseId], references: [id])
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id])
+  quantity       Int
+  unitCost       Decimal  @db.Decimal(12, 2)
+  expirationDate DateTime? @db.Date
+}
+
+model StockLot {
+  id             Int             @id @default(autoincrement())
+  quantity       Int
+  productId      Int
+  product        Product         @relation(fields: [productId], references: [id])
+  expirationDate DateTime?       @db.Date
+  lotCost        Decimal         @db.Decimal(12, 2)
+  createdAt      DateTime        @default(now())
+  movements      StockMovement[]
+}
+
+model StockMovement {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  product    Product   @relation(fields: [productId], references: [id])
+  stockLotId Int
+  stockLot   StockLot  @relation(fields: [stockLotId], references: [id])
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  type       String    // IN, OUT, ADJUSTMENT
+  quantity   Int
+  reason     String?
+  date       DateTime  @default(now())
+}
+
+// --- FACTURACIÓN Y FINANZAS ---
+
+model Invoice {
+  id             Int              @id @default(autoincrement())
+  consultationId Int?
+  consultation   Consultation?    @relation(fields: [consultationId], references: [id])
+  exchangeRateId Int
+  exchangeRate   ExchangeRate     @relation(fields: [exchangeRateId], references: [id])
+  totalUsd       Decimal          @db.Decimal(12, 2)
+  totalBs        Decimal          @db.Decimal(12, 2)
+  statusId       Int
+  status         StatusInvoice    @relation(fields: [statusId], references: [id])
+  details        InvoiceDetail[]
+  payments       InvoicePayment[]
+}
+
+model InvoiceDetail {
+  id               Int      @id @default(autoincrement())
+  invoiceId        Int
+  invoice          Invoice  @relation(fields: [invoiceId], references: [id])
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id])
+  description      String
+  quantity         Int
+  unitPrice        Decimal  @db.Decimal(12, 2)
+  taxId            Int
+  tax              Tax      @relation(fields: [taxId], references: [id])
+  isCommissionable Boolean  @default(true)
+}
+
+model ExchangeRate {
+  id        Int      @id @default(autoincrement())
+  rate      Decimal  @db.Decimal(12, 4)
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+  purchases Purchase[]
+  invoices  Invoice[]
+  invoicePayments InvoicePayment[]
+  invoiceExpenses InvoiceExpense[]
+  expensePayments ExpensePayment[]
+}
+
+// --- AUXILIARES Y ESTADOS ---
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+}
+
+model MeasurementUnit {
+  id       Int       @id @default(autoincrement())
+  name     String
+  symbol   String
+  isActive Boolean   @default(true)
+  products Product[]
+}
+
+model Tax {
+  id             Int             @id @default(autoincrement())
+  name           String
+  rate           Decimal         @db.Decimal(5, 2)
+  code           String
+  isActive       Boolean         @default(true)
+  invoiceDetails InvoiceDetail[]
+}
+
+model PaymentMethod {
+  id               Int               @id @default(autoincrement())
+  name             String
+  type             String
+  currency         String
+  isActive         Boolean           @default(true)
+  invoicePayments  InvoicePayment[]
+  expensePayments  ExpensePayment[]
+  purchasePayments PurchasePayment[]
+}
+
+model StatusAppointment {
+  id           Int           @id @default(autoincrement())
+  name         String
+  colorHex     String
+  appointments Appointment[]
+}
+
+model AppointmentType {
+  id           Int           @id @default(autoincrement())
+  name         String
+  appointments Appointment[]
+}
+
+model StatusInvoice {
+  id       Int       @id @default(autoincrement())
+  name     String
+  colorHex String
+  invoices Invoice[]
+}
+
+// --- DISPONIBILIDAD MÉDICA ---
+
+model DoctorAvailability {
+  id           Int    @id @default(autoincrement())
+  doctorId     Int
+  doctor       Doctor @relation(fields: [doctorId], references: [id])
+  dayOfWeek    Int    // 0-6
+  startTime    String // Formato HH:mm
+  endTime      String
+  slotDuration Int    @default(30)
+}
+
+model DoctorScheduleOverride {
+  id           Int      @id @default(autoincrement())
+  doctorId     Int
+  doctor       Doctor   @relation(fields: [doctorId], references: [id])
+  specificDate DateTime @db.Timestamp
+  isWorking    Boolean
+  startTime    String?
+  endTime      String?
+  reason       String?  @db.Text
+}
+
+// --- OTROS ---
+
+model Prescription {
+  id             Int          @id @default(autoincrement())
+  consultationId Int
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  productId      Int?
+  product        Product?     @relation(fields: [productId], references: [id])
+  medicationName String
+  dosage         String
+  frequency      String
+  duration       String
+  instructions   String?      @db.Text
+}
+
+model SupplyConsultation {
+  id             Int          @id @default(autoincrement())
+  productId      Int
+  product        Product      @relation(fields: [productId], references: [id])
+  consultationId Int
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  quantity       Decimal      @db.Decimal(12, 2)
+}
+
+model InvoiceExpense {
+  id                Int             @id @default(autoincrement())
+  categoryExpenseId Int
+  category          ExpenseCategory @relation(fields: [categoryExpenseId], references: [id])
+  supplierId        Int
+  supplier          Supplier        @relation(fields: [supplierId], references: [id])
+  exchangeRateId    Int
+  exchangeRate      ExchangeRate    @relation(fields: [exchangeRateId], references: [id])
+  dateAt            DateTime        @default(now())
+  totalAmount       Decimal         @db.Decimal(12, 2)
+  payments          ExpensePayment[]
+}
+
+model ExpenseCategory {
+  id             Int              @id @default(autoincrement())
+  name           String
+  invoiceExpenses InvoiceExpense[]
+}
+
+model ExpensePayment {
+  id               Int            @id @default(autoincrement())
+  exchangeRateId   Int
+  exchangeRate     ExchangeRate   @relation(fields: [exchangeRateId], references: [id])
+  paymentMethodId  Int
+  paymentMethod    PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
+  invoiceExpenseId Int
+  invoiceExpense   InvoiceExpense @relation(fields: [invoiceExpenseId], references: [id])
+  amount           Decimal        @db.Decimal(12, 2)
+  dateAt           DateTime       @default(now())
+  igtfAmount       Decimal        @default(0) @db.Decimal(12, 2)
+}
+
+model InvoicePayment {
+  id              Int           @id @default(autoincrement())
+  invoiceId       Int
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id])
+  paymentMethodId Int
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  amountPaid      Decimal       @db.Decimal(12, 2)
+  igtfAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  currencyId      Int
+  exchangeRateId  Int
+  exchangeRate    ExchangeRate  @relation(fields: [exchangeRateId], references: [id])
+}
+
+model PurchasePayment {
+  id              Int           @id @default(autoincrement())
+  purchaseId      Int
+  purchase        Purchase      @relation(fields: [purchaseId], references: [id])
+  paymentMethodId Int
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  amount          Decimal       @db.Decimal(12, 2)
+  currency        String
+  reference       String?
+  paymentDate     DateTime      @default(now())
 }
