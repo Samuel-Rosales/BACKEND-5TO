@@ -15,7 +15,16 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/app.ts",
+    "build": "npx prisma generate && tsc && tsc-alias",
+    "start": "npx prisma migrate deploy && node dist/app.js",
+    "prisma:generate": "prisma generate",
+    "prisma:format": "npx prisma format",
+    "prisma:push": "npx prisma db push",
+    "prisma:studio": "npx prisma studio",
+    "prisma:seed": "npx prisma db seed",
+    "prisma:migrate": "npx prisma migrate",
+    "db:reset": "prisma migrate reset"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.11",
@@ -25,7 +34,6 @@
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
-    "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
@@ -42,16 +50,20 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.5.0",
     "@types/node-cron": "^3.0.11",
-    "@types/pg": "^8.11.11",
+    "@types/pg": "8.11.11",
+    "dotenv": "^17.3.1",
     "nodemon": "^3.1.11",
-    "prisma": "^7.2.0",
+    "prisma": "^7.5.0",
     "prisma-erd-generator": "^2.4.2",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@types/pg": "8.11.11"
   },
   "directories": {
     "doc": "docs"
