@@ -46,7 +46,7 @@ model Patient {
   tipo_sangre     String?        @db.Text
   medical_history String?        @db.Text
   active          Boolean        @default(true)
-  
+
   appointments    Appoinment[]
   consultations   Consultation[]
 }
@@ -54,8 +54,10 @@ model Patient {
 model Doctor {
   id                Int                     @id @default(autoincrement())
   userId            Int                     @unique
-  user              User                    @relation(fields: [userId], references: [id])
   specialtyId       Int
+  active            Boolean                 @default(true)
+
+  user              User                    @relation(fields: [userId], references: [id])
   specialty         MedicalSpecialty        @relation(fields: [specialtyId], references: [id])
   availabilities    DoctorAvailability[]
   overrides         DoctorScheduleOverride[]
@@ -68,7 +70,43 @@ model MedicalSpecialty {
   name                  String
   consultation_price    Decimal  @db.Decimal(12, 2)
   commission_percentage Decimal  @db.Decimal(5, 2) // Ej: 30.00 para la clínica
+  active                Boolean  @default(true)
+
   doctors               Doctor[]
+}
+
+model Consultation {
+  id             Int                 @id @default(autoincrement())
+  appointmentId  Int?                @unique
+  appointment    Appoinment?         @relation(fields: [appointmentId], references: [id])
+  patientId      Int
+  patient        Patient             @relation(fields: [patientId], references: [id])
+  doctorId       Int
+  doctor         Doctor              @relation(fields: [doctorId], references: [id])
+  date           DateTime            @default(now()) @db.Date
+  started_at     DateTime
+  finished_at    DateTime
+  symptoms       String?             @db.Text
+  diagnosis      String?             @db.Text
+  physical_exam  String?             @db.Text
+  supplies       SupplyConsultation[]
+  prescriptions  Prescription[]
+  invoice        Invoice?
+}
+
+model Prescription {
+  id              Int          @id @default(autoincrement())
+  consultationId  Int
+  productId       Int?
+  medication_name String?
+  dosage          String?
+  frequency       String?
+  duration        String?
+  instructions    String?      @db.Text
+  active          Boolean      @default(true)
+
+  consultation    Consultation @relation(fields: [consultationId], references: [id])
+  product         Product?     @relation(fields: [productId], references: [id])
 }
 
 // ==========================================
@@ -124,42 +162,6 @@ model DoctorScheduleOverride {
   start_time    DateTime? @db.Time
   end_time      DateTime? @db.Time
   reason        String?
-}
-
-// ==========================================
-// 📝 MÓDULO DE CONSULTA Y RECETAS
-// ==========================================
-
-model Consultation {
-  id             Int                 @id @default(autoincrement())
-  appointmentId  Int?                @unique
-  appointment    Appoinment?         @relation(fields: [appointmentId], references: [id])
-  patientId      Int
-  patient        Patient             @relation(fields: [patientId], references: [id])
-  doctorId       Int
-  doctor         Doctor              @relation(fields: [doctorId], references: [id])
-  date           DateTime            @default(now()) @db.Date
-  started_at     DateTime
-  finished_at    DateTime
-  symptoms       String?             @db.Text
-  diagnosis      String?             @db.Text
-  physical_exam  String?             @db.Text
-  supplies       SupplyConsultation[]
-  prescriptions  Prescription[]
-  invoice        Invoice?
-}
-
-model Prescription {
-  id              Int          @id @default(autoincrement())
-  consultationId  Int
-  consultation    Consultation @relation(fields: [consultationId], references: [id])
-  productId       Int?
-  product         Product?     @relation(fields: [productId], references: [id])
-  medication_name String?
-  dosage          String?
-  frequency       String?
-  duration        String?
-  instructions    String?      @db.Text
 }
 
 // ==========================================
