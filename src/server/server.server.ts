@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
 import { RoleRoute, UserRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
+import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 
 export class Server {
 
@@ -27,6 +28,11 @@ export class Server {
             doctors: `${this.prefix}/medical/doctor`,
             consultations: `${this.prefix}/medical/consultation`,
             prescriptions: `${this.prefix}/medical/prescription`,
+            appointmentStatuses: `${this.prefix}/scheduling/status-appointment`,
+            appointmentTypes: `${this.prefix}/scheduling/appointment-type`,
+            appointments: `${this.prefix}/scheduling/appointment`,
+            doctorAvailabilities: `${this.prefix}/scheduling/doctor-availability`,
+            doctorScheduleOverrides: `${this.prefix}/scheduling/doctor-schedule-override`,
         };
 
         this.dbConnection();
@@ -64,6 +70,12 @@ export class Server {
         this.app.use(this.paths.doctors, DoctorRoute);
         this.app.use(this.paths.consultations, ConsultationRoute);
         this.app.use(this.paths.prescriptions, PrescriptionRoute);
+
+        this.app.use(this.paths.appointmentStatuses, StatusAppointmentRoute);
+        this.app.use(this.paths.appointmentTypes, AppointmentTypeRoute);
+        this.app.use(this.paths.appointments, AppointmentRoute);
+        this.app.use(this.paths.doctorAvailabilities, DoctorAvailabilityRoute);
+        this.app.use(this.paths.doctorScheduleOverrides, DoctorScheduleOverrideRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);

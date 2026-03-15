@@ -1,0 +1,48 @@
+import { Router } from "express";
+import { handleValidationErrors } from "@/middlewares/validation.middleware";
+import { AppointmentController } from "./appointment.controller";
+import { AppointmentValidator } from "./appointment.validator";
+
+const appointmentRouter = Router();
+
+const controller = new AppointmentController();
+const validator = new AppointmentValidator();
+
+appointmentRouter.post(
+    "/",
+    validator.createAppointmentValidator,
+    handleValidationErrors,
+    controller.create
+);
+
+appointmentRouter.get(
+    "/",
+    controller.findAll
+);
+
+appointmentRouter.get(
+    "/:id",
+    validator.IdParamValidator,
+    validator.AppointmentExistsValidator,
+    handleValidationErrors,
+    controller.findOne
+);
+
+appointmentRouter.put(
+    "/:id",
+    validator.IdParamValidator,
+    validator.AppointmentExistsValidator,
+    validator.updateAppointmentValidator,
+    handleValidationErrors,
+    controller.update
+);
+
+appointmentRouter.delete(
+    "/:id",
+    validator.IdParamValidator,
+    validator.AppointmentExistsValidator,
+    handleValidationErrors,
+    controller.delete
+);
+
+export const AppointmentRoute = appointmentRouter;

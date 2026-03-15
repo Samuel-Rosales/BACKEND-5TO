@@ -22,7 +22,7 @@ export class PrescriptionValidator {
             .custom(async (value) => {
                 const product = await prisma.product.findUnique({ where: { id: Number(value) } });
 
-                if (!product || !product.is_active) {
+                if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
                 }
             }),
@@ -87,7 +87,7 @@ export class PrescriptionValidator {
             .custom(async (value) => {
                 const product = await prisma.product.findUnique({ where: { id: Number(value) } });
 
-                if (!product || !product.is_active) {
+                if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
                 }
             }),
