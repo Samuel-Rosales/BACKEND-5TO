@@ -3,7 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
 import { RoleRoute, UserRoute } from '@/modules/auth';
-import { MedicalSpecialtyRoute } from '@/modules/medical';
+import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
 
 export class Server {
 
@@ -23,6 +23,10 @@ export class Server {
             users: `${this.prefix}/auth/user`,
             procducts: `${this.prefix}/inventory/product`,
             medicalSpecialties: `${this.prefix}/medical/specialty`,
+            patients: `${this.prefix}/medical/patient`,
+            doctors: `${this.prefix}/medical/doctor`,
+            consultations: `${this.prefix}/medical/consultation`,
+            prescriptions: `${this.prefix}/medical/prescription`,
         };
 
         this.dbConnection();
@@ -56,6 +60,10 @@ export class Server {
         this.app.use(this.paths.roles, RoleRoute);
         this.app.use(this.paths.users, UserRoute);
         this.app.use(this.paths.medicalSpecialties, MedicalSpecialtyRoute);
+        this.app.use(this.paths.patients, PatientRoute);
+        this.app.use(this.paths.doctors, DoctorRoute);
+        this.app.use(this.paths.consultations, ConsultationRoute);
+        this.app.use(this.paths.prescriptions, PrescriptionRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);
