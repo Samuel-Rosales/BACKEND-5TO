@@ -5,6 +5,7 @@ import { stream, connectDB } from '@/configs';
 import { RoleRoute, UserRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
+import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 
 export class Server {
 
@@ -33,6 +34,9 @@ export class Server {
             appointments: `${this.prefix}/scheduling/appointment`,
             doctorAvailabilities: `${this.prefix}/scheduling/doctor-availability`,
             doctorScheduleOverrides: `${this.prefix}/scheduling/doctor-schedule-override`,
+            expenseCategories: `${this.prefix}/expenses/category`,
+            invoiceExpenses: `${this.prefix}/expenses/invoice-expense`,
+            expensePayments: `${this.prefix}/expenses/expense-payment`,
         };
 
         this.dbConnection();
@@ -76,6 +80,10 @@ export class Server {
         this.app.use(this.paths.appointments, AppointmentRoute);
         this.app.use(this.paths.doctorAvailabilities, DoctorAvailabilityRoute);
         this.app.use(this.paths.doctorScheduleOverrides, DoctorScheduleOverrideRoute);
+
+        this.app.use(this.paths.expenseCategories, ExpenseCategoryRoute);
+        this.app.use(this.paths.invoiceExpenses, InvoiceExpenseRoute);
+        this.app.use(this.paths.expensePayments, ExpensePaymentRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);
