@@ -236,7 +236,6 @@ model Tax {
   invoiceDetails InvoiceDetail[]
 }
 
-
 model PaymentMethod {
   id              Int              @id @default(autoincrement())
   name            String
@@ -248,7 +247,7 @@ model PaymentMethod {
 }
 
 // ==========================================
-// 📦 MÓDULO DE INVENTARIO Y COMPRAS
+// 📦 MÓDULO DE INVENTARIO
 // ==========================================
 
 model Product {

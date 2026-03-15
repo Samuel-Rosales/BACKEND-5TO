@@ -6,6 +6,7 @@ import { RoleRoute, UserRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
+import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute } from '@/modules/inventory';
 
 export class Server {
 
@@ -37,6 +38,11 @@ export class Server {
             expenseCategories: `${this.prefix}/expenses/category`,
             invoiceExpenses: `${this.prefix}/expenses/invoice-expense`,
             expensePayments: `${this.prefix}/expenses/expense-payment`,
+            inventoryCategories: `${this.prefix}/inventory/category`,
+            measurementUnits: `${this.prefix}/inventory/measurement-unit`,
+            stockLots: `${this.prefix}/inventory/stock-lot`,
+            stockMovements: `${this.prefix}/inventory/stock-movement`,
+            supplyConsultations: `${this.prefix}/inventory/supply-consultation`,
         };
 
         this.dbConnection();
@@ -69,6 +75,12 @@ export class Server {
 
         this.app.use(this.paths.roles, RoleRoute);
         this.app.use(this.paths.users, UserRoute);
+        this.app.use(this.paths.procducts, ProductRoute);
+        this.app.use(this.paths.inventoryCategories, CategoryRoute);
+        this.app.use(this.paths.measurementUnits, MeasurementUnitRoute);
+        this.app.use(this.paths.stockLots, StockLotRoute);
+        this.app.use(this.paths.stockMovements, StockMovementRoute);
+        this.app.use(this.paths.supplyConsultations, SupplyConsultationRoute);
         this.app.use(this.paths.medicalSpecialties, MedicalSpecialtyRoute);
         this.app.use(this.paths.patients, PatientRoute);
         this.app.use(this.paths.doctors, DoctorRoute);
