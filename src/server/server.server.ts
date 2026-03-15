@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
+import { RoleRoute } from '@/modules/auth';
 
 export class Server {
 
@@ -17,7 +18,9 @@ export class Server {
         this.apiUrl = process.env.API_URL || `http://localhost:${this.apiPort}`;
         this.prefix = '/api/v1';
         this.paths = {
-            users: `${this.prefix}/aim/user`,
+            roles: `${this.prefix}/auth/role`,
+            users: `${this.prefix}/auth/user`,
+            procducts: `${this.prefix}/inventory/product`,
         };
 
         this.dbConnection();
@@ -48,7 +51,7 @@ export class Server {
             res.status(200).send('OK');
         });
 
-        // this.app.use(this.paths.users, UserRoute);
+        this.app.use(this.paths.roles, RoleRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);
