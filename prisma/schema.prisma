@@ -16,6 +16,7 @@ model Role {
   name    String @unique
   code    String @unique
   active  Boolean @default(true)
+
   users User[]
 }
 
@@ -25,6 +26,8 @@ model User {
   name     String
   password String
   roleId   Int
+  active   Boolean  @default(true)
+
   role     Role     @relation(fields: [roleId], references: [id])
   doctor   Doctor?
   patient  Patient?
@@ -42,6 +45,8 @@ model Patient {
   user            User?          @relation(fields: [userId], references: [id])
   tipo_sangre     String?        @db.Text
   medical_history String?        @db.Text
+  active          Boolean        @default(true)
+  
   appointments    Appoinment[]
   consultations   Consultation[]
 }

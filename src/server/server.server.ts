@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
-import { RoleRoute } from '@/modules/auth';
+import { RoleRoute, UserRoute } from '@/modules/auth';
 
 export class Server {
 
@@ -52,6 +52,7 @@ export class Server {
         });
 
         this.app.use(this.paths.roles, RoleRoute);
+        this.app.use(this.paths.users, UserRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);
