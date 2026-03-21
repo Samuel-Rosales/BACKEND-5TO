@@ -24,7 +24,7 @@ model User {
   id       Int      @id @default(autoincrement())
   ci       String   @unique
   name     String
-  password String
+  password String   @db.VarChar(255)
   roleId   Int
   active   Boolean  @default(true)
 
@@ -91,6 +91,9 @@ model Consultation {
   physical_exam  String?             @db.Text
   supplies       SupplyConsultation[]
   prescriptions  Prescription[]
+  symptomsConsultas     SymptomsConsultas[]
+  clinicalExaminations  ClinicalExamination[]
+  consultationDiagnoses ConsultationDiagnosis[]
   invoice        Invoice?
 }
 
@@ -107,6 +110,64 @@ model Prescription {
 
   consultation    Consultation @relation(fields: [consultationId], references: [id])
   product         Product?     @relation(fields: [productId], references: [id])
+}
+
+model Symptoms {
+  id   Int    @id @default(autoincrement())
+  name String @db.Text
+
+  consultations SymptomsConsultas[]
+}
+
+model SymptomsConsultas {
+  id              Int      @id @default(autoincrement())
+  symptoms_id     Int
+  consultation_id Int
+  severity        String   @db.VarChar(50)
+  duration        String   @db.VarChar(100)
+  notes           String?  @db.Text
+  created_at      DateTime @default(now())
+
+  symptom      Symptoms     @relation(fields: [symptoms_id], references: [id])
+  consultation Consultation @relation(fields: [consultation_id], references: [id])
+}
+
+model ClinicalExamination {
+  id                Int       @id @default(autoincrement())
+  consultation_id   Int
+  weight            Decimal?  @db.Decimal(10, 2)
+  height            Decimal?  @db.Decimal(10, 2)
+  temperature       Decimal?  @db.Decimal(10, 2)
+  systolic_bp       Int?
+  diastolic_bp      Int?
+  heart_rate        Int?
+  respiratory_rate  Int?
+  oxygen_saturation Decimal?  @db.Decimal(10, 2)
+  created_at        DateTime  @default(now())
+
+  consultation Consultation @relation(fields: [consultation_id], references: [id])
+}
+
+model Diagnosis {
+  id          Int    @id @default(autoincrement())
+  code        String @unique @db.VarChar(20)
+  description String @db.Text
+  category    String @db.VarChar(255)
+
+  consultations ConsultationDiagnosis[]
+}
+
+model ConsultationDiagnosis {
+  id               Int       @id @default(autoincrement())
+  consultation_id  Int
+  diagnosisId      Int
+  is_primary       Boolean
+  condition_status String?   @db.VarChar(50)
+  onset_date       DateTime? @db.Date
+  created_at       DateTime  @default(now())
+
+  consultation Consultation @relation(fields: [consultation_id], references: [id])
+  diagnosis     Diagnosis   @relation(fields: [diagnosisId], references: [id])
 }
 
 // ==========================================
@@ -232,6 +293,7 @@ model Tax {
   id             Int             @id @default(autoincrement())
   name           String
   rate           Decimal         @db.Decimal(5, 2)
+  code           String?
   isActive       Boolean         @default(true)
   invoiceDetails InvoiceDetail[]
 }
@@ -241,6 +303,7 @@ model PaymentMethod {
   name            String
   type            String           // Cash, Transfer, etc.
   currency        String           // USD, VES
+  is_active       Boolean          @default(true)
   invoicePayments InvoicePayment[]
   expensePayments ExpensePayment[]
   purchasePayments PurchasePayment[]
@@ -255,9 +318,12 @@ model Product {
   name               String
   sku                String?              @unique
   description        String?
+  image_url          String?
   cost_price         Decimal              @db.Decimal(12, 2)
   min_stock          Int                  @default(0)
+  is_perishable      Boolean              @default(false)
   active             Boolean              @default(true)
+  type               String?
   categoryId         Int
   category           Category             @relation(fields: [categoryId], references: [id])
   unitId             Int
@@ -281,6 +347,7 @@ model MeasurementUnit {
   id       Int       @id @default(autoincrement())
   name     String
   symbol   String
+  is_active Boolean  @default(true)
   products Product[]
 }
 
@@ -364,10 +431,18 @@ model Purchase {
   supplier       Supplier       @relation(fields: [supplierId], references: [id])
   userId         Int
   user           User           @relation(fields: [userId], references: [id])
-  total_cost     Decimal        @db.Decimal(12, 2)
+  
+  status         String?
   exchangeRateId Int
   exchangeRate   ExchangeRate   @relation(fields: [exchangeRateId], references: [id])
+  reference      String?
+  observation    String?
   date           DateTime       @default(now())
+  conditions     String?
+  payment_status Int?
+  remaining_balance Decimal?    @db.Decimal(12, 2)
+  payment_due_date DateTime?
+  discount       Decimal?       @db.Decimal(12, 2)
   items          PurchaseItem[]
   payments       PurchasePayment[]
 }
@@ -380,6 +455,7 @@ model PurchaseItem {
   product    Product  @relation(fields: [productId], references: [id])
   quantity   Int
   unit_cost  Decimal  @db.Decimal(12, 2)
+  expiration_date DateTime? @db.Date
 }
 
 model PurchasePayment {
@@ -389,6 +465,9 @@ model PurchasePayment {
   paymentMethodId Int
   paymentMethod    PaymentMethod @relation(fields: [paymentMethodId], references: [id])
   amount          Decimal       @db.Decimal(12, 2)
+  currency        String?
+  reference       String?
+  payment_date    DateTime?
 }
 
 model Supplier {
