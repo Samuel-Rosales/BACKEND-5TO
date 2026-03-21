@@ -431,7 +431,7 @@ model Purchase {
   supplier       Supplier       @relation(fields: [supplierId], references: [id])
   userId         Int
   user           User           @relation(fields: [userId], references: [id])
-  
+
   status         String?
   exchangeRateId Int
   exchangeRate   ExchangeRate   @relation(fields: [exchangeRateId], references: [id])
@@ -459,12 +459,12 @@ model PurchaseItem {
 }
 
 model PurchasePayment {
-  id              Int           @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   purchaseId      Int
-  purchase        Purchase      @relation(fields: [purchaseId], references: [id])
+  purchase        Purchase       @relation(fields: [purchaseId], references: [id])
   paymentMethodId Int
   paymentMethod    PaymentMethod @relation(fields: [paymentMethodId], references: [id])
-  amount          Decimal       @db.Decimal(12, 2)
+  amount          Decimal        @db.Decimal(12, 2)
   currency        String?
   reference       String?
   payment_date    DateTime?
