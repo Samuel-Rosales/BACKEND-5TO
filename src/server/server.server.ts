@@ -7,6 +7,7 @@ import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, Pr
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute } from '@/modules/inventory';
+import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 
 export class Server {
 
@@ -43,6 +44,13 @@ export class Server {
             stockLots: `${this.prefix}/inventory/stock-lot`,
             stockMovements: `${this.prefix}/inventory/stock-movement`,
             supplyConsultations: `${this.prefix}/inventory/supply-consultation`,
+
+            exchangeRates: `${this.prefix}/finance/exchange-rate`,
+            taxes: `${this.prefix}/finance/tax`,
+            paymentMethods: `${this.prefix}/finance/payment-method`,
+            invoiceStatuses: `${this.prefix}/finance/status-invoice`,
+            invoices: `${this.prefix}/finance/invoice`,
+            invoicePayments: `${this.prefix}/finance/invoice-payment`,
         };
 
         this.dbConnection();
@@ -96,6 +104,13 @@ export class Server {
         this.app.use(this.paths.expenseCategories, ExpenseCategoryRoute);
         this.app.use(this.paths.invoiceExpenses, InvoiceExpenseRoute);
         this.app.use(this.paths.expensePayments, ExpensePaymentRoute);
+
+        this.app.use(this.paths.exchangeRates, ExchangeRateRoute);
+        this.app.use(this.paths.taxes, TaxRoute);
+        this.app.use(this.paths.paymentMethods, PaymentMethodRoute);
+        this.app.use(this.paths.invoiceStatuses, StatusInvoiceRoute);
+        this.app.use(this.paths.invoices, InvoiceRoute);
+        this.app.use(this.paths.invoicePayments, InvoicePaymentRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);

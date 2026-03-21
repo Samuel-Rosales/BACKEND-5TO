@@ -26,6 +26,9 @@
     "prisma:migrate": "npx prisma migrate",
     "db:reset": "prisma migrate reset"
   },
+  "prisma": {
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
+  },
   "dependencies": {
     "@nestjs/common": "^11.1.11",
     "@prisma/adapter-pg": "^7.2.0",
@@ -55,6 +58,7 @@
     "@types/pg": "8.11.11",
     "dotenv": "^17.3.1",
     "nodemon": "^3.1.11",
+    "pdf-parse": "^1.1.1",
     "prisma": "^7.5.0",
     "prisma-erd-generator": "^2.4.2",
     "ts-node": "^10.9.2",

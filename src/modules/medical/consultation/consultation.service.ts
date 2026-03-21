@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
 import { CreateConsultationDto, UpdateConsultationDto } from "./consultation.interface";
+import { InvoiceService } from "@/modules/finance/invoice/invoice.service";
 
 const consultationSelect = {
     id: true,
@@ -50,6 +51,8 @@ const consultationSelect = {
 } as const;
 
 export class ConsultationService {
+
+    private invoiceService = new InvoiceService();
 
     async create(data: CreateConsultationDto) {
         try {
@@ -142,6 +145,11 @@ export class ConsultationService {
 
     async update(id: number, data: UpdateConsultationDto) {
         try {
+            const before = await prisma.consultation.findUnique({
+                where: { id },
+                select: { finished_at: true },
+            });
+
             const consultation = await prisma.consultation.update({
                 where: { id },
                 data,
@@ -150,6 +158,28 @@ export class ConsultationService {
 
             if (!consultation) {
                 throw new Error("Error actualizando la consulta");
+            }
+
+            const wasFinished = Boolean(before?.finished_at);
+            const isNowFinished = Boolean(consultation.finished_at);
+
+            if (!wasFinished && isNowFinished) {
+                try {
+                    const existingInvoice = await prisma.invoice.findUnique({
+                        where: { consultationId: id },
+                        select: { id: true },
+                    });
+
+                    if (!existingInvoice) {
+                        const result = await this.invoiceService.create({ consultationId: id });
+
+                        if (result.status !== 201) {
+                            console.warn("No se pudo generar la factura automáticamente:", result.error ?? result.message);
+                        }
+                    }
+                } catch (invoiceError) {
+                    console.warn("Error generando la factura automáticamente:", invoiceError);
+                }
             }
 
             return {
