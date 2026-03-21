@@ -145,41 +145,38 @@ export class ConsultationService {
 
     async update(id: number, data: UpdateConsultationDto) {
         try {
-            const before = await prisma.consultation.findUnique({
-                where: { id },
-                select: { finished_at: true },
-            });
+            const consultation = await prisma.$transaction(async (tx) => {
+                const before = await tx.consultation.findUnique({
+                    where: { id },
+                    select: { finished_at: true },
+                });
 
-            const consultation = await prisma.consultation.update({
-                where: { id },
-                data,
-                select: consultationSelect,
-            });
+                const updated = await tx.consultation.update({
+                    where: { id },
+                    data,
+                    select: consultationSelect,
+                });
 
-            if (!consultation) {
-                throw new Error("Error actualizando la consulta");
-            }
+                const wasFinished = Boolean(before?.finished_at);
+                const isNowFinished = Boolean(updated.finished_at);
 
-            const wasFinished = Boolean(before?.finished_at);
-            const isNowFinished = Boolean(consultation.finished_at);
-
-            if (!wasFinished && isNowFinished) {
-                try {
-                    const existingInvoice = await prisma.invoice.findUnique({
+                if (!wasFinished && isNowFinished) {
+                    const existingInvoice = await tx.invoice.findUnique({
                         where: { consultationId: id },
                         select: { id: true },
                     });
 
                     if (!existingInvoice) {
-                        const result = await this.invoiceService.create({ consultationId: id });
-
-                        if (result.status !== 201) {
-                            console.warn("No se pudo generar la factura automáticamente:", result.error ?? result.message);
-                        }
+                        const strictInvoiceService = new InvoiceService(tx);
+                        await strictInvoiceService.createStrict({ consultationId: id });
                     }
-                } catch (invoiceError) {
-                    console.warn("Error generando la factura automáticamente:", invoiceError);
                 }
+
+                return updated;
+            });
+
+            if (!consultation) {
+                throw new Error("Error actualizando la consulta");
             }
 
             return {
@@ -192,7 +189,7 @@ export class ConsultationService {
 
             return {
                 status: 500,
-                message: "Error interno al actualizar la consulta",
+                message: "Error interno al actualizar la consulta (no se pudo generar la factura al finalizar)",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }

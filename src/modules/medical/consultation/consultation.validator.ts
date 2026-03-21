@@ -59,6 +59,7 @@ export class ConsultationValidator {
             }),
 
         body("started_at")
+            .optional()
             .custom((value) => {
                 if (!isValidDateString(value)) {
                     throw new Error("started_at debe ser una fecha válida (ISO)");
@@ -68,6 +69,7 @@ export class ConsultationValidator {
             }),
 
         body("finished_at")
+            .optional()
             .custom((value, { req }) => {
                 if (!isValidDateString(value)) {
                     throw new Error("finished_at debe ser una fecha válida (ISO)");

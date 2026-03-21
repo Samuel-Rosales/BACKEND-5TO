@@ -84,8 +84,8 @@ model Consultation {
   doctorId       Int
   doctor         Doctor              @relation(fields: [doctorId], references: [id])
   date           DateTime            @default(now()) @db.Date
-  started_at     DateTime
-  finished_at    DateTime
+  started_at     DateTime            @default(now())
+  finished_at    DateTime?
   symptoms       String?             @db.Text
   diagnosis      String?             @db.Text
   physical_exam  String?             @db.Text
@@ -335,6 +335,22 @@ model Product {
   invoiceDetails     InvoiceDetail[]
   purchaseItems      PurchaseItem[]
   prescriptions      Prescription[]
+  presentations     ProductPresentation[]
+}
+
+model ProductPresentation {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  name      String // "Caja x12"
+  factor    Decimal @db.Decimal(18, 6)
+  barCode   String?
+  price     Decimal @db.Decimal(15, 2)
+
+  isActive Boolean @default(true) // <--- NUEVO: Para Soft Delete
+
+  product Product @relation(fields: [productId], references: [id])
+
+  // Relaciones necesarias para verificar uso (Asumiendo que actualizas tus items)
 }
 
 model Category {
