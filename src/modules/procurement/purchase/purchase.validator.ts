@@ -52,12 +52,6 @@ export class PurchaseValidator {
             .isLength({ min: 1, max: 5000 })
             .withMessage("observation debe tener entre 1 y 5000 caracteres"),
 
-        body("conditions")
-            .optional()
-            .trim()
-            .isLength({ min: 1, max: 5000 })
-            .withMessage("conditions debe tener entre 1 y 5000 caracteres"),
-
         body("discount")
             .optional()
             .isFloat({ min: 0 })
@@ -136,12 +130,6 @@ export class PurchaseValidator {
             .trim()
             .isLength({ min: 1, max: 5000 })
             .withMessage("observation debe tener entre 1 y 5000 caracteres"),
-
-        body("conditions")
-            .optional()
-            .trim()
-            .isLength({ min: 1, max: 5000 })
-            .withMessage("conditions debe tener entre 1 y 5000 caracteres"),
 
         body("discount")
             .optional()

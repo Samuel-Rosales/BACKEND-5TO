@@ -454,7 +454,6 @@ model Purchase {
   reference      String?
   observation    String?
   date           DateTime       @default(now())
-  conditions     String?
   discount       Decimal?       @db.Decimal(12, 2)
   items          PurchaseItem[]
   payments       PurchasePayment[]

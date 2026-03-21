@@ -12,7 +12,6 @@ export interface CreatePurchaseDto {
     status?: string;
     reference?: string;
     observation?: string;
-    conditions?: string;
     discount?: string | number;
     items: CreatePurchaseItemDto[];
 }
@@ -24,6 +23,5 @@ export interface UpdatePurchaseDto {
     status?: string;
     reference?: string;
     observation?: string;
-    conditions?: string;
     discount?: string | number;
 }

@@ -25,7 +25,6 @@ const purchaseSelect = {
     reference: true,
     observation: true,
     date: true,
-    conditions: true,
     discount: true,
     supplier: {
         select: {
@@ -99,7 +98,6 @@ export class PurchaseService {
                         status: data.status,
                         reference: data.reference,
                         observation: data.observation,
-                        conditions: data.conditions,
                         discount: data.discount as any,
                         items: {
                             create: data.items.map((i) => ({
