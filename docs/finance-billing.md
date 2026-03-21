@@ -91,7 +91,10 @@ Regla:
 ```bash
 curl -X POST http://localhost:3000/api/v1/finance/exchange-rate \
   -H "Content-Type: application/json" \
-  -d '{"rate": 38.5, "is_active": true}'
+  -d '{
+    "rate": 38.5,
+    "is_active": true
+  }'
 ```
 
 ### 4.2 Tax
@@ -148,7 +151,9 @@ Si no envías `details`, se auto-generan como se explicó en 2.2.
 ```bash
 curl -X POST http://localhost:3000/api/v1/finance/invoice \
   -H "Content-Type: application/json" \
-  -d '{"consultationId": 10}'
+  -d '{
+    "consultationId": 10
+  }'
 ```
 
 ### 4.6 Invoice Payment
@@ -162,7 +167,12 @@ curl -X POST http://localhost:3000/api/v1/finance/invoice \
 ```bash
 curl -X POST http://localhost:3000/api/v1/finance/invoice-payment \
   -H "Content-Type: application/json" \
-  -d '{"invoiceId": 1, "paymentMethodId": 1, "currencyId": 1, "amount_paid": 100}'
+  -d '{
+    "invoiceId": 1,
+    "paymentMethodId": 1,
+    "currencyId": 1,
+    "amount_paid": 100
+  }'
 ```
 
 ## 5) Pre-requisitos (para que el flujo no falle)
