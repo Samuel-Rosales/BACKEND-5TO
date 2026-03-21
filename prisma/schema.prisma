@@ -455,9 +455,6 @@ model Purchase {
   observation    String?
   date           DateTime       @default(now())
   conditions     String?
-  payment_status Int?
-  remaining_balance Decimal?    @db.Decimal(12, 2)
-  payment_due_date DateTime?
   discount       Decimal?       @db.Decimal(12, 2)
   items          PurchaseItem[]
   payments       PurchasePayment[]

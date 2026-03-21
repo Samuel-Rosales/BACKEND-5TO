@@ -8,6 +8,7 @@ import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, Doctor
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute } from '@/modules/inventory';
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
+import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 
 export class Server {
 
@@ -51,6 +52,10 @@ export class Server {
             invoiceStatuses: `${this.prefix}/finance/status-invoice`,
             invoices: `${this.prefix}/finance/invoice`,
             invoicePayments: `${this.prefix}/finance/invoice-payment`,
+
+            suppliers: `${this.prefix}/procurement/supplier`,
+            purchases: `${this.prefix}/procurement/purchase`,
+            purchasePayments: `${this.prefix}/procurement/purchase-payment`,
         };
 
         this.dbConnection();
@@ -111,6 +116,10 @@ export class Server {
         this.app.use(this.paths.invoiceStatuses, StatusInvoiceRoute);
         this.app.use(this.paths.invoices, InvoiceRoute);
         this.app.use(this.paths.invoicePayments, InvoicePaymentRoute);
+
+        this.app.use(this.paths.suppliers, SupplierRoute);
+        this.app.use(this.paths.purchases, PurchaseRoute);
+        this.app.use(this.paths.purchasePayments, PurchasePaymentRoute);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);
