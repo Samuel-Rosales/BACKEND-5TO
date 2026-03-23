@@ -33,7 +33,7 @@ Response (201) (ejemplo, resumen):
     "active": true,
     "user": {
       "id": 21,
-      "ci": "V-123",
+      "ci": "30000000",
       "name": "Paciente",
       "roleId": 2,
       "active": true,

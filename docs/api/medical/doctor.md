@@ -24,7 +24,7 @@ Response (201) (ejemplo, resumen):
     "id": 3,
     "userId": 12,
     "specialtyId": 1,
-    "user": { "id": 12, "ci": "V-456", "name": "Doctor", "roleId": 3, "active": true, "role": { "id": 3, "name": "Doctor", "code": "DOCTOR" } },
+    "user": { "id": 12, "ci": "20000000", "name": "Doctor", "roleId": 3, "active": true, "role": { "id": 3, "name": "Doctor", "code": "DOCTOR" } },
     "specialty": { "id": 1, "name": "Medicina General", "consultation_price": "50", "commission_percentage": "30" }
   }
 }

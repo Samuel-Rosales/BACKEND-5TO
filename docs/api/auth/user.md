@@ -6,7 +6,7 @@ Base URL: `/api/v1/auth/user`
 
 Body (JSON):
 
-- `ci` (string, **requerido**, 2..20, alfanumérico y `-`)
+- `ci` (string, **requerido**, 6..9, solo números)
 - `name` (string, **requerido**, 2..100)
 - `password` (string, **requerido**, 6..200)
 - `roleId` (int > 0, **requerido**, debe existir y estar activo)
@@ -15,7 +15,7 @@ Request (JSON):
 
 ```json
 {
-  "ci": "V-123",
+  "ci": "12345678",
   "name": "Juan Pérez",
   "password": "123456",
   "roleId": 1
@@ -29,7 +29,7 @@ Response (201) (ejemplo):
   "message": "Usuario creado éxitosamente",
   "data": {
     "id": 1,
-    "ci": "V-123",
+    "ci": "12345678",
     "name": "Juan Pérez",
     "roleId": 1,
     "active": true,
@@ -50,7 +50,7 @@ Response (200):
   "data": [
     {
       "id": 1,
-      "ci": "V-123",
+      "ci": "12345678",
       "name": "Juan Pérez",
       "roleId": 1,
       "active": true,
@@ -73,7 +73,7 @@ Response (200) (ejemplo):
   "message": "Usuario encontrado éxitosamente",
   "data": {
     "id": 1,
-    "ci": "V-123",
+    "ci": "12345678",
     "name": "Juan Pérez",
     "roleId": 1,
     "active": true,
@@ -90,7 +90,7 @@ Params:
 
 Body (JSON):
 
-- `ci` (string, 2..20)
+- `ci` (string, 6..9, solo números)
 - `name` (string, 2..100)
 - `password` (string, 6..200) → se re-hashea.
 - `roleId` (int > 0, debe existir y estar activo)
@@ -111,7 +111,7 @@ Response (200):
   "message": "Usuario actualizado éxitosamente",
   "data": {
     "id": 1,
-    "ci": "V-123",
+    "ci": "12345678",
     "name": "Juan P.",
     "roleId": 1,
     "active": true,
@@ -131,7 +131,7 @@ Response (200):
   "message": "Usuario eliminado éxitosamente",
   "data": {
     "id": 1,
-    "ci": "V-123",
+    "ci": "12345678",
     "name": "Juan P.",
     "roleId": 1,
     "active": false,

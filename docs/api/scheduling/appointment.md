@@ -45,8 +45,8 @@ Response (201) (ejemplo, resumen):
     "price": "50",
     "start_datetime": "2026-03-23T14:00:00.000Z",
     "end_datetime": "2026-03-23T14:30:00.000Z",
-    "doctor": { "id": 3, "userId": 12, "specialtyId": 1, "active": true, "user": { "id": 12, "ci": "V-456", "name": "Doctor" }, "specialty": { "id": 1, "name": "Medicina General", "active": true } },
-    "patient": { "id": 4, "userId": 21, "active": true, "user": { "id": 21, "ci": "V-123", "name": "Paciente" } },
+    "doctor": { "id": 3, "userId": 12, "specialtyId": 1, "active": true, "user": { "id": 12, "ci": "20000000", "name": "Doctor" }, "specialty": { "id": 1, "name": "Medicina General", "active": true } },
+    "patient": { "id": 4, "userId": 21, "active": true, "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
     "status": { "id": 1, "name": "Pendiente", "color_hex": "#F59E0B" },
     "type": { "id": 1, "name": "Consulta" }
   }

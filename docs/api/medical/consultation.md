@@ -46,8 +46,8 @@ Response (201) (ejemplo, resumen):
     "symptoms": "Dolor de cabeza",
     "diagnosis": "Cefalea",
     "physical_exam": "Sin hallazgos",
-    "patient": { "id": 4, "userId": 21, "tipo_sangre": "O+", "active": true, "user": { "id": 21, "ci": "V-123", "name": "Paciente" } },
-    "doctor": { "id": 3, "userId": 12, "specialtyId": 1, "user": { "id": 12, "ci": "V-456", "name": "Doctor" }, "specialty": { "id": 1, "name": "Medicina General" } }
+    "patient": { "id": 4, "userId": 21, "tipo_sangre": "O+", "active": true, "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
+    "doctor": { "id": 3, "userId": 12, "specialtyId": 1, "user": { "id": 12, "ci": "20000000", "name": "Doctor" }, "specialty": { "id": 1, "name": "Medicina General" } }
   }
 }
 ```

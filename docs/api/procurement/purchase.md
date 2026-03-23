@@ -60,7 +60,7 @@ Response (201) (ejemplo, resumen):
     "date": "2026-03-23T12:00:00.000Z",
     "discount": "0",
     "supplier": { "id": 1, "name": "Proveedor A", "contact": "María", "phone": "+58-000-0000" },
-    "user": { "id": 1, "ci": "V-1", "name": "Admin", "roleId": 1, "active": true },
+    "user": { "id": 1, "ci": "10000000", "name": "Admin", "roleId": 1, "active": true },
     "exchangeRate": { "id": 1, "rate": "38.5", "createdAt": "2026-03-23T12:00:00.000Z", "is_active": true },
     "items": [
       {

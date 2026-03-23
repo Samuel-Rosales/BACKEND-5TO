@@ -6,10 +6,10 @@ export class UserValidator {
     public createUserValidator: ValidationChain[] = [
         body("ci")
             .trim()
-            .isLength({ min: 2, max: 20 })
-            .withMessage("La cédula debe tener entre 2 y 20 caracteres")
-            .matches(/^[a-zA-Z0-9\-]+$/)
-            .withMessage("La cédula solo puede contener letras, números y guiones"),
+            .isLength({ min: 6, max: 9 })
+            .withMessage("La cédula debe tener entre 6 y 9 numeros")
+            .matches(/^[0-9]+$/)
+            .withMessage("La cédula solo puede contener números"),
 
         body("name")
             .trim()
@@ -36,10 +36,10 @@ export class UserValidator {
         body("ci")
             .optional()
             .trim()
-            .isLength({ min: 2, max: 20 })
-            .withMessage("La cédula debe tener entre 2 y 20 caracteres")
-            .matches(/^[a-zA-Z0-9\-]+$/)
-            .withMessage("La cédula solo puede contener letras, números y guiones"),
+            .isLength({ min: 6, max: 9 })
+            .withMessage("La cédula debe tener entre 6 y 9 numeros")
+            .matches(/^[0-9]+$/)
+            .withMessage("La cédula solo puede contener números"),
 
         body("name")
             .optional()

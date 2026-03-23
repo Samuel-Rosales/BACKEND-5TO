@@ -66,10 +66,10 @@ Response (201) (resumen):
       "date": "2026-03-23T10:00:00.000Z",
       "started_at": null,
       "finished_at": null,
-      "patient": { "id": 4, "user": { "id": 21, "ci": "V-123", "name": "Paciente" } },
+      "patient": { "id": 4, "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
       "doctor": {
         "id": 3,
-        "user": { "id": 12, "ci": "V-456", "name": "Doctor" },
+        "user": { "id": 12, "ci": "20000000", "name": "Doctor" },
         "specialty": { "id": 1, "name": "Medicina", "consultation_price": "50", "commission_percentage": "30" }
       },
       "supplies": []

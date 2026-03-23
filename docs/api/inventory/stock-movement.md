@@ -44,7 +44,7 @@ Response (201) (ejemplo, resumen):
     "date": "2026-03-23T12:00:00.000Z",
     "product": { "id": 1, "name": "Paracetamol", "sku": "PARA-500", "active": true },
     "stockLot": { "id": 1, "productId": 1, "quantity": 10, "expiration_date": "2026-12-31T00:00:00.000Z", "lot_cost": "15", "createdAt": "2026-03-23T12:00:00.000Z" },
-    "user": { "id": 1, "ci": "V-1", "name": "Admin", "roleId": 1, "active": true }
+    "user": { "id": 1, "ci": "10000000", "name": "Admin", "roleId": 1, "active": true }
   }
 }
 ```

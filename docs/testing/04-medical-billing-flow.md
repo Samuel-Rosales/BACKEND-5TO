@@ -76,7 +76,7 @@ curl -X POST http://localhost:3000/api/v1/auth/role \
 curl -X POST http://localhost:3000/api/v1/auth/user \
   -H "Content-Type: application/json" \
   -d '{
-    "ci": "V-10000001",
+    "ci": "10000001",
     "name": "Dr Demo",
     "password": "123456",
     "roleId": 1
