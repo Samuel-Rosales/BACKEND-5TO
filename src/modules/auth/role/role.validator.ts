@@ -1,5 +1,5 @@
 import { prisma } from "@/configs";
-import { body, ValidationChain } from "express-validator";
+import { body, param, ValidationChain } from "express-validator";
 
 export class RoleValidator {
 
@@ -33,13 +33,13 @@ export class RoleValidator {
     ];
 
     public IdParamValidator: ValidationChain[] = [
-        body("id")
+        param("id")
             .isInt({ gt: 0 })
             .withMessage("El ID del rol debe ser un número entero positivo")
     ];
 
     public RoleExistsValidator: ValidationChain[] = [
-        body("id")
+        param("id")
             .custom(async (value) => {
                 const role = await prisma.role.findUnique({ where: { id: Number(value) } });
 

@@ -241,6 +241,8 @@ model Invoice {
   status          StatusInvoice    @relation(fields: [statusId], references: [id])
   details         InvoiceDetail[]
   payments        InvoicePayment[]
+
+  @@index([consultationId])
 }
 
 model StatusInvoice {
