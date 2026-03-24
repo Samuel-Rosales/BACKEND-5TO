@@ -1,3 +1,5 @@
+import { StatusPurchase } from "@prisma/client";
+
 export interface CreatePurchaseItemDto {
     productId: number;
     quantity: number;
@@ -9,7 +11,7 @@ export interface CreatePurchaseDto {
     supplierId: number;
     userId: number;
     exchangeRateId: number;
-    status?: string;
+    status: StatusPurchase;
     reference?: string;
     observation?: string;
     discount?: string | number;
@@ -20,7 +22,7 @@ export interface UpdatePurchaseDto {
     supplierId?: number;
     userId?: number;
     exchangeRateId?: number;
-    status?: string;
+    status?: StatusPurchase;
     reference?: string;
     observation?: string;
     discount?: string | number;

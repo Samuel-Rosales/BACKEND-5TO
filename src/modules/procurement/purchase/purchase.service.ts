@@ -90,6 +90,7 @@ export class PurchaseService {
             const reason = (purchaseId: number) => `PURCHASE:${purchaseId}`;
 
             const created = await prisma.$transaction(async (tx) => {
+
                 const purchase = await tx.purchase.create({
                     data: {
                         supplierId: data.supplierId,
@@ -98,7 +99,6 @@ export class PurchaseService {
                         status: data.status,
                         reference: data.reference,
                         observation: data.observation,
-                        discount: data.discount as any,
                         items: {
                             create: data.items.map((i) => ({
                                 productId: i.productId,
@@ -203,10 +203,7 @@ export class PurchaseService {
         try {
             const purchase = await prisma.purchase.update({
                 where: { id },
-                data: {
-                    ...data,
-                    discount: data.discount as any,
-                },
+                data,
                 select: purchaseSelect,
             });
 

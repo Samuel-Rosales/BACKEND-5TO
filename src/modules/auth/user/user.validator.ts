@@ -43,6 +43,7 @@ export class UserValidator {
 
         body("name")
             .optional()
+            .isString().withMessage("El nombre debe ser una cadena de texto")
             .trim()
             .isLength({ min: 2, max: 100 })
             .withMessage("El nombre debe tener entre 2 y 100 caracteres"),
