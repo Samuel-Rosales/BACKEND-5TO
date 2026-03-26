@@ -358,6 +358,8 @@ model ProductPresentation {
 model Category {
   id       Int       @id @default(autoincrement())
   name     String
+  active   Boolean   @default(true)
+
   products Product[]
 }
 
@@ -365,7 +367,8 @@ model MeasurementUnit {
   id        Int       @id @default(autoincrement())
   name      String
   symbol    String
-  is_active Boolean   @default(true)
+  active Boolean   @default(true)
+
   products  Product[]
 }
 

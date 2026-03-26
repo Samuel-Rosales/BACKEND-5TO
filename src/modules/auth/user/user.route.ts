@@ -2,11 +2,14 @@ import { Router } from "express";
 import { handleValidationErrors } from "@/middlewares/validation.middleware";
 import { UserController } from "./user.controller";
 import { UserValidator } from "./user.validator";
+import { authMiddleware } from "@/middlewares/auth.middleware";
 
 const userRouter = Router();
 
 const controller = new UserController();
 const validator = new UserValidator();
+
+userRouter.use(authMiddleware)
 
 userRouter.post(
     "/",

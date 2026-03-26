@@ -9,6 +9,7 @@ import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '
 import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute } from '@/modules/inventory';
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
+import { LoginRoute } from '@/modules/auth/login';
 
 export class Server {
 
@@ -26,6 +27,7 @@ export class Server {
         this.paths = {
             roles: `${this.prefix}/auth/role`,
             users: `${this.prefix}/auth/user`,
+            login: `${this.prefix}/auth/login`,
             procducts: `${this.prefix}/inventory/product`,
             medicalSpecialties: `${this.prefix}/medical/specialty`,
             patients: `${this.prefix}/medical/patient`,
@@ -87,7 +89,9 @@ export class Server {
         });
 
         this.app.use(this.paths.roles, RoleRoute);
-        this.app.use(this.paths.users, UserRoute);
+        this.app.use(this.paths.users, UserRoute);        
+        this.app.use(this.paths.login, LoginRoute);        
+
         this.app.use(this.paths.procducts, ProductRoute);
         this.app.use(this.paths.inventoryCategories, CategoryRoute);
         this.app.use(this.paths.measurementUnits, MeasurementUnitRoute);
