@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import * as bcrypt from "bcryptjs";
@@ -156,7 +156,6 @@ async function ensureAppointment(params: {
     typeId: number;
     price: number;
     start_datetime: Date;
-    end_datetime: Date;
     reson_visit?: string;
 }) {
     const existing = await prisma.appoinment.findFirst({
@@ -178,7 +177,6 @@ async function ensureAppointment(params: {
             typeId: params.typeId,
             price: params.price,
             start_datetime: params.start_datetime,
-            end_datetime: params.end_datetime,
             reson_visit: params.reson_visit,
         },
         select: { id: true },
@@ -205,7 +203,7 @@ async function ensureMeasurementUnit(params: { name: string; symbol: string }) {
     if (existing) return existing;
 
     return prisma.measurementUnit.create({
-        data: { name: params.name, symbol: params.symbol, is_active: true },
+        data: { name: params.name, symbol: params.symbol, active: true },
         select: { id: true },
     });
 }
@@ -272,10 +270,10 @@ async function ensureSeedPurchase(params: {
             data: {
                 supplierId: params.supplierId,
                 userId: params.userId,
+                status: "COMPLETED",
                 exchangeRateId: params.exchangeRateId,
                 reference: params.reference,
                 observation: "SEED: compra demo",
-                discount: 0,
                 items: {
                     create: params.items.map((i) => ({
                         productId: i.productId,
@@ -464,7 +462,6 @@ async function ensureDemoData() {
     const apPatients = [patient1, patient2, patient3, ...extraPatients.slice(0, 3)];
     for (let i = 0; i < apPatients.length; i++) {
         const start1 = new Date(baseDate.getTime() + i * 60 * 60 * 1000);
-        const end1 = new Date(start1.getTime() + 30 * 60 * 1000);
         await ensureAppointment({
             doctorId: doctor1.id,
             patientId: apPatients[i].id,
@@ -472,14 +469,12 @@ async function ensureDemoData() {
             typeId: typeConsulta.id,
             price: 20,
             start_datetime: start1,
-            end_datetime: end1,
             reson_visit: "SEED: cita demo",
         });
     }
 
     for (let i = 0; i < apPatients.length; i++) {
         const start2 = new Date(baseDate.getTime() + (i + 1) * 60 * 60 * 1000);
-        const end2 = new Date(start2.getTime() + 30 * 60 * 1000);
         await ensureAppointment({
             doctorId: doctor2.id,
             patientId: apPatients[i].id,
@@ -487,41 +482,82 @@ async function ensureDemoData() {
             typeId: typeControl.id,
             price: 25,
             start_datetime: start2,
-            end_datetime: end2,
             reson_visit: "SEED: control",
         });
     }
 
-    // 1 consulta demo sin finalizar (para que el equipo la finalice y genere factura)
+    const activeRate = await prisma.exchangeRate.findFirst({
+        where: { is_active: true },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, rate: true },
+    });
+    if (!activeRate) throw new Error("No existe ExchangeRate activa (seed finance debió crear una)");
+
+    // 1 consulta demo sin finalizar (modelo nuevo: Consultation -> invoiceId)
     const existingConsult = await prisma.consultation.findFirst({
         where: {
-            patientId: patient1.id,
             doctorId: doctor1.id,
             finished_at: null,
-            symptoms: { contains: "SEED:", mode: "insensitive" },
         },
-        select: { id: true },
+        select: { id: true, invoiceId: true },
     });
 
-    const consultation = existingConsult ?? await prisma.consultation.create({
-        data: {
-            patientId: patient1.id,
-            doctorId: doctor1.id,
-            symptoms: "SEED: dolor de cabeza",
-            diagnosis: "SEED: cefalea",
-            physical_exam: "SEED: sin hallazgos de alarma",
-        },
-        select: { id: true },
-    });
+    let consultationId: number;
+    if (existingConsult) {
+        consultationId = existingConsult.id;
+    } else {
+        const statusProforma = await prisma.statusInvoice.findFirst({
+            where: { name: { equals: "Proforma", mode: "insensitive" } },
+            select: { id: true },
+        });
+        if (!statusProforma) throw new Error('No existe StatusInvoice "Proforma"');
+
+        const defaultTax = await prisma.tax.findFirst({
+            where: {
+                OR: [
+                    { code: { equals: "IVA", mode: "insensitive" } },
+                    { name: { equals: "IVA", mode: "insensitive" } },
+                ],
+            },
+            select: { id: true },
+        });
+        if (!defaultTax) throw new Error('No existe Tax "IVA"');
+
+        const totalUsd = new Prisma.Decimal(20);
+        const totalBs = totalUsd.mul(activeRate.rate);
+
+        const invoice = await prisma.invoice.create({
+            data: {
+                patientId: patient1.id,
+                receptionistId: receptionUser.id,
+                exchangeRateId: activeRate.id,
+                statusId: statusProforma.id,
+                taxId: defaultTax.id,
+                total_usd: totalUsd,
+                total_bs: totalBs,
+            },
+            select: { id: true },
+        });
+
+        const consultation = await prisma.consultation.create({
+            data: {
+                doctorId: doctor1.id,
+                invoiceId: invoice.id,
+            },
+            select: { id: true },
+        });
+
+        consultationId = consultation.id;
+    }
 
     // Insumo consumido en consulta
     const existingSupply = await prisma.supplyConsultation.findFirst({
-        where: { consultationId: consultation.id, productId: prodGuantes.id },
+        where: { consultationId: consultationId, productId: prodGuantes.id },
         select: { id: true },
     });
     if (!existingSupply) {
         await prisma.supplyConsultation.create({
-            data: { consultationId: consultation.id, productId: prodGuantes.id, quantity: 2 },
+            data: { consultationId: consultationId, productId: prodGuantes.id, quantity: 2 },
             select: { id: true },
         });
     }
@@ -529,9 +565,6 @@ async function ensureDemoData() {
     // Procurement
     const supplier1 = await ensureSupplier({ name: "Proveedor Demo", contact: "Juan", phone: "0414-0000000" });
     const supplier2 = await ensureSupplier({ name: "Proveedor 2", contact: "María", phone: "0424-0000000" });
-
-    const activeRate = await prisma.exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" }, select: { id: true } });
-    if (!activeRate) throw new Error("No existe ExchangeRate activa (seed finance debió crear una)");
 
     // Compras demo para poblar stock lots/movements
     await ensureSeedPurchase({
@@ -560,7 +593,7 @@ async function ensureDemoData() {
         users: { admin: adminUser.id, doctor1: doctorUser1.id, doctor2: doctorUser2.id, reception: receptionUser.id },
         doctors: { doctor1: doctor1.id, doctor2: doctor2.id },
         patients: { patient1: patient1.id, patient2: patient2.id, patient3: patient3.id },
-        consultationId: consultation.id,
+        consultationId,
         suppliers: { supplier1: supplier1.id, supplier2: supplier2.id },
         products: { guantes: prodGuantes.id, jeringa: prodJeringa.id, paracetamol: prodParacetamol.id },
         specialties: { mg: specMG.id, pedi: specPedi.id, cardio: specCardio.id },
