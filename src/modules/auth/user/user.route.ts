@@ -9,7 +9,7 @@ const userRouter = Router();
 const controller = new UserController();
 const validator = new UserValidator();
 
-userRouter.use(authMiddleware)
+//userRouter.use(authMiddleware)
 
 userRouter.post(
     "/",
