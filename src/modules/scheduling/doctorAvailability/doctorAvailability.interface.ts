@@ -3,7 +3,7 @@ export interface CreateDoctorAvailabilityDto {
     day_of_week: number;
     start_time: string | Date;
     end_time: string | Date;
-    slot_duration: number;
+    patient_limit: number;
 }
 
 export interface UpdateDoctorAvailabilityDto {
@@ -11,5 +11,5 @@ export interface UpdateDoctorAvailabilityDto {
     day_of_week?: number;
     start_time?: string | Date;
     end_time?: string | Date;
-    slot_duration?: number;
+    patient_limit?: number;
 }

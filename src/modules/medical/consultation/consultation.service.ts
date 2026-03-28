@@ -157,21 +157,6 @@ export class ConsultationService {
                     select: consultationSelect,
                 });
 
-                const wasFinished = Boolean(before?.finished_at);
-                const isNowFinished = Boolean(updated.finished_at);
-
-                if (!wasFinished && isNowFinished) {
-                    const existingInvoice = await tx.invoice.findUnique({
-                        where: { consultationId: id },
-                        select: { id: true },
-                    });
-
-                    if (!existingInvoice) {
-                        const strictInvoiceService = new InvoiceService(tx);
-                        await strictInvoiceService.createStrict({ consultationId: id });
-                    }
-                }
-
                 return updated;
             });
 

@@ -8,10 +8,13 @@ export interface CreateInvoiceDetailDto {
 }
 
 export interface CreateInvoiceDto {
-    consultationId: number;
-    exchangeRateId?: number;
-    statusId?: number;
-    details?: CreateInvoiceDetailDto[];
+    patientId: number;
+    receptionistId: number;
+    exchangeRateId: number;
+    taxId: number;
+    statusId: number;
+    total_usd?: string | number;
+    total_bs?: string | number;
 }
 
 export interface UpdateInvoiceDto {

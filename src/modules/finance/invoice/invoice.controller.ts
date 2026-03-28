@@ -19,28 +19,28 @@ export class InvoiceController {
         return res.status(status).json({ message, data, error });
     }
 
-    async findOne(req: Request, res: Response) {
-        const { id } = req.params;
+    // async findOne(req: Request, res: Response) {
+    //     const { id } = req.params;
 
-        const { data, status, message, error } = await service.findOne(Number(id));
+    //     const { data, status, message, error } = await service.findOne(Number(id));
 
-        return res.status(status).json({ message, data, error });
-    }
+    //     return res.status(status).json({ message, data, error });
+    // }
 
-    async update(req: Request, res: Response) {
-        const { id } = req.params;
-        const data = req.body;
+    // async update(req: Request, res: Response) {
+    //     const { id } = req.params;
+    //     const data = req.body;
 
-        const { data: updated, status, message, error } = await service.update(Number(id), data);
+    //     const { data: updated, status, message, error } = await service.update(Number(id), data);
 
-        return res.status(status).json({ message, data: updated, error });
-    }
+    //     return res.status(status).json({ message, data: updated, error });
+    // }
 
-    async delete(req: Request, res: Response) {
-        const { id } = req.params;
+    // async delete(req: Request, res: Response) {
+    //     const { id } = req.params;
 
-        const { data, status, message, error } = await service.delete(Number(id));
+    //     const { data, status, message, error } = await service.delete(Number(id));
 
-        return res.status(status).json({ message, data, error });
-    }
+    //     return res.status(status).json({ message, data, error });
+    // }
 }

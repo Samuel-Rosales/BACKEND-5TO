@@ -1,6 +1,5 @@
 export interface CreateConsultationDto {
-    appointmentId?: number;
-    patientId: number;
+    invoiceId: number;
     doctorId: number;
     date?: string | Date;
     started_at?: string | Date;
@@ -11,8 +10,6 @@ export interface CreateConsultationDto {
 }
 
 export interface UpdateConsultationDto {
-    appointmentId?: number;
-    patientId?: number;
     doctorId?: number;
     date?: string | Date;
     started_at?: string | Date;

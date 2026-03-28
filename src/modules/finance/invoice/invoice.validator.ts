@@ -4,18 +4,13 @@ import { body, param, ValidationChain } from "express-validator";
 export class InvoiceValidator {
 
     public createInvoiceValidator: ValidationChain[] = [
-        body("consultationId")
+        body("patientId")
             .isInt({ gt: 0 })
-            .withMessage("consultationId debe ser un entero positivo")
+            .withMessage("patientId debe ser un entero positivo")
             .custom(async (value) => {
-                const consultation = await prisma.consultation.findUnique({ where: { id: Number(value) } });
-                if (!consultation) {
-                    return Promise.reject("La consulta no existe");
-                }
-
-                const existing = await prisma.invoice.findUnique({ where: { consultationId: Number(value) } });
-                if (existing) {
-                    return Promise.reject("La consulta ya tiene una factura asociada");
+                const patient = await prisma.patient.findUnique({ where: { id: Number(value) } });
+                if (!patient) {
+                    return Promise.reject("El paciente no existe");
                 }
             }),
 

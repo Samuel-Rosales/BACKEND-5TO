@@ -86,7 +86,7 @@ model Consultation {
   finished_at           DateTime?
 
   doctor                Doctor                  @relation(fields: [doctorId], references: [id])
-  
+
   supplies              SupplyConsultation[]
   prescriptions         Prescription[]
   symptomsConsultas     SymptomsConsultation[]
@@ -234,10 +234,11 @@ model DoctorScheduleOverride {
 model Invoice {
   id             Int              @id @default(autoincrement())
   patientId      Int
-  receptionistId  Int
+  receptionistId Int
   exchangeRateId Int
   statusId       Int
   taxId          Int
+  
   total_usd      Decimal          @db.Decimal(12, 2)
   total_bs       Decimal          @db.Decimal(12, 2)
 
@@ -249,7 +250,6 @@ model Invoice {
   exchangeRate   ExchangeRate     @relation(fields: [exchangeRateId], references: [id])
   status         StatusInvoice    @relation(fields: [statusId], references: [id])
 
-  details        InvoiceDetail[]
   payments       InvoicePayment[]
 }
 
@@ -258,20 +258,6 @@ model StatusInvoice {
   name      String
   color_hex String?
   invoices  Invoice[]
-}
-
-model InvoiceDetail {
-  id                Int      @id @default(autoincrement())
-  invoiceId         Int
-  invoice           Invoice  @relation(fields: [invoiceId], references: [id])
-  productId         Int?
-  product           Product? @relation(fields: [productId], references: [id])
-  description       String
-  quantity          Int
-  unit_price        Decimal  @db.Decimal(12, 2)
-  taxId             Int
-  tax               Tax      @relation(fields: [taxId], references: [id])
-  is_commissionable Boolean  @default(false)
 }
 
 model InvoicePayment {
@@ -306,7 +292,6 @@ model Tax {
   code           String?
   isActive       Boolean         @default(true)
 
-  invoiceDetails InvoiceDetail[]
   invoices  Invoice[]
 }
 
@@ -344,7 +329,6 @@ model Product {
   stockLots           StockLot[]
   stockMovements      StockMovement[]
   supplyConsultations SupplyConsultation[]
-  invoiceDetails      InvoiceDetail[]
   purchaseItems       PurchaseItem[]
   prescriptions       Prescription[]
   presentations       ProductPresentation[]

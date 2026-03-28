@@ -9,7 +9,14 @@ export class UserValidator {
             .isLength({ min: 6, max: 9 })
             .withMessage("La cédula debe tener entre 6 y 9 numeros")
             .matches(/^[0-9]+$/)
-            .withMessage("La cédula solo puede contener números"),
+            .withMessage("La cédula solo puede contener números")
+            .custom(async (value) => {
+                const user = await prisma.user.findUnique({ where: { ci: value, active: true } });
+
+                if (user) {
+                    return Promise.reject("Ya existe un usuario con esa cédula");
+                }
+            }),
 
         body("name")
             .trim()
