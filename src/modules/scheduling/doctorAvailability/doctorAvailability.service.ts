@@ -7,7 +7,7 @@ const doctorAvailabilitySelect = {
     day_of_week: true,
     start_time: true,
     end_time: true,
-    slot_duration: true,
+    patient_limit: true,
     doctor: {
         select: {
             id: true,

@@ -56,9 +56,9 @@ export class DoctorAvailabilityValidator {
                 return true;
             }),
 
-        body("slot_duration")
-            .isInt({ gt: 0, lt: 1441 })
-            .withMessage("slot_duration debe ser un entero mayor a 0 y menor o igual a 1440"),
+        body("patient_limit")
+            .isInt({ gt: 0 })
+            .withMessage("patient_limit debe ser un entero mayor a 0"),
     ];
 
     public updateDoctorAvailabilityValidator: ValidationChain[] = [
@@ -110,10 +110,10 @@ export class DoctorAvailabilityValidator {
                 return true;
             }),
 
-        body("slot_duration")
+        body("patient_limit")
             .optional()
-            .isInt({ gt: 0, lt: 1441 })
-            .withMessage("slot_duration debe ser un entero mayor a 0 y menor o igual a 1440"),
+            .isInt({ gt: 0 })
+            .withMessage("patient_limit debe ser un entero mayor a 0"),
     ];
 
     public IdParamValidator: ValidationChain[] = [
