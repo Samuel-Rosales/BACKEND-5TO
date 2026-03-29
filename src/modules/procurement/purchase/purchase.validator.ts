@@ -61,12 +61,12 @@ export class PurchaseValidator {
             .isArray({ min: 1 })
             .withMessage("items debe ser un arreglo con al menos 1 elemento"),
 
-        body("items.*.productId")
+        body("items.*.supplyId")
             .isInt({ gt: 0 })
-            .withMessage("productId debe ser un entero positivo")
+            .withMessage("supplyId debe ser un entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
-                if (!product || !product.active) return Promise.reject("El producto no existe o no está activo");
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
+                if (!supply || !supply.active) return Promise.reject("El insumo no existe o no está activo");
             }),
 
         body("items.*.quantity")

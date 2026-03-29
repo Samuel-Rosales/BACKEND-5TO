@@ -4,3 +4,4 @@ export * from "./measurementUnit";
 export * from "./stockLot";
 export * from "./stockMovement";
 export * from "./supplyConsultation";
+export * from "./supplyPresentation";

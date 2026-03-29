@@ -149,7 +149,7 @@ export class ConsultationService {
                     await tx.supplyConsultation.createMany({
                         data: data.supplies.map((s) => ({
                             consultationId: id,
-                            productId: s.productId,
+                            supplyId: s.supplyId,
                             quantity: s.quantity,
                         })),
                     });
@@ -159,7 +159,7 @@ export class ConsultationService {
                     await tx.prescription.createMany({
                         data: data.prescriptions.map((p) => ({
                             consultationId: id,
-                            productId: p.productId ?? null,
+                            supplyId: p.supplyId ?? null,
                             medication_name: p.medication_name ?? null,
                             dosage: p.dosage ?? null,
                             frequency: p.frequency ?? null,

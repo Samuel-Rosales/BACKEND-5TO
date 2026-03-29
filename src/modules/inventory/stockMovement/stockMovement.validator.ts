@@ -14,14 +14,14 @@ const isValidDateString = (value: unknown) => {
 export class StockMovementValidator {
 
     public createStockMovementValidator: ValidationChain[] = [
-        body("productId")
+        body("supplyId")
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value, { req }) => {
-                const productId = Number(value);
+                const supplyId = Number(value);
                 const stockLotId = Number(req.body.stockLotId);
 
-                const product = await prisma.product.findUnique({ where: { id: productId } });
+                const product = await prisma.supply.findUnique({ where: { id: supplyId } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
@@ -30,8 +30,8 @@ export class StockMovementValidator {
                 if (Number.isFinite(stockLotId) && stockLotId > 0) {
                     const lot = await prisma.stockLot.findUnique({ where: { id: stockLotId } });
 
-                    if (lot && lot.productId !== productId) {
-                        return Promise.reject("El stockLotId no pertenece al productId indicado");
+                    if (lot && lot.supplyId !== supplyId) {
+                        return Promise.reject("El stockLotId no pertenece al supplyId indicado");
                     }
                 }
             }),
@@ -84,15 +84,15 @@ export class StockMovementValidator {
     ];
 
     public updateStockMovementValidator: ValidationChain[] = [
-        body("productId")
+        body("supplyId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value, { req }) => {
-                const productId = Number(value);
+                const supplyId = Number(value);
                 const stockLotId = req.body.stockLotId !== undefined ? Number(req.body.stockLotId) : NaN;
 
-                const product = await prisma.product.findUnique({ where: { id: productId } });
+                const product = await prisma.supply.findUnique({ where: { id: supplyId } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
@@ -101,8 +101,8 @@ export class StockMovementValidator {
                 if (Number.isFinite(stockLotId) && stockLotId > 0) {
                     const lot = await prisma.stockLot.findUnique({ where: { id: stockLotId } });
 
-                    if (lot && lot.productId !== productId) {
-                        return Promise.reject("El stockLotId no pertenece al productId indicado");
+                    if (lot && lot.supplyId !== supplyId) {
+                        return Promise.reject("El stockLotId no pertenece al supplyId indicado");
                     }
                 }
             }),

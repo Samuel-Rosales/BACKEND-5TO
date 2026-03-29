@@ -6,7 +6,7 @@ import { RoleRoute, UserRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
-import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute } from '@/modules/inventory';
+import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
@@ -47,6 +47,7 @@ export class Server {
             stockLots: `${this.prefix}/inventory/stock-lot`,
             stockMovements: `${this.prefix}/inventory/stock-movement`,
             supplyConsultations: `${this.prefix}/inventory/supply-consultation`,
+            supplyPresentations: `${this.prefix}/inventory/supply-presentation`,
 
             exchangeRates: `${this.prefix}/finance/exchange-rate`,
             taxes: `${this.prefix}/finance/tax`,
@@ -98,6 +99,7 @@ export class Server {
         this.app.use(this.paths.stockLots, StockLotRoute);
         this.app.use(this.paths.stockMovements, StockMovementRoute);
         this.app.use(this.paths.supplyConsultations, SupplyConsultationRoute);
+        this.app.use(this.paths.supplyPresentations, SupplyPresentationRoute);
         this.app.use(this.paths.medicalSpecialties, MedicalSpecialtyRoute);
         this.app.use(this.paths.patients, PatientRoute);
         this.app.use(this.paths.doctors, DoctorRoute);

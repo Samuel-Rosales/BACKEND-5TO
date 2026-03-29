@@ -1,6 +1,6 @@
 export interface CreatePrescriptionDto {
     consultationId: number;
-    productId?: number;
+    supplyId?: number;
     medication_name?: string;
     dosage?: string;
     frequency?: string;
@@ -10,7 +10,7 @@ export interface CreatePrescriptionDto {
 
 export interface UpdatePrescriptionDto {
     consultationId?: number;
-    productId?: number;
+    supplyId?: number;
     medication_name?: string;
     dosage?: string;
     frequency?: string;

@@ -3,10 +3,10 @@ import { CreateSupplyConsultationDto, UpdateSupplyConsultationDto } from "./supp
 
 const supplyConsultationSelect = {
     id: true,
-    productId: true,
+    supplyId: true,
     consultationId: true,
     quantity: true,
-    product: {
+    supply: {
         select: {
             id: true,
             name: true,
@@ -31,7 +31,11 @@ export class SupplyConsultationService {
     async create(data: CreateSupplyConsultationDto) {
         try {
             const supply = await prisma.supplyConsultation.create({
-                data,
+                data: {
+                    supplyId: data.supplyId,
+                    consultationId: data.consultationId,
+                    quantity: data.quantity as any,
+                },
                 select: supplyConsultationSelect,
             });
 
@@ -121,7 +125,11 @@ export class SupplyConsultationService {
         try {
             const supply = await prisma.supplyConsultation.update({
                 where: { id },
-                data,
+                data: {
+                    supplyId: data.supplyId,
+                    consultationId: data.consultationId,
+                    quantity: data.quantity as any,
+                },
                 select: supplyConsultationSelect,
             });
 

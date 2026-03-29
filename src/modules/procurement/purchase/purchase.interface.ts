@@ -1,7 +1,7 @@
 import { StatusPurchase } from "@prisma/client";
 
 export interface CreatePurchaseItemDto {
-    productId: number;
+    supplyId: number;
     quantity: number;
     unit_cost: string | number;
     expiration_date?: string | Date;

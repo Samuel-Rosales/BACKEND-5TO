@@ -218,17 +218,17 @@ async function ensureProduct(params: {
     is_perishable?: boolean;
 }) {
     if (params.sku) {
-        const bySku = await prisma.product.findFirst({ where: { sku: params.sku }, select: { id: true } });
+        const bySku = await prisma.supply.findFirst({ where: { sku: params.sku }, select: { id: true } });
         if (bySku) return bySku;
     }
 
-    const existing = await prisma.product.findFirst({
+    const existing = await prisma.supply.findFirst({
         where: { name: { equals: params.name, mode: "insensitive" } },
         select: { id: true },
     });
     if (existing) return existing;
 
-    return prisma.product.create({
+    return prisma.supply.create({
         data: {
             name: params.name,
             sku: params.sku,
@@ -289,7 +289,7 @@ async function ensureSeedPurchase(params: {
     supplierId: number;
     userId: number;
     exchangeRateId: number;
-    items: Array<{ productId: number; quantity: number; unit_cost: number; expiration_date?: Date }>;
+    items: Array<{ supplyId: number; quantity: number; unit_cost: number; expiration_date?: Date }>;
 }) {
     const existing = await prisma.purchase.findFirst({
         where: { reference: params.reference },
@@ -308,14 +308,14 @@ async function ensureSeedPurchase(params: {
                 observation: "SEED: compra demo",
                 items: {
                     create: params.items.map((i) => ({
-                        productId: i.productId,
+                        supply: { connect: { id: i.supplyId } },
                         quantity: i.quantity,
                         unit_cost: i.unit_cost,
                         expiration_date: i.expiration_date,
                     })),
                 },
             },
-            select: { id: true, userId: true, items: { select: { productId: true, quantity: true, unit_cost: true, expiration_date: true } } },
+            select: { id: true, userId: true, items: { select: { supplyId: true, quantity: true, unit_cost: true, expiration_date: true } } },
         });
 
         const reason = `PURCHASE:${purchase.id}`;
@@ -323,7 +323,7 @@ async function ensureSeedPurchase(params: {
         for (const item of purchase.items) {
             const lot = await tx.stockLot.create({
                 data: {
-                    productId: item.productId,
+                    supplyId: item.supplyId,
                     quantity: item.quantity,
                     expiration_date: item.expiration_date ?? undefined,
                     lot_cost: item.unit_cost,
@@ -333,7 +333,7 @@ async function ensureSeedPurchase(params: {
 
             await tx.stockMovement.create({
                 data: {
-                    productId: item.productId,
+                    supplyId: item.supplyId,
                     stockLotId: lot.id,
                     userId: purchase.userId,
                     type: "IN",
@@ -598,12 +598,12 @@ async function ensureDemoData() {
 
     // Insumo consumido en consulta
     const existingSupply = await prisma.supplyConsultation.findFirst({
-        where: { consultationId: consultationId, productId: prodGuantes.id },
+        where: { consultationId: consultationId, supplyId: prodGuantes.id },
         select: { id: true },
     });
     if (!existingSupply) {
         await prisma.supplyConsultation.create({
-            data: { consultationId: consultationId, productId: prodGuantes.id, quantity: 2 },
+            data: { consultationId: consultationId, supplyId: prodGuantes.id, quantity: 2 },
             select: { id: true },
         });
     }
@@ -619,8 +619,8 @@ async function ensureDemoData() {
         userId: adminUser.id,
         exchangeRateId: activeRate.id,
         items: [
-            { productId: prodGuantes.id, quantity: 50, unit_cost: 1.2, expiration_date: new Date("2026-12-31") },
-            { productId: prodJeringa.id, quantity: 100, unit_cost: 0.45, expiration_date: new Date("2028-12-31") },
+            { supplyId: prodGuantes.id, quantity: 50, unit_cost: 1.2, expiration_date: new Date("2026-12-31") },
+            { supplyId: prodJeringa.id, quantity: 100, unit_cost: 0.45, expiration_date: new Date("2028-12-31") },
         ],
     });
 
@@ -630,7 +630,7 @@ async function ensureDemoData() {
         userId: receptionUser.id,
         exchangeRateId: activeRate.id,
         items: [
-            { productId: prodParacetamol.id, quantity: 500, unit_cost: 0.08, expiration_date: new Date("2027-06-30") },
+            { supplyId: prodParacetamol.id, quantity: 500, unit_cost: 0.08, expiration_date: new Date("2027-06-30") },
         ],
     });
 

@@ -151,13 +151,13 @@ export class ConsultationValidator {
             .isArray()
             .withMessage("supplies debe ser un arreglo"),
 
-        body("supplies.*.productId")
+        body("supplies.*.supplyId")
             .if(body("supplies").exists())
             .isInt({ gt: 0 })
-            .withMessage("supplies.*.productId debe ser un entero positivo")
+            .withMessage("supplies.*.supplyId debe ser un entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
-                if (!product) return Promise.reject("El producto no existe");
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
+                if (!supply) return Promise.reject("El insumo no existe");
             }),
 
         body("supplies.*.quantity")
@@ -171,13 +171,13 @@ export class ConsultationValidator {
             .isArray()
             .withMessage("prescriptions debe ser un arreglo"),
 
-        body("prescriptions.*.productId")
+        body("prescriptions.*.supplyId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("prescriptions.*.productId debe ser un entero positivo")
+            .withMessage("prescriptions.*.supplyId debe ser un entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
-                if (!product) return Promise.reject("El producto no existe");
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
+                if (!supply) return Promise.reject("El insumo no existe");
             }),
 
         body("prescriptions.*.medication_name")

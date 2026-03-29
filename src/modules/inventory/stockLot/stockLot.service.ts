@@ -4,11 +4,11 @@ import { CreateStockLotDto, UpdateStockLotDto } from "./stockLot.interface";
 const stockLotSelect = {
     id: true,
     quantity: true,
-    productId: true,
+    supplyId: true,
     expiration_date: true,
     lot_cost: true,
     createdAt: true,
-    product: {
+    supply: {
         select: {
             id: true,
             name: true,
@@ -38,7 +38,12 @@ export class StockLotService {
     async create(data: CreateStockLotDto) {
         try {
             const lot = await prisma.stockLot.create({
-                data,
+                data: {
+                    quantity: data.quantity,
+                    supplyId: data.supplyId,
+                    expiration_date: data.expiration_date ? new Date(data.expiration_date) : undefined,
+                    lot_cost: data.lot_cost as any,
+                },
                 select: stockLotSelect,
             });
 
@@ -128,7 +133,12 @@ export class StockLotService {
         try {
             const lot = await prisma.stockLot.update({
                 where: { id },
-                data,
+                data: {
+                    quantity: data.quantity,
+                    supplyId: data.supplyId,
+                    expiration_date: data.expiration_date ? new Date(data.expiration_date) : undefined,
+                    lot_cost: data.lot_cost as any,
+                },
                 select: stockLotSelect,
             });
 

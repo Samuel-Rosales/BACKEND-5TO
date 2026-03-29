@@ -15,15 +15,15 @@ export class PrescriptionValidator {
                 }
             }),
 
-        body("productId")
+        body("supplyId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
-                if (!product || !product.active) {
-                    return Promise.reject("El producto no existe o no está activo");
+                if (!supply || !supply.active) {
+                    return Promise.reject("El insumo no existe o no está activo");
                 }
             }),
 
@@ -59,8 +59,8 @@ export class PrescriptionValidator {
 
         body()
             .custom((_, { req }) => {
-                if (!req.body.productId && !req.body.medication_name) {
-                    throw new Error("Debe indicar productId o medication_name");
+                if (!req.body.supplyId && !req.body.medication_name) {
+                    throw new Error("Debe indicar supplyId o medication_name");
                 }
 
                 return true;
@@ -80,15 +80,15 @@ export class PrescriptionValidator {
                 }
             }),
 
-        body("productId")
+        body("supplyId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
-                if (!product || !product.active) {
-                    return Promise.reject("El producto no existe o no está activo");
+                if (!supply || !supply.active) {
+                    return Promise.reject("El insumo no existe o no está activo");
                 }
             }),
 

@@ -51,11 +51,11 @@ const purchaseSelect = {
         select: {
             id: true,
             purchaseId: true,
-            productId: true,
+            supplyId: true,
             quantity: true,
             unit_cost: true,
             expiration_date: true,
-            product: {
+            supply: {
                 select: {
                     id: true,
                     name: true,
@@ -101,10 +101,10 @@ export class PurchaseService {
                         observation: data.observation,
                         items: {
                             create: data.items.map((i) => ({
-                                productId: i.productId,
+                                supply: { connect: { id: i.supplyId } },
                                 quantity: i.quantity,
                                 unit_cost: i.unit_cost as any,
-                                expiration_date: i.expiration_date as any,
+                                expiration_date: i.expiration_date ? new Date(i.expiration_date) : undefined,
                             })),
                         },
                     },
@@ -114,7 +114,7 @@ export class PurchaseService {
                 for (const item of purchase.items) {
                     const lot = await tx.stockLot.create({
                         data: {
-                            productId: item.productId,
+                            supplyId: item.supplyId,
                             quantity: item.quantity,
                             expiration_date: item.expiration_date ?? undefined,
                             lot_cost: item.unit_cost as any,
@@ -124,7 +124,7 @@ export class PurchaseService {
 
                     await tx.stockMovement.create({
                         data: {
-                            productId: item.productId,
+                            supplyId: item.supplyId,
                             stockLotId: lot.id,
                             userId: purchase.userId,
                             type: "IN",

@@ -30,7 +30,7 @@ export class ProductService {
 
     async create(data: CreateProductDto) {
         try {
-            const product = await prisma.product.create({
+            const product = await prisma.supply.create({
                 data,
                 select: productSelect,
             });
@@ -57,7 +57,7 @@ export class ProductService {
 
     async findAll() {
         try {
-            const products = await prisma.product.findMany({
+            const products = await prisma.supply.findMany({
                 where: { active: true },
                 orderBy: { id: "desc" },
                 select: productSelect,
@@ -93,7 +93,7 @@ export class ProductService {
 
     async findOne(id: number) {
         try {
-            const product = await prisma.product.findUnique({
+            const product = await prisma.supply.findUnique({
                 where: { id, active: true },
                 select: productSelect,
             });
@@ -120,7 +120,7 @@ export class ProductService {
 
     async update(id: number, data: UpdateProductDto) {
         try {
-            const product = await prisma.product.update({
+            const product = await prisma.supply.update({
                 where: { id, active: true },
                 data,
                 select: productSelect,
@@ -148,7 +148,7 @@ export class ProductService {
 
     async delete(id: number) {
         try {
-            const product = await prisma.product.update({
+            const product = await prisma.supply.update({
                 where: { id, active: true },
                 data: { active: false },
                 select: productSelect,

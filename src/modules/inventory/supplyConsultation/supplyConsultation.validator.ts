@@ -4,11 +4,11 @@ import { body, param, ValidationChain } from "express-validator";
 export class SupplyConsultationValidator {
 
     public createSupplyConsultationValidator: ValidationChain[] = [
-        body("productId")
+        body("supplyId")
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const product = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
@@ -32,12 +32,12 @@ export class SupplyConsultationValidator {
     ];
 
     public updateSupplyConsultationValidator: ValidationChain[] = [
-        body("productId")
+        body("supplyId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const product = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");

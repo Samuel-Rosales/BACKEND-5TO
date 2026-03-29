@@ -14,12 +14,12 @@ export interface UpdateConsultationDto {
 }
 
 export interface FinishConsultationSupplyDto {
-    productId: number;
+    supplyId: number;
     quantity: string | number;
 }
 
 export interface FinishConsultationPrescriptionDto {
-    productId?: number;
+    supplyId?: number;
     medication_name?: string;
     dosage?: string;
     frequency?: string;

@@ -1,5 +1,5 @@
 export interface CreateStockMovementDto {
-    productId: number;
+    supplyId: number;
     stockLotId: number;
     userId: number;
     type: "IN" | "OUT";
@@ -9,7 +9,7 @@ export interface CreateStockMovementDto {
 }
 
 export interface UpdateStockMovementDto {
-    productId?: number;
+    supplyId?: number;
     stockLotId?: number;
     userId?: number;
     type?: "IN" | "OUT";

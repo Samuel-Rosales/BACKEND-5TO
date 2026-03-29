@@ -18,11 +18,11 @@ export class StockLotValidator {
             .isInt({ gt: 0 })
             .withMessage("quantity debe ser un entero mayor a 0"),
 
-        body("productId")
+        body("supplyId")
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const product = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
@@ -50,12 +50,12 @@ export class StockLotValidator {
             .isInt({ gt: 0 })
             .withMessage("quantity debe ser un entero mayor a 0"),
 
-        body("productId")
+        body("supplyId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("El productId debe ser un número entero positivo")
+            .withMessage("El supplyId debe ser un número entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const product = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");

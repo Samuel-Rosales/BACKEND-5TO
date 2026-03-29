@@ -1,11 +1,11 @@
 export interface CreateSupplyConsultationDto {
-    productId: number;
+    supplyId: number;
     consultationId: number;
     quantity: string | number;
 }
 
 export interface UpdateSupplyConsultationDto {
-    productId?: number;
+    supplyId?: number;
     consultationId?: number;
     quantity?: string | number;
 }

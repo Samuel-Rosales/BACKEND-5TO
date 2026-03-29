@@ -46,9 +46,9 @@ export class InvoiceValidator {
             .isInt({ gt: 0 })
             .withMessage("productId debe ser un entero positivo")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
-                if (!product) {
-                    return Promise.reject("El producto no existe");
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
+                if (!supply) {
+                    return Promise.reject("El insumo no existe");
                 }
             }),
 

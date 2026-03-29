@@ -4,13 +4,13 @@ import { CreatePrescriptionDto, UpdatePrescriptionDto } from "./prescription.int
 const prescriptionSelect = {
     id: true,
     consultationId: true,
-    productId: true,
+    supplyId: true,
     medication_name: true,
     dosage: true,
     frequency: true,
     duration: true,
     instructions: true,
-    product: {
+    supply: {
         select: {
             id: true,
             name: true,

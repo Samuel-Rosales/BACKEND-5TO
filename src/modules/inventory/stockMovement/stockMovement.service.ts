@@ -3,14 +3,14 @@ import { CreateStockMovementDto, UpdateStockMovementDto } from "./stockMovement.
 
 const stockMovementSelect = {
     id: true,
-    productId: true,
+    supplyId: true,
     stockLotId: true,
     userId: true,
     type: true,
     quantity: true,
     reason: true,
     date: true,
-    product: {
+    supply: {
         select: {
             id: true,
             name: true,
@@ -21,7 +21,7 @@ const stockMovementSelect = {
     stockLot: {
         select: {
             id: true,
-            productId: true,
+            supplyId: true,
             quantity: true,
             expiration_date: true,
             lot_cost: true,
@@ -44,7 +44,15 @@ export class StockMovementService {
     async create(data: CreateStockMovementDto) {
         try {
             const movement = await prisma.stockMovement.create({
-                data,
+                data: {
+                    supplyId: data.supplyId,
+                    stockLotId: data.stockLotId,
+                    userId: data.userId,
+                    type: data.type,
+                    quantity: data.quantity,
+                    reason: data.reason,
+                    date: data.date ? new Date(data.date) : undefined,
+                },
                 select: stockMovementSelect,
             });
 
@@ -134,7 +142,15 @@ export class StockMovementService {
         try {
             const movement = await prisma.stockMovement.update({
                 where: { id },
-                data,
+                data: {
+                    supplyId: data.supplyId,
+                    stockLotId: data.stockLotId,
+                    userId: data.userId,
+                    type: data.type,
+                    quantity: data.quantity,
+                    reason: data.reason,
+                    date: data.date ? new Date(data.date) : undefined,
+                },
                 select: stockMovementSelect,
             });
 

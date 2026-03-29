@@ -136,7 +136,7 @@ export class InvoiceService {
                 supplies: {
                     select: {
                         quantity: true,
-                        product: {
+                        supply: {
                             select: {
                                 id: true,
                                 name: true,
@@ -164,11 +164,11 @@ export class InvoiceService {
 
         for (const supply of consultation.supplies) {
             const supplyQty = Number(supply.quantity);
-            const unitPrice = Number(supply.product.cost_price) * supplyQty;
+            const unitPrice = Number(supply.supply.cost_price) * supplyQty;
 
             details.push({
-                productId: supply.product.id,
-                description: `Insumo - ${supply.product.name} (x${supplyQty})`,
+                productId: supply.supply.id,
+                description: `Insumo - ${supply.supply.name} (x${supplyQty})`,
                 quantity: 1,
                 unit_price: unitPrice,
                 taxId,

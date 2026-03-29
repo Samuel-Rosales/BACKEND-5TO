@@ -126,7 +126,7 @@ export class ProductValidator {
     public ProductExistsValidator: ValidationChain[] = [
         param("id")
             .custom(async (value) => {
-                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                const product = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
                 if (!product || !product.active) {
                     return Promise.reject("El producto no existe o no está activo");
