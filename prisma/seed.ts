@@ -252,6 +252,38 @@ async function ensureSupplier(params: { name: string; contact?: string; phone?: 
     return prisma.supplier.create({ data: params, select: { id: true } });
 }
 
+async function ensureSymptom(name: string) {
+    const existing = await prisma.symptoms.findFirst({
+        where: { name: { equals: name, mode: "insensitive" } },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.symptoms.create({
+        data: { name },
+        select: { id: true },
+    });
+}
+
+async function ensureDiagnosis(params: { code: string; description: string; category: string }) {
+    const existing = await prisma.diagnosis.findUnique({
+        where: { code: params.code },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.diagnosis.create({
+        data: {
+            code: params.code,
+            description: params.description,
+            category: params.category,
+        },
+        select: { id: true },
+    });
+}
+
 async function ensureSeedPurchase(params: {
     reference: string;
     supplierId: number;
@@ -425,6 +457,21 @@ async function ensureDemoData() {
         });
         extraPatients.push(p);
     }
+
+    // Medical catalog (symptoms & diagnoses)
+    const symptomsSeed = ["Fiebre", "Dolor", "Tos", "Cefalea", "Náuseas"];
+    const symptoms = await Promise.all(symptomsSeed.map((name) => ensureSymptom(name)));
+
+    const diagnosesSeed = [
+        { code: "J00", description: "Rinofaringitis aguda (resfriado común)", category: "Respiratorias" },
+        { code: "K29", description: "Gastritis", category: "Gastrointestinal" },
+        { code: "I10", description: "Hipertensión esencial (primaria)", category: "Cardiovasculares" },
+        { code: "R50", description: "Fiebre de origen desconocido", category: "Síntomas" },
+        { code: "A09", description: "Gastroenteritis y colitis de origen infeccioso", category: "Infecciosas" },
+    ] as const;
+    const diagnoses = await Promise.all(diagnosesSeed.map((d) => ensureDiagnosis(d)));
+    void symptoms;
+    void diagnoses;
 
     // Scheduling
     const stPend = await ensureStatusAppointment("Pendiente", "#facc15");

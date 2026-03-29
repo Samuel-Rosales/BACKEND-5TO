@@ -2,6 +2,9 @@ import { Router } from "express";
 import { handleValidationErrors } from "@/middlewares/validation.middleware";
 import { ConsultationController } from "./consultation.controller";
 import { ConsultationValidator } from "./consultation.validator";
+import { SymptomsConsultaRoute } from "./symptoms-consulta";
+import { ClinicalExaminationRoute } from "./clinical-examination";
+import { ConsultationDiagnosisRoute } from "./consultation-diagnosis";
 
 const consultationRouter = Router();
 
@@ -44,6 +47,30 @@ consultationRouter.put(
     validator.finishConsultationValidator,
     handleValidationErrors,
     controller.finish
+);
+
+consultationRouter.use(
+    "/:id/symptoms-consultas",
+    validator.IdParamValidator,
+    validator.ConsultationExistsValidator,
+    handleValidationErrors,
+    SymptomsConsultaRoute
+);
+
+consultationRouter.use(
+    "/:id/clinical-examinations",
+    validator.IdParamValidator,
+    validator.ConsultationExistsValidator,
+    handleValidationErrors,
+    ClinicalExaminationRoute
+);
+
+consultationRouter.use(
+    "/:id/consultation-diagnoses",
+    validator.IdParamValidator,
+    validator.ConsultationExistsValidator,
+    handleValidationErrors,
+    ConsultationDiagnosisRoute
 );
 
 consultationRouter.delete(

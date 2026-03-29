@@ -1,6 +1,9 @@
 import { prisma } from "@/configs";
-import { CreateConsultationDto, FinishConsultationDto, UpdateConsultationDto } from "./consultation.interface";
-import { InvoiceService } from "@/modules/finance/invoice/invoice.service";
+import {
+    CreateConsultationDto,
+    FinishConsultationDto,
+    UpdateConsultationDto,
+} from "./consultation.interface";
 
 const consultationSelect = {
     id: true,
@@ -49,9 +52,55 @@ const consultationSelect = {
     },
 } as const;
 
-export class ConsultationService {
+const oneConsultationSelect = {
+    id: true,
+    date: true,
+    started_at: true,
+    finished_at: true,
+    invoice: {
+        select: {
+            id: true,
+            total_usd: true,
+            patient: {
+                select: {
+                    id: true,
+                    user: {
+                        select: {
+                            ci: true,
+                            name: true,
+                        },
+                    },
+                }
+            }
+        }
+    },
+    doctor: {
+        select: {
+            id: true,
+            specialtyId: true,
+            user: {
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                },
+            },
+            specialty: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    },
+    symptomsConsultations: true,
+    consultationDiagnoses: true,
+    clinicalExaminations: true,
+    prescriptions: true,
+    supplies: true,
+} as const;
 
-    private invoiceService = new InvoiceService();
+export class ConsultationService {
 
     async create(data: CreateConsultationDto) {
         try {
@@ -226,7 +275,7 @@ export class ConsultationService {
         try {
             const consultation = await prisma.consultation.findUnique({
                 where: { id },
-                select: consultationSelect,
+                select: oneConsultationSelect,
             });
 
             if (!consultation) {

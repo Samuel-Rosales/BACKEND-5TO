@@ -90,7 +90,7 @@ model Consultation {
 
   supplies              SupplyConsultation[]
   prescriptions         Prescription[]
-  symptomsConsultas     SymptomsConsultation[]
+  symptomsConsultations     SymptomsConsultation[]
   clinicalExaminations  ClinicalExamination[]
   consultationDiagnoses ConsultationDiagnosis[]
 }
