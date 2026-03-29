@@ -63,6 +63,24 @@ const appointmentSelect = {
 
 export class AppointmentService {
 
+    private dayStartUTC(dateTime: Date) {
+        return new Date(Date.UTC(dateTime.getUTCFullYear(), dateTime.getUTCMonth(), dateTime.getUTCDate(), 0, 0, 0, 0));
+    }
+
+    private atDayTimeUTC(dayStart: Date, time: Date) {
+        return new Date(
+            Date.UTC(
+                dayStart.getUTCFullYear(),
+                dayStart.getUTCMonth(),
+                dayStart.getUTCDate(),
+                time.getUTCHours(),
+                time.getUTCMinutes(),
+                time.getUTCSeconds(),
+                time.getUTCMilliseconds()
+            )
+        );
+    }
+
     private normalizeDateTime(value: string | Date) {
         if (value instanceof Date) return value;
         const parsed = new Date(value);
@@ -77,7 +95,7 @@ export class AppointmentService {
     }
 
     private async getOverrideForDate(doctorId: number, dateTime: Date) {
-        const dayStart = new Date(Date.UTC(dateTime.getUTCFullYear(), dateTime.getUTCMonth(), dateTime.getUTCDate(), 0, 0, 0, 0));
+        const dayStart = this.dayStartUTC(dateTime);
         const dayEnd = new Date(dayStart);
         dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
@@ -98,6 +116,7 @@ export class AppointmentService {
         const { doctorId, dateTime } = params;
         const dayOfWeek = dateTime.getUTCDay();
         const appointmentMin = this.timeMinutesUTC(dateTime);
+        const dayStart = this.dayStartUTC(dateTime);
 
         const override = await this.getOverrideForDate(doctorId, dateTime);
         if (override && override.is_working === false) {
@@ -109,20 +128,21 @@ export class AppointmentService {
                 doctorId,
                 day_of_week: dayOfWeek,
             },
-            select: { start_time: true, end_time: true },
+            select: { start_time: true, end_time: true, patient_limit: true },
         });
 
+        
         if (availabilities.length === 0) {
             return { ok: false as const, reason: "No hay horarios disponibles para ese día" };
         }
 
-        const matchesBase = availabilities.some((a) => {
+        const matchingAvailability = availabilities.find((a) => {
             const startMin = this.timeMinutesUTC(a.start_time);
             const endMin = this.timeMinutesUTC(a.end_time);
             return appointmentMin >= startMin && appointmentMin < endMin;
         });
 
-        if (!matchesBase) {
+        if (!matchingAvailability) {
             return { ok: false as const, reason: "La hora solicitada no está dentro del horario disponible" };
         }
 
@@ -134,6 +154,36 @@ export class AppointmentService {
             }
         }
 
+        let slotStart = this.atDayTimeUTC(dayStart, matchingAvailability.start_time);
+        let slotEnd = this.atDayTimeUTC(dayStart, matchingAvailability.end_time);
+
+        // Si existe override con rango, intersecta con la franja base.
+        if (override?.start_time && override?.end_time) {
+            const oStart = this.atDayTimeUTC(dayStart, override.start_time);
+            const oEnd = this.atDayTimeUTC(dayStart, override.end_time);
+            if (oStart > slotStart) slotStart = oStart;
+            if (oEnd < slotEnd) slotEnd = oEnd;
+        }
+
+        const appointmentsCount = await prisma.appointment.count({
+            where: {
+                doctorId,
+                date_time: {
+                    gte: slotStart,
+                    lt: slotEnd,
+                },
+                status: {
+                    name: {
+                        not: { equals: "Cancelada" },
+                    },
+                },
+            },
+        });
+
+        if (appointmentsCount >= matchingAvailability.patient_limit) {
+            return { ok: false as const, reason: "Ya se alcanzó el límite de pacientes para ese horario" };
+        }
+
         return { ok: true as const };
     }
 
@@ -142,6 +192,7 @@ export class AppointmentService {
             const dateTime = this.normalizeDateTime(data.date_time);
 
             let doctorId = data.doctorId;
+
             if (!doctorId) {
                 if (!data.specialtyId) {
                     return {
@@ -159,28 +210,31 @@ export class AppointmentService {
                     orderBy: { id: "asc" },
                     select: { id: true },
                 });
-
+                let rason = "";
                 for (const d of doctors) {
-                    const ok = await this.doctorHasAvailability({ doctorId: d.id, dateTime });
-                    if (ok.ok) {
+                    const availabilityCheck = await this.doctorHasAvailability({ doctorId: d.id, dateTime });
+
+                    if (availabilityCheck.ok) {
                         doctorId = d.id;
                         break;
                     }
+
+                    rason = availabilityCheck.reason || "";
                 }
 
                 if (!doctorId) {
                     return {
                         status: 400,
-                        message: "No hay doctores disponibles para esa especialidad en esa fecha/hora",
+                        message: rason ? rason : "No hay disponibilidad en esa fecha para esa especialidad",
                         error: "Sin disponibilidad",
                     };
                 }
             } else {
-                const ok = await this.doctorHasAvailability({ doctorId, dateTime });
-                if (!ok.ok) {
+                const availabilityCheck = await this.doctorHasAvailability({ doctorId, dateTime });
+                if (!availabilityCheck.ok) {
                     return {
                         status: 400,
-                        message: ok.reason,
+                        message: availabilityCheck.reason,
                         error: "Sin disponibilidad",
                     };
                 }
@@ -189,14 +243,20 @@ export class AppointmentService {
             const existing = await prisma.appointment.findFirst({
                 where: {
                     doctorId,
+                    patientId: data.patientId,
                     date_time: dateTime,
+                    status: {
+                        name: {
+                            not: { equals: "Cancelada" },
+                        },
+                    },
                 },
                 select: { id: true },
             });
             if (existing) {
                 return {
                     status: 409,
-                    message: "Ya existe una cita para ese doctor en esa fecha/hora",
+                    message: "El paciente ya tiene una cita con ese doctor en esa horario",
                     error: "Conflicto",
                 };
             }
