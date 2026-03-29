@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { Prisma } from "@prisma/client";
 import { CreateDoctorAvailabilityDto, UpdateDoctorAvailabilityDto } from "./doctorAvailability.interface";
 
 const doctorAvailabilitySelect = {
@@ -34,10 +35,40 @@ const doctorAvailabilitySelect = {
 
 export class DoctorAvailabilityService {
 
+    private normalizeTime(value: string | Date) {
+        if (value instanceof Date) return value;
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new Error("Hora inválida: se esperaba fecha ISO válida");
+        }
+        return parsed;
+    }
+
+    private isMorning(start: Date) {
+        // Para @db.Time, Prisma devuelve Date; usamos UTC para evitar desfases por zona horaria
+        const hour = start.getUTCHours();
+        return hour < 12;
+    }
+
+    private parseDateOnly(value: string) {
+        // Espera YYYY-MM-DD
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new Error("date inválida: se esperaba formato YYYY-MM-DD");
+        }
+        return parsed;
+    }
+
     async create(data: CreateDoctorAvailabilityDto) {
         try {
+            const normalized: CreateDoctorAvailabilityDto = {
+                ...data,
+                start_time: this.normalizeTime(data.start_time),
+                end_time: this.normalizeTime(data.end_time),
+            };
+
             const availability = await prisma.doctorAvailability.create({
-                data,
+                data: normalized,
                 select: doctorAvailabilitySelect,
             });
 
@@ -61,9 +92,86 @@ export class DoctorAvailabilityService {
         }
     }
 
-    async findAll() {
+    async findAll(filters?: {
+        doctorId?: number;
+        specialtyId?: number;
+        morning?: boolean;
+        day_of_week?: number;
+        date?: string;
+    }) {
         try {
+            const where: Prisma.DoctorAvailabilityWhereInput = {};
+
+            if (filters?.doctorId) where.doctorId = filters.doctorId;
+
+            if (filters?.date) {
+                const dateOnly = this.parseDateOnly(filters.date);
+                where.day_of_week = dateOnly.getUTCDay();
+            } else if (typeof filters?.day_of_week === "number") {
+                where.day_of_week = filters.day_of_week;
+            }
+
+            if (filters?.specialtyId) {
+                where.doctor = { specialtyId: filters.specialtyId };
+            }
+
+            // Overrides solo aplica cuando estamos consultando un doctor específico + fecha
+            if (filters?.doctorId && filters?.date) {
+                const dayStart = new Date(`${filters.date}T00:00:00.000Z`);
+                const dayEnd = new Date(dayStart);
+                dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+                const override = await prisma.doctorScheduleOverride.findFirst({
+                    where: {
+                        doctorId: filters.doctorId,
+                        specific_date: {
+                            gte: dayStart,
+                            lt: dayEnd,
+                        },
+                    },
+                    orderBy: { specific_date: "desc" },
+                    select: { is_working: true, start_time: true, end_time: true },
+                });
+
+                if (override && override.is_working === false) {
+                    return {
+                        status: 200,
+                        message: "No se encontraron disponibilidades",
+                        data: [],
+                    };
+                }
+
+                const availabilities = await prisma.doctorAvailability.findMany({
+                    where,
+                    orderBy: [{ doctorId: "asc" }, { day_of_week: "asc" }, { start_time: "asc" }],
+                    select: doctorAvailabilitySelect,
+                });
+
+                const morningFiltered = filters?.morning
+                    ? availabilities.filter((a) => this.isMorning(a.start_time))
+                    : availabilities;
+
+                const timeWindowFiltered = override?.start_time && override?.end_time
+                    ? morningFiltered.filter((a) => a.start_time >= override.start_time! && a.end_time <= override.end_time!)
+                    : morningFiltered;
+
+                if (timeWindowFiltered.length === 0) {
+                    return {
+                        status: 200,
+                        message: "No se encontraron disponibilidades",
+                        data: [],
+                    };
+                }
+
+                return {
+                    status: 200,
+                    message: "Disponibilidades encontradas éxitosamente",
+                    data: timeWindowFiltered,
+                };
+            }
+
             const availabilities = await prisma.doctorAvailability.findMany({
+                where,
                 orderBy: [{ doctorId: "asc" }, { day_of_week: "asc" }, { start_time: "asc" }],
                 select: doctorAvailabilitySelect,
             });
@@ -80,10 +188,22 @@ export class DoctorAvailabilityService {
                 };
             }
 
+            const filtered = filters?.morning
+                ? availabilities.filter((a) => this.isMorning(a.start_time))
+                : availabilities;
+
+            if (filtered.length === 0) {
+                return {
+                    status: 200,
+                    message: "No se encontraron disponibilidades",
+                    data: [],
+                };
+            }
+
             return {
                 status: 200,
                 message: "Disponibilidades encontradas éxitosamente",
-                data: availabilities,
+                data: filtered,
             };
         } catch (error) {
             console.error("Error buscando disponibilidades:", error);
@@ -125,9 +245,15 @@ export class DoctorAvailabilityService {
 
     async update(id: number, data: UpdateDoctorAvailabilityDto) {
         try {
+            const normalized: UpdateDoctorAvailabilityDto = {
+                ...data,
+                start_time: data.start_time ? this.normalizeTime(data.start_time) : undefined,
+                end_time: data.end_time ? this.normalizeTime(data.end_time) : undefined,
+            };
+
             const availability = await prisma.doctorAvailability.update({
                 where: { id },
-                data,
+                data: normalized,
                 select: doctorAvailabilitySelect,
             });
 

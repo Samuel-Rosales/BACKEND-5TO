@@ -14,7 +14,19 @@ export class DoctorAvailabilityController {
     }
 
     async findAll(req: Request, res: Response) {
-        const { data, status, message, error } = await service.findAll();
+        const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
+        const specialtyId = req.query.specialtyId ? Number(req.query.specialtyId) : undefined;
+        const day_of_week = req.query.day_of_week !== undefined ? Number(req.query.day_of_week) : undefined;
+        const morning = req.query.morning !== undefined ? String(req.query.morning) === "true" : undefined;
+        const date = req.query.date !== undefined ? String(req.query.date) : undefined;
+
+        const { data, status, message, error } = await service.findAll({
+            doctorId,
+            specialtyId,
+            day_of_week,
+            morning,
+            date,
+        });
 
         return res.status(status).json({ message, data, error });
     }

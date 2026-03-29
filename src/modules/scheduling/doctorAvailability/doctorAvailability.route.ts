@@ -17,6 +17,8 @@ doctorAvailabilityRouter.post(
 
 doctorAvailabilityRouter.get(
     "/",
+    validator.findAllDoctorAvailabilityValidator,
+    handleValidationErrors,
     controller.findAll
 );
 

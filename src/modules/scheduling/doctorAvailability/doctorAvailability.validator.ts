@@ -1,5 +1,5 @@
 import { prisma } from "@/configs";
-import { body, param, ValidationChain } from "express-validator";
+import { body, param, query, ValidationChain } from "express-validator";
 
 const isValidDateString = (value: unknown) => {
     if (typeof value !== "string") {
@@ -12,6 +12,35 @@ const isValidDateString = (value: unknown) => {
 };
 
 export class DoctorAvailabilityValidator {
+
+    public findAllDoctorAvailabilityValidator: ValidationChain[] = [
+        query("doctorId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("doctorId debe ser un número entero positivo"),
+
+        query("specialtyId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("specialtyId debe ser un número entero positivo"),
+
+        query("day_of_week")
+            .optional()
+            .isInt({ min: 0, max: 6 })
+            .withMessage("day_of_week debe ser un número entre 0 y 6"),
+
+        query("date")
+            .optional()
+            .matches(/^\d{4}-\d{2}-\d{2}$/)
+            .withMessage("date debe tener formato YYYY-MM-DD"),
+
+        query("morning")
+            .optional()
+            .custom((value) => {
+                if (value === "true" || value === "false") return true;
+                throw new Error("morning debe ser 'true' o 'false'");
+            }),
+    ];
 
     public createDoctorAvailabilityValidator: ValidationChain[] = [
         body("doctorId")
