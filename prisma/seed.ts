@@ -364,7 +364,7 @@ async function ensureActiveExchangeRate() {
 
     await prisma.exchangeRate.create({
         data: {
-            rate: 1,
+            rate: 500,
             is_active: true,
         },
     });
