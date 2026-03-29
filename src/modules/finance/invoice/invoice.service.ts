@@ -313,7 +313,6 @@ export class InvoiceService {
 
             const invoicesProcessed = invoices.map((invoice) => {
                 const exchangeRate = invoice.exchangeRate.rate;
-                console.log("Exchange rate for invoice", invoice.id, "is", exchangeRate);
                 
                 let totalBs = new Decimal(Number(invoice.total_usd));
                  
