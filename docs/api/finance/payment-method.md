@@ -39,4 +39,6 @@ Response (201):
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
 
+Nota: si el `:id` no existe, el backend responde `400` (error de validación con `express-validator`).
+
 DELETE es hard delete.

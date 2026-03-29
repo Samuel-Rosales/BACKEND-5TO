@@ -67,14 +67,22 @@ Request (JSON):
 }
 ```
 
-- Si no existe: `404` con `data: null`.
+- Si no existe: `400` (validación) con `message: "El pago de factura no existe"`.
 
-Response (404):
+Response (400) (ejemplo):
 
 ```json
 {
-  "message": "Pago de factura no encontrado",
-  "data": null
+  "message": "El pago de factura no existe",
+  "errors": [
+    {
+      "type": "field",
+      "value": "999",
+      "msg": "El pago de factura no existe",
+      "path": "id",
+      "location": "params"
+    }
+  ]
 }
 ```
 
