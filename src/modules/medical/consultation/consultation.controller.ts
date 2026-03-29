@@ -36,6 +36,15 @@ export class ConsultationController {
         return res.status(status).json({ message, data: updated, error });
     }
 
+    async finish(req: Request, res: Response) {
+        const { id } = req.params;
+        const data = req.body;
+
+        const { data: finished, status, message, error } = await service.finish(Number(id), data);
+
+        return res.status(status).json({ message, data: finished, error });
+    }
+
     async delete(req: Request, res: Response) {
         const { id } = req.params;
 

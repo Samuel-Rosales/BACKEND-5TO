@@ -134,6 +134,212 @@ export class ConsultationValidator {
             .withMessage("El examen físico debe tener entre 1 y 5000 caracteres"),
     ];
 
+    public finishConsultationValidator: ValidationChain[] = [
+        body("finished_at")
+            .optional()
+            .custom((value) => {
+                if (!isValidDateString(value)) {
+                    throw new Error("finished_at debe ser una fecha válida (ISO)");
+                }
+
+                return true;
+            }),
+
+        body("supplies")
+            .exists()
+            .withMessage("supplies es requerido")
+            .isArray()
+            .withMessage("supplies debe ser un arreglo"),
+
+        body("supplies.*.productId")
+            .if(body("supplies").exists())
+            .isInt({ gt: 0 })
+            .withMessage("supplies.*.productId debe ser un entero positivo")
+            .custom(async (value) => {
+                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                if (!product) return Promise.reject("El producto no existe");
+            }),
+
+        body("supplies.*.quantity")
+            .if(body("supplies").exists())
+            .isFloat({ gt: 0 })
+            .withMessage("supplies.*.quantity debe ser un número mayor a 0"),
+
+        body("prescriptions")
+            .exists()
+            .withMessage("prescriptions es requerido")
+            .isArray()
+            .withMessage("prescriptions debe ser un arreglo"),
+
+        body("prescriptions.*.productId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("prescriptions.*.productId debe ser un entero positivo")
+            .custom(async (value) => {
+                const product = await prisma.product.findUnique({ where: { id: Number(value) } });
+                if (!product) return Promise.reject("El producto no existe");
+            }),
+
+        body("prescriptions.*.medication_name")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 255 })
+            .withMessage("prescriptions.*.medication_name debe tener entre 1 y 255 caracteres"),
+
+        body("prescriptions.*.dosage")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 255 })
+            .withMessage("prescriptions.*.dosage debe tener entre 1 y 255 caracteres"),
+
+        body("prescriptions.*.frequency")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 255 })
+            .withMessage("prescriptions.*.frequency debe tener entre 1 y 255 caracteres"),
+
+        body("prescriptions.*.duration")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 255 })
+            .withMessage("prescriptions.*.duration debe tener entre 1 y 255 caracteres"),
+
+        body("prescriptions.*.instructions")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 5000 })
+            .withMessage("prescriptions.*.instructions debe tener entre 1 y 5000 caracteres"),
+
+        body("prescriptions.*.active")
+            .optional()
+            .isBoolean()
+            .withMessage("prescriptions.*.active debe ser boolean"),
+
+        body("symptomsConsultas")
+            .exists()
+            .withMessage("symptomsConsultas es requerido")
+            .isArray()
+            .withMessage("symptomsConsultas debe ser un arreglo"),
+
+        body("symptomsConsultas.*.symptomId")
+            .if(body("symptomsConsultas").exists())
+            .isInt({ gt: 0 })
+            .withMessage("symptomsConsultas.*.symptomId debe ser un entero positivo")
+            .custom(async (value) => {
+                const symptom = await prisma.symptoms.findUnique({ where: { id: Number(value) } });
+                if (!symptom) return Promise.reject("El síntoma no existe");
+            }),
+
+        body("symptomsConsultas.*.severity")
+            .if(body("symptomsConsultas").exists())
+            .trim()
+            .isLength({ min: 1, max: 50 })
+            .withMessage("symptomsConsultas.*.severity debe tener entre 1 y 50 caracteres"),
+
+        body("symptomsConsultas.*.duration")
+            .if(body("symptomsConsultas").exists())
+            .trim()
+            .isLength({ min: 1, max: 100 })
+            .withMessage("symptomsConsultas.*.duration debe tener entre 1 y 100 caracteres"),
+
+        body("symptomsConsultas.*.notes")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 5000 })
+            .withMessage("symptomsConsultas.*.notes debe tener entre 1 y 5000 caracteres"),
+
+        body("clinicalExaminations")
+            .exists()
+            .withMessage("clinicalExaminations es requerido")
+            .isArray()
+            .withMessage("clinicalExaminations debe ser un arreglo"),
+
+        body("clinicalExaminations.*.weight")
+            .optional()
+            .isFloat({ gt: 0 })
+            .withMessage("clinicalExaminations.*.weight debe ser un número mayor a 0"),
+
+        body("clinicalExaminations.*.height")
+            .optional()
+            .isFloat({ gt: 0 })
+            .withMessage("clinicalExaminations.*.height debe ser un número mayor a 0"),
+
+        body("clinicalExaminations.*.temperature")
+            .optional()
+            .isFloat({ gt: 0 })
+            .withMessage("clinicalExaminations.*.temperature debe ser un número mayor a 0"),
+
+        body("clinicalExaminations.*.systolic_bp")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("clinicalExaminations.*.systolic_bp debe ser un entero positivo"),
+
+        body("clinicalExaminations.*.diastolic_bp")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("clinicalExaminations.*.diastolic_bp debe ser un entero positivo"),
+
+        body("clinicalExaminations.*.heart_rate")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("clinicalExaminations.*.heart_rate debe ser un entero positivo"),
+
+        body("clinicalExaminations.*.respiratory_rate")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("clinicalExaminations.*.respiratory_rate debe ser un entero positivo"),
+
+        body("clinicalExaminations.*.oxygen_saturation")
+            .optional()
+            .isFloat({ gt: 0 })
+            .withMessage("clinicalExaminations.*.oxygen_saturation debe ser un número mayor a 0"),
+
+        body("consultationDiagnoses")
+            .exists()
+            .withMessage("consultationDiagnoses es requerido")
+            .isArray()
+            .withMessage("consultationDiagnoses debe ser un arreglo"),
+
+        body("consultationDiagnoses")
+            .custom((value) => {
+                if (!Array.isArray(value)) return true;
+                const primaryCount = value.filter((d) => d && d.is_primary === true).length;
+                if (primaryCount > 1) {
+                    throw new Error("Solo puede existir un diagnóstico primario");
+                }
+                return true;
+            }),
+
+        body("consultationDiagnoses.*.diagnosisId")
+            .if(body("consultationDiagnoses").exists())
+            .isInt({ gt: 0 })
+            .withMessage("consultationDiagnoses.*.diagnosisId debe ser un entero positivo")
+            .custom(async (value) => {
+                const diagnosis = await prisma.diagnosis.findUnique({ where: { id: Number(value) } });
+                if (!diagnosis) return Promise.reject("El diagnóstico no existe");
+            }),
+
+        body("consultationDiagnoses.*.is_primary")
+            .if(body("consultationDiagnoses").exists())
+            .isBoolean()
+            .withMessage("consultationDiagnoses.*.is_primary debe ser boolean"),
+
+        body("consultationDiagnoses.*.condition_status")
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 50 })
+            .withMessage("consultationDiagnoses.*.condition_status debe tener entre 1 y 50 caracteres"),
+
+        body("consultationDiagnoses.*.onset_date")
+            .optional()
+            .custom((value) => {
+                if (!isValidDateString(value)) {
+                    throw new Error("consultationDiagnoses.*.onset_date debe ser una fecha válida (ISO)");
+                }
+                return true;
+            }),
+    ];
+
     public IdParamValidator: ValidationChain[] = [
         param("id")
             .isInt({ gt: 0 })

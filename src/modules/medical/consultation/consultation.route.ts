@@ -37,6 +37,15 @@ consultationRouter.put(
     controller.update
 );
 
+consultationRouter.put(
+    "/:id/finish",
+    validator.IdParamValidator,
+    validator.ConsultationExistsValidator,
+    validator.finishConsultationValidator,
+    handleValidationErrors,
+    controller.finish
+);
+
 consultationRouter.delete(
     "/:id",
     validator.IdParamValidator,
