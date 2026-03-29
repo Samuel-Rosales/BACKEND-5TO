@@ -20,7 +20,6 @@ const expensePaymentSelect = {
     invoiceExpenseId: true,
     paymentMethodId: true,
     amount: true,
-    igtf_amount: true,
     exchangeRateId: true,
     date_at: true,
     paymentMethod: {

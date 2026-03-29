@@ -9,8 +9,19 @@ Body:
 - `categoryId` (int > 0, **requerido**, debe existir)
 - `supplierId` (int > 0, **requerido**, debe existir)
 - `exchangeRateId` (int > 0, **requerido**, debe existir)
-- `total_amount` (number, **requerido**, > 0)
+- `total_amount` (number, **requerido**, > 0) — **monto total en USD**
 - `date_at?` (string ISO)
+- `payments` (array, **requerido**, min 1)
+  - `paymentMethodId` (int > 0, **requerido**, debe existir)
+  - `amount` (number, **requerido**, > 0)
+  - `date_at?` (string ISO)
+
+Notas:
+
+- La tasa usada para convertir montos a USD es **siempre** la del encabezado (`exchangeRateId`).
+- Si el `paymentMethod.currency` es distinto a `USD`, el backend convierte a USD como: $USD = amount / rate$.
+- Debe cuadrar: `sum(payments en USD)` ~= `total_amount` (tolerancia ±0.01).
+- Los `ExpensePayment.exchangeRateId` creados se guardan con la **misma** tasa del encabezado.
 
 Request (JSON):
 
@@ -20,7 +31,11 @@ Request (JSON):
   "supplierId": 1,
   "exchangeRateId": 1,
   "total_amount": 120,
-  "date_at": "2026-03-23T12:00:00.000Z"
+  "date_at": "2026-03-23T12:00:00.000Z",
+  "payments": [
+    { "paymentMethodId": 1, "amount": 100 },
+    { "paymentMethodId": 2, "amount": 770 }
+  ]
 }
 ```
 

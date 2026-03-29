@@ -9,7 +9,6 @@ Body:
 - `invoiceExpenseId` (int > 0, **requerido**, debe existir)
 - `paymentMethodId` (int > 0, **requerido**, debe existir)
 - `amount` (number, **requerido**, > 0)
-- `igtf_amount?` (number, >= 0)
 - `exchangeRateId` (int > 0, **requerido**, debe existir)
 - `date_at?` (string ISO)
 
@@ -20,7 +19,6 @@ Request (JSON):
   "invoiceExpenseId": 1,
   "paymentMethodId": 1,
   "amount": 50,
-  "igtf_amount": 0,
   "exchangeRateId": 1,
   "date_at": "2026-03-23T12:00:00.000Z"
 }
@@ -36,10 +34,9 @@ Response (201) (ejemplo, resumen):
     "invoiceExpenseId": 1,
     "paymentMethodId": 1,
     "amount": "50",
-    "igtf_amount": "0",
     "exchangeRateId": 1,
     "date_at": "2026-03-23T12:00:00.000Z",
-    "paymentMethod": { "id": 1, "name": "Efectivo USD", "type": "cash", "currency": "usd" },
+    "paymentMethod": { "id": 1, "name": "Efectivo USD", "type": "cash", "currency": "USD" },
     "exchangeRate": { "id": 1, "rate": "38.5", "createdAt": "2026-03-23T12:00:00.000Z", "is_active": true },
     "invoiceExpense": {
       "id": 1,

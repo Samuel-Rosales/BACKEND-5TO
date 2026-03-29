@@ -30,7 +30,7 @@ model User {
 
   role           Role            @relation(fields: [roleId], references: [id])
   doctor         Doctor?
-  patient        Patient?
+  patient        Patient[]
   stockMovements StockMovement[]
   purchases      Purchase[]
   invoices       Invoice[]      
@@ -415,27 +415,28 @@ model ExpenseCategory {
 model InvoiceExpense {
   id             Int              @id @default(autoincrement())
   categoryId     Int
-  category       ExpenseCategory  @relation(fields: [categoryId], references: [id])
   supplierId     Int
-  supplier       Supplier         @relation(fields: [supplierId], references: [id])
   exchangeRateId Int
-  exchangeRate   ExchangeRate     @relation(fields: [exchangeRateId], references: [id])
   total_amount   Decimal          @db.Decimal(12, 2)
-  date_at        DateTime         @default(now())
+  date_at        DateTime?         @default(now())
+
+  category       ExpenseCategory  @relation(fields: [categoryId], references: [id])
+  supplier       Supplier         @relation(fields: [supplierId], references: [id])
+  exchangeRate   ExchangeRate     @relation(fields: [exchangeRateId], references: [id])
   payments       ExpensePayment[]
 }
 
 model ExpensePayment {
   id               Int            @id @default(autoincrement())
   invoiceExpenseId Int
-  invoiceExpense   InvoiceExpense @relation(fields: [invoiceExpenseId], references: [id])
   paymentMethodId  Int
-  paymentMethod    PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
-  amount           Decimal        @db.Decimal(12, 2)
-  igtf_amount      Decimal        @default(0) @db.Decimal(12, 2)
+  amount           Decimal        @db.Decimal(12, 2) 
   exchangeRateId   Int
+  date_at          DateTime?       @default(now())
+
+  paymentMethod    PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
+  invoiceExpense   InvoiceExpense @relation(fields: [invoiceExpenseId], references: [id])
   exchangeRate     ExchangeRate   @relation(fields: [exchangeRateId], references: [id])
-  date_at          DateTime       @default(now())
 }
 
 // ==========================================

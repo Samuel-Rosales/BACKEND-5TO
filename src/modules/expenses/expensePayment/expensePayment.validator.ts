@@ -40,11 +40,6 @@ export class ExpensePaymentValidator {
             .isFloat({ gt: 0 })
             .withMessage("amount debe ser un número mayor a 0"),
 
-        body("igtf_amount")
-            .optional()
-            .isFloat({ min: 0 })
-            .withMessage("igtf_amount debe ser un número mayor o igual a 0"),
-
         body("exchangeRateId")
             .isInt({ gt: 0 })
             .withMessage("El exchangeRateId debe ser un número entero positivo")
@@ -96,11 +91,6 @@ export class ExpensePaymentValidator {
             .optional()
             .isFloat({ gt: 0 })
             .withMessage("amount debe ser un número mayor a 0"),
-
-        body("igtf_amount")
-            .optional()
-            .isFloat({ min: 0 })
-            .withMessage("igtf_amount debe ser un número mayor o igual a 0"),
 
         body("exchangeRateId")
             .optional()

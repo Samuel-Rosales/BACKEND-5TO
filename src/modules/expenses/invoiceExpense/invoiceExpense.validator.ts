@@ -51,6 +51,28 @@ export class InvoiceExpenseValidator {
             .isFloat({ gt: 0 })
             .withMessage("total_amount debe ser un número mayor a 0"),
 
+        body("payments")
+            .isArray({ min: 1 })
+            .withMessage("payments debe ser un array con al menos 1 pago"),
+
+        body("payments.*.paymentMethodId")
+            .isInt({ gt: 0 })
+            .withMessage("Cada paymentMethodId debe ser un número entero positivo"),
+
+        body("payments.*.amount")
+            .isFloat({ gt: 0 })
+            .withMessage("El amount de cada pago debe ser un número mayor a 0"),
+
+        body("payments.*.date_at")
+            .optional()
+            .custom((value) => {
+                if (!isValidDateString(value)) {
+                    throw new Error("payments.*.date_at debe ser una fecha válida (ISO)");
+                }
+
+                return true;
+            }),
+
         body("date_at")
             .optional()
             .custom((value) => {
