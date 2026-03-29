@@ -49,7 +49,7 @@ model Patient {
   last_visit_at   DateTime?
   active          Boolean @default(true)
 
-  appointments  Appoinment[]
+  appointments  Appointment[]
   invocies       Invoice[]
 }
 
@@ -63,7 +63,7 @@ model Doctor {
   specialty      MedicalSpecialty         @relation(fields: [specialtyId], references: [id])
   availabilities DoctorAvailability[]
   overrides      DoctorScheduleOverride[]
-  appointments   Appoinment[]
+  appointments   Appointment[]
   consultations  Consultation[]
 }
 
@@ -172,7 +172,7 @@ model ConsultationDiagnosis {
 // 📅 MÓDULO DE AGENDA Y DISPONIBILIDAD
 // ==========================================
 
-model Appoinment {
+model Appointment {
   id             Int               @id @default(autoincrement())
   doctorId       Int
   patientId      Int
@@ -187,6 +187,7 @@ model Appoinment {
   patient        Patient           @relation(fields: [patientId], references: [id])
   status         StatusAppointment @relation(fields: [statusId], references: [id])
   type           AppointmentType   @relation(fields: [typeId], references: [id])
+	@@map("Appointment")
 }
 
 model StatusAppointment {
@@ -194,14 +195,14 @@ model StatusAppointment {
   name         String
   color_hex    String?
 
-  appointments Appoinment[]
+  appointments Appointment[]
 }
 
 model AppointmentType {
   id           Int          @id @default(autoincrement())
   name         String
 
-  appointments Appoinment[]
+  appointments Appointment[]
 }
 
 model DoctorAvailability {
@@ -240,7 +241,6 @@ model Invoice {
   taxId          Int
   
   total_usd      Decimal          @db.Decimal(12, 2)
-  total_bs       Decimal          @db.Decimal(12, 2)
 
   @@index([patientId])
 

@@ -6,74 +6,32 @@ type DbClient = PrismaClient | Prisma.TransactionClient;
 
 const invoiceSelect = {
     id: true,
-    consultationId: true,
+    patientId: true,
+    receptionistId: true,
     exchangeRateId: true,
     total_usd: true,
-    total_bs: true,
     statusId: true,
+    taxId: true,
     status: {
         select: { id: true, name: true, color_hex: true },
     },
     exchangeRate: {
         select: { id: true, rate: true, createdAt: true, is_active: true },
     },
-    consultation: {
+    tax: {
+        select: { id: true, name: true, rate: true, code: true, isActive: true },
+    },
+    patient: {
         select: {
             id: true,
-            appointmentId: true,
-            date: true,
-            started_at: true,
-            finished_at: true,
-            patient: {
-                select: {
-                    id: true,
-                    user: { select: { id: true, ci: true, name: true } },
-                },
-            },
-            doctor: {
-                select: {
-                    id: true,
-                    user: { select: { id: true, ci: true, name: true } },
-                    specialty: {
-                        select: {
-                            id: true,
-                            name: true,
-                            consultation_price: true,
-                            commission_percentage: true,
-                        },
-                    },
-                },
-            },
-            supplies: {
-                select: {
-                    id: true,
-                    quantity: true,
-                    product: {
-                        select: {
-                            id: true,
-                            name: true,
-                            cost_price: true,
-                        },
-                    },
-                },
-            },
+            user: { select: { id: true, ci: true, name: true } },
         },
     },
-    details: {
+    receptionist: {
         select: {
             id: true,
-            productId: true,
-            description: true,
-            quantity: true,
-            unit_price: true,
-            taxId: true,
-            is_commissionable: true,
-            product: {
-                select: { id: true, name: true, sku: true },
-            },
-            tax: {
-                select: { id: true, name: true, rate: true, code: true },
-            },
+            ci: true,
+            name: true,
         },
     },
     payments: {
@@ -124,35 +82,37 @@ export class InvoiceService {
 
     constructor(private db: DbClient = prisma) { }
 
-    private async resolveExchangeRateId(exchangeRateId?: number) {
+    private async resolveExchangeRateId(exchangeRateId?: number, tx?: Prisma.TransactionClient) {
         if (exchangeRateId) {
-            const rate = await this.db.exchangeRate.findUnique({ where: { id: exchangeRateId } });
+
+            const rate = await (tx || this.db).exchangeRate.findUnique({ where: { id: exchangeRateId } });
+
             if (!rate) throw new Error("La tasa de cambio no existe");
             return rate;
         }
 
-        const active = await this.db.exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
+        const active = await (tx || this.db).exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
         if (!active) throw new Error("No existe una tasa de cambio activa");
         return active;
     }
 
-    private async resolveStatusId(statusId?: number) {
+    private async resolveStatusId(statusId?: number, tx?: Prisma.TransactionClient) {
         if (statusId) {
-            const status = await this.db.statusInvoice.findUnique({ where: { id: statusId } });
+            const status = await (tx || this.db).statusInvoice.findUnique({ where: { id: statusId } });
             if (!status) throw new Error("El status de la factura no existe");
             return status;
         }
 
-        const proforma = await this.db.statusInvoice.findFirst({ where: { name: { equals: "Proforma", mode: "insensitive" } } });
+        const proforma = await (tx || this.db).statusInvoice.findFirst({ where: { name: { equals: "Proforma", mode: "insensitive" } } });
         if (proforma) return proforma;
 
-        const any = await this.db.statusInvoice.findFirst({ orderBy: { id: "asc" } });
+        const any = await (tx || this.db).statusInvoice.findFirst({ orderBy: { id: "asc" } });
         if (!any) throw new Error("No existe ningún status de factura (cree uno primero)");
         return any;
     }
 
-    private async resolveDefaultTaxId() {
-        const tax = await this.db.tax.findFirst({ where: { isActive: true }, orderBy: { id: "asc" } });
+    private async resolveDefaultTaxId(tx?: Prisma.TransactionClient) {
+        const tax = await (tx || this.db).tax.findFirst({ where: { isActive: true }, orderBy: { id: "asc" } });
         if (!tax) throw new Error("No existe ningún impuesto activo (cree al menos uno)");
         return tax.id;
     }
@@ -219,7 +179,6 @@ export class InvoiceService {
     }
 
     private async createImpl(data: CreateInvoiceDto) {
-        
         const exchangeRate = await this.resolveExchangeRateId(data.exchangeRateId);
         const status = await this.resolveStatusId(data.statusId);
 
@@ -239,7 +198,6 @@ export class InvoiceService {
                 taxId: data.taxId,
 
                 total_usd: data.total_usd ? Number(data.total_usd) : 0,
-                total_bs: data.total_bs ? Number(data.total_bs) : 0
             },
             select: invoiceSelect,
         });
@@ -264,7 +222,70 @@ export class InvoiceService {
 
     async create(data: CreateInvoiceDto) {
         try {
-            const { created, commissions } = await this.createImpl(data);
+            const { created, commissions } = await prisma.$transaction(async (tx) => {
+                const exchangeRate = await this.resolveExchangeRateId(data.exchangeRateId, tx);
+                const status = await this.resolveStatusId(data.statusId, tx);
+
+                const taxId = data.taxId ?? (await this.resolveDefaultTaxId(tx));
+
+                let totalUsd: number | null = null;
+                let computedCommissions: ReturnType<typeof computeCommissions> | null = null;
+
+                if (data.appointmentId) {
+                    const appointment = await tx.appointment.findUnique({
+                        where: { id: data.appointmentId },
+                        select: { doctorId: true, patientId: true },
+                    });
+                    if (!appointment) throw new Error("La cita no existe");
+                    if (appointment.patientId !== data.patientId) throw new Error("La cita no pertenece al paciente");
+
+                    const doctor = await tx.doctor.findUnique({
+                        where: { id: appointment.doctorId },
+                        select: { specialtyId: true },
+                    });
+                    if (!doctor) throw new Error("El doctor de la cita no existe");
+
+                    const specialty = await tx.medicalSpecialty.findUnique({
+                        where: { id: doctor.specialtyId },
+                        select: { consultation_price: true, commission_percentage: true },
+                    });
+                    if (!specialty) throw new Error("La especialidad del doctor no existe");
+
+                    totalUsd = Number(specialty.consultation_price);
+
+                    const clinicPercent = Number(specialty.commission_percentage);
+                    if (!Number.isNaN(clinicPercent)) {
+                        computedCommissions = computeCommissions(
+                            [{ quantity: 1, unit_price: totalUsd, is_commissionable: true }],
+                            clinicPercent,
+                        );
+                    }
+                } else {
+                    if (data.total_usd === undefined || data.total_usd === null) {
+                        throw new Error("Debe indicar total_usd o appointmentId");
+                    }
+                    totalUsd = Number(data.total_usd);
+                }
+
+                if (totalUsd === null || Number.isNaN(totalUsd)) {
+                    throw new Error("total_usd inválido");
+                }
+
+                const created = await tx.invoice.create({
+                    data: {
+                        patientId: data.patientId,
+                        receptionistId: data.receptionistId,
+                        exchangeRateId: exchangeRate.id,
+                        statusId: status.id,
+                        taxId,
+
+                        total_usd: totalUsd,
+                    },
+                    select: invoiceSelect,
+                });
+
+                return { created, commissions: computedCommissions };
+            });
 
             return {
                 status: 201,

@@ -19,7 +19,7 @@ export class ConsultationValidator {
             .isInt({ gt: 0 })
             .withMessage("El appointmentId debe ser un número entero positivo")
             .custom(async (value) => {
-                const appointment = await prisma.appoinment.findUnique({ where: { id: Number(value) } });
+                const appointment = await prisma.appointment.findUnique({ where: { id: Number(value) } });
 
                 if (!appointment) {
                     return Promise.reject("La cita no existe");
@@ -112,7 +112,7 @@ export class ConsultationValidator {
             .isInt({ gt: 0 })
             .withMessage("El appointmentId debe ser un número entero positivo")
             .custom(async (value) => {
-                const appointment = await prisma.appoinment.findUnique({ where: { id: Number(value) } });
+                const appointment = await prisma.appointment.findUnique({ where: { id: Number(value) } });
 
                 if (!appointment) {
                     return Promise.reject("La cita no existe");

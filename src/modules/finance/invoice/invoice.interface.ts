@@ -15,6 +15,26 @@ export interface CreateInvoiceDto {
     statusId: number;
     total_usd?: string | number;
     total_bs?: string | number;
+    appointmentId?: number;
+    // patient: {
+    //     appointment: {
+    //         id: number;
+    //         doctor: {
+    //             id: number;
+    //             name: string;
+    //             specialty: {
+    //                 id: number;
+    //                 name: string;
+    //                 specialty: {
+    //                     id: number;
+    //                     name: string;
+    //                     consultation_price: number;
+    //                     commission_percentage: number;
+    //                 };
+    //             };
+    //         };
+    //     }
+    // }
 }
 
 export interface UpdateInvoiceDto {

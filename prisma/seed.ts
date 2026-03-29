@@ -158,7 +158,7 @@ async function ensureAppointment(params: {
     date_time: Date;
     reson_visit?: string;
 }) {
-    const existing = await prisma.appoinment.findFirst({
+    const existing = await prisma.appointment.findFirst({
         where: {
             doctorId: params.doctorId,
             patientId: params.patientId,
@@ -169,7 +169,7 @@ async function ensureAppointment(params: {
 
     if (existing) return existing;
 
-    return prisma.appoinment.create({
+    return prisma.appointment.create({
         data: {
             doctorId: params.doctorId,
             patientId: params.patientId,
@@ -534,7 +534,6 @@ async function ensureDemoData() {
                 statusId: statusProforma.id,
                 taxId: defaultTax.id,
                 total_usd: totalUsd,
-                total_bs: totalBs,
             },
             select: { id: true },
         });

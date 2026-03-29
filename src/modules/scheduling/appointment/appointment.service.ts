@@ -186,7 +186,7 @@ export class AppointmentService {
                 }
             }
 
-            const existing = await prisma.appoinment.findFirst({
+            const existing = await prisma.appointment.findFirst({
                 where: {
                     doctorId,
                     date_time: dateTime,
@@ -201,7 +201,7 @@ export class AppointmentService {
                 };
             }
 
-            const appointment = await prisma.appoinment.create({
+            const appointment = await prisma.appointment.create({
                 data: {
                     doctorId,
                     patientId: data.patientId,
@@ -236,7 +236,7 @@ export class AppointmentService {
 
     async findAll() {
         try {
-            const appointments = await prisma.appoinment.findMany({
+            const appointments = await prisma.appointment.findMany({
                 orderBy: { date_time: "desc" },
                 select: appointmentSelect,
             });
@@ -271,7 +271,7 @@ export class AppointmentService {
 
     async findOne(id: number) {
         try {
-            const appointment = await prisma.appoinment.findUnique({
+            const appointment = await prisma.appointment.findUnique({
                 where: { id },
                 select: appointmentSelect,
             });
@@ -303,7 +303,7 @@ export class AppointmentService {
                 date_time: data.date_time ? this.normalizeDateTime(data.date_time) : undefined,
             };
 
-            const appointment = await prisma.appoinment.update({
+            const appointment = await prisma.appointment.update({
                 where: { id },
                 data: normalized,
                 select: appointmentSelect,
@@ -331,7 +331,7 @@ export class AppointmentService {
 
     async delete(id: number) {
         try {
-            const appointment = await prisma.appoinment.delete({
+            const appointment = await prisma.appointment.delete({
                 where: { id },
                 select: appointmentSelect,
             });

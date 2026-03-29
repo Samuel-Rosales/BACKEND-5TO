@@ -194,7 +194,7 @@ export class AppointmentValidator {
     public AppointmentExistsValidator: ValidationChain[] = [
         param("id")
             .custom(async (value) => {
-                const appointment = await prisma.appoinment.findUnique({ where: { id: Number(value) } });
+                const appointment = await prisma.appointment.findUnique({ where: { id: Number(value) } });
 
                 if (!appointment) {
                     return Promise.reject("La cita no existe");
