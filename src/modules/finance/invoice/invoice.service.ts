@@ -1,6 +1,7 @@
 import { prisma } from "@/configs";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { CreateInvoiceDto, CreateInvoiceDetailDto, UpdateInvoiceDto } from "./invoice.interface";
+import { Decimal } from "@prisma/client/runtime/client";
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -310,10 +311,23 @@ export class InvoiceService {
                 select: invoiceSelect,
             });
 
+            const invoicesProcessed = invoices.map((invoice) => {
+                const exchangeRate = invoice.exchangeRate.rate;
+                console.log("Exchange rate for invoice", invoice.id, "is", exchangeRate);
+                
+                let totalBs = new Decimal(Number(invoice.total_usd));
+                 
+                totalBs = totalBs.mul(new Decimal(exchangeRate));
+
+
+                return { ...invoice, total_bs: totalBs.toNumber() };
+                
+            });
+
             return {
                 status: 200,
                 message: invoices.length === 0 ? "No se encontraron facturas" : "Facturas encontradas éxitosamente",
-                data: invoices,
+                data: invoicesProcessed,
             };
         } catch (error) {
             console.error("Error buscando facturas:", error);
