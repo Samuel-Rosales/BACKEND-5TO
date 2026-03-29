@@ -155,14 +155,14 @@ async function ensureAppointment(params: {
     statusId: number;
     typeId: number;
     price: number;
-    start_datetime: Date;
+    date_time: Date;
     reson_visit?: string;
 }) {
     const existing = await prisma.appoinment.findFirst({
         where: {
             doctorId: params.doctorId,
             patientId: params.patientId,
-            start_datetime: params.start_datetime,
+            date_time: params.date_time,
         },
         select: { id: true },
     });
@@ -176,7 +176,7 @@ async function ensureAppointment(params: {
             statusId: params.statusId,
             typeId: params.typeId,
             price: params.price,
-            start_datetime: params.start_datetime,
+            date_time: params.date_time,
             reson_visit: params.reson_visit,
         },
         select: { id: true },
@@ -468,7 +468,7 @@ async function ensureDemoData() {
             statusId: i % 2 === 0 ? stPend.id : stConf.id,
             typeId: typeConsulta.id,
             price: 20,
-            start_datetime: start1,
+            date_time: start1,
             reson_visit: "SEED: cita demo",
         });
     }
@@ -481,7 +481,7 @@ async function ensureDemoData() {
             statusId: i % 2 === 0 ? stConf.id : stPend.id,
             typeId: typeControl.id,
             price: 25,
-            start_datetime: start2,
+            date_time: start2,
             reson_visit: "SEED: control",
         });
     }

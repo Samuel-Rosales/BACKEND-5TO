@@ -180,7 +180,7 @@ model Appoinment {
   typeId         Int
   reson_visit    String?           @db.Text
   price          Decimal           @db.Decimal(12, 2)
-  start_datetime DateTime
+  date_time DateTime
   created_at     DateTime          @default(now())
 
   doctor         Doctor            @relation(fields: [doctorId], references: [id])

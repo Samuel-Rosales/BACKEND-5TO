@@ -1,21 +1,21 @@
 export interface CreateAppointmentDto {
-    doctorId: number;
+    doctorId?: number;
+    specialtyId?: number;
     patientId: number;
     statusId: number;
     typeId: number;
     reson_visit?: string;
     price: string | number;
-    start_datetime: string | Date;
-    end_datetime: string | Date;
+    date_time: string | Date;
 }
 
 export interface UpdateAppointmentDto {
     doctorId?: number;
+    specialtyId?: number;
     patientId?: number;
     statusId?: number;
     typeId?: number;
     reson_visit?: string;
     price?: string | number;
-    start_datetime?: string | Date;
-    end_datetime?: string | Date;
+    date_time?: string | Date;
 }

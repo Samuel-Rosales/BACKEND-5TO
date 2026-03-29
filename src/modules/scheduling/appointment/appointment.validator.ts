@@ -14,7 +14,19 @@ const isValidDateString = (value: unknown) => {
 export class AppointmentValidator {
 
     public createAppointmentValidator: ValidationChain[] = [
+        body().custom((_, { req }) => {
+            const hasDoctorId = req.body.doctorId !== undefined && req.body.doctorId !== null;
+            const hasSpecialtyId = req.body.specialtyId !== undefined && req.body.specialtyId !== null;
+
+            if (hasDoctorId === hasSpecialtyId) {
+                throw new Error("Debe enviar exactamente uno: doctorId o specialtyId");
+            }
+
+            return true;
+        }),
+
         body("doctorId")
+            .optional()
             .isInt({ gt: 0 })
             .withMessage("El doctorId debe ser un número entero positivo")
             .custom(async (value) => {
@@ -22,6 +34,18 @@ export class AppointmentValidator {
 
                 if (!doctor || !doctor.active) {
                     return Promise.reject("El doctor no existe o no está activo");
+                }
+            }),
+
+        body("specialtyId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("El specialtyId debe ser un número entero positivo")
+            .custom(async (value) => {
+                const specialty = await prisma.medicalSpecialty.findUnique({ where: { id: Number(value) } });
+
+                if (!specialty || !specialty.active) {
+                    return Promise.reject("La especialidad no existe o no está activa");
                 }
             }),
 
@@ -68,28 +92,10 @@ export class AppointmentValidator {
             .isFloat({ gt: 0 })
             .withMessage("El precio debe ser un número mayor a 0"),
 
-        body("start_datetime")
+        body("date_time")
             .custom((value) => {
                 if (!isValidDateString(value)) {
-                    throw new Error("start_datetime debe ser una fecha válida (ISO)");
-                }
-
-                return true;
-            }),
-
-        body("end_datetime")
-            .custom((value, { req }) => {
-                if (!isValidDateString(value)) {
-                    throw new Error("end_datetime debe ser una fecha válida (ISO)");
-                }
-
-                if (isValidDateString(req.body.start_datetime)) {
-                    const start = new Date(req.body.start_datetime);
-                    const end = new Date(value);
-
-                    if (end <= start) {
-                        throw new Error("end_datetime debe ser mayor que start_datetime");
-                    }
+                    throw new Error("date_time debe ser una fecha válida (ISO)");
                 }
 
                 return true;
@@ -109,6 +115,18 @@ export class AppointmentValidator {
                 }
             }),
 
+        body("specialtyId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("El specialtyId debe ser un número entero positivo")
+            .custom(async (value) => {
+                const specialty = await prisma.medicalSpecialty.findUnique({ where: { id: Number(value) } });
+
+                if (!specialty || !specialty.active) {
+                    return Promise.reject("La especialidad no existe o no está activa");
+                }
+            }),
+
         body("patientId")
             .optional()
             .isInt({ gt: 0 })
@@ -156,32 +174,11 @@ export class AppointmentValidator {
             .isFloat({ gt: 0 })
             .withMessage("El precio debe ser un número mayor a 0"),
 
-        body("start_datetime")
+        body("date_time")
             .optional()
             .custom((value) => {
                 if (!isValidDateString(value)) {
-                    throw new Error("start_datetime debe ser una fecha válida (ISO)");
-                }
-
-                return true;
-            }),
-
-        body("end_datetime")
-            .optional()
-            .custom((value, { req }) => {
-                if (!isValidDateString(value)) {
-                    throw new Error("end_datetime debe ser una fecha válida (ISO)");
-                }
-
-                const startCandidate = req.body.start_datetime;
-
-                if (isValidDateString(startCandidate)) {
-                    const start = new Date(startCandidate);
-                    const end = new Date(value);
-
-                    if (end <= start) {
-                        throw new Error("end_datetime debe ser mayor que start_datetime");
-                    }
+                    throw new Error("date_time debe ser una fecha válida (ISO)");
                 }
 
                 return true;
