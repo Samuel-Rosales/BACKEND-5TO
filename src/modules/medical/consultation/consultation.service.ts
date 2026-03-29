@@ -4,29 +4,27 @@ import { InvoiceService } from "@/modules/finance/invoice/invoice.service";
 
 const consultationSelect = {
     id: true,
-    appointmentId: true,
-    patientId: true,
+    invoiceId: true,
     doctorId: true,
     date: true,
     started_at: true,
-    finished_at: true,
-    symptoms: true,
-    diagnosis: true,
-    physical_exam: true,
-    patient: {
+    invoice: {
         select: {
             id: true,
-            userId: true,
-            tipo_sangre: true,
-            active: true,
-            user: {
+            patientId: true,
+            total_usd: true,
+            patient: {
                 select: {
                     id: true,
-                    ci: true,
-                    name: true,
-                },
-            },
-        },
+                    user: {
+                        select: {
+                            ci: true,
+                            name: true,
+                        },
+                    },
+                }
+            }
+        }
     },
     doctor: {
         select: {

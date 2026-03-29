@@ -50,7 +50,7 @@ model Patient {
   active          Boolean @default(true)
 
   appointments  Appointment[]
-  invocies       Invoice[]
+  invoices       Invoice[]
 }
 
 model Doctor {
@@ -79,13 +79,14 @@ model MedicalSpecialty {
 
 model Consultation {
   id                    Int                     @id @default(autoincrement())
-  doctorId              Int
   invoiceId             Int                     @unique
+  doctorId              Int
   date                  DateTime                @default(now()) @db.Date
   started_at            DateTime                @default(now())
   finished_at           DateTime?
 
   doctor                Doctor                  @relation(fields: [doctorId], references: [id])
+  invoice               Invoice                 @relation(fields: [invoiceId], references: [id])
 
   supplies              SupplyConsultation[]
   prescriptions         Prescription[]
@@ -251,6 +252,7 @@ model Invoice {
   status         StatusInvoice    @relation(fields: [statusId], references: [id])
 
   payments       InvoicePayment[]
+  consultation   Consultation?
 }
 
 model StatusInvoice {
