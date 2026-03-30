@@ -1,7 +1,7 @@
 export interface CreateInvoiceExpenseDto {
     categoryId: number;
     supplierId: number;
-    exchangeRateId: number;
+    exchangeRateId?: number;
     total_amount: number;
     date_at?: string | Date;
     payments: {

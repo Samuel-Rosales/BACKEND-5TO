@@ -1,6 +1,7 @@
 import { prisma } from "@/configs";
 import { CreateInvoiceExpenseDto, UpdateInvoiceExpenseDto } from "./invoiceExpense.interface";
 import { Decimal } from "@prisma/client/runtime/client";
+import { resolveExchangeRate } from "@/utils/exchange-rate.util";
 
 const exchangeRateSelect = {
     id: true,
@@ -60,22 +61,9 @@ const invoiceExpenseSelect = {
 } as const;
 
 export class InvoiceExpenseService {
-
-    private async resolveExchangeRateId(exchangeRateId?: number) {
-        if (exchangeRateId) {
-            const rate = await prisma.exchangeRate.findUnique({ where: { id: exchangeRateId } });
-            if (!rate) throw new Error("La tasa de cambio no existe");
-            return rate;
-        }
-
-        const active = await prisma.exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
-        if (!active) throw new Error("No existe una tasa de cambio activa");
-        return active;
-    }
-
     async create(data: CreateInvoiceExpenseDto) {
         try {
-            const rate = await this.resolveExchangeRateId(data.exchangeRateId);
+            const rate = await resolveExchangeRate(data.exchangeRateId);
 
             if (!Array.isArray(data.payments) || data.payments.length === 0) {
                 return {

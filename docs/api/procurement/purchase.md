@@ -8,7 +8,7 @@ Body:
 
 - `supplierId` (int > 0, **requerido**, debe existir)
 - `userId` (int > 0, **requerido**, debe existir)
-- `exchangeRateId` (int > 0, **requerido**, debe existir)
+- `exchangeRateId?` (int > 0, opcional; debe existir si se envía; si no se envía se usa la última tasa del sistema — primero intenta la activa más reciente)
 - `status?` (string, 2..80)
 - `reference?` (string, 1..200)
 - `observation?` (string, 1..5000)
@@ -28,7 +28,6 @@ Request (JSON):
 {
   "supplierId": 1,
   "userId": 1,
-  "exchangeRateId": 1,
   "status": "RECIBIDA",
   "reference": "FAC-123",
   "observation": "Compra de reposición",

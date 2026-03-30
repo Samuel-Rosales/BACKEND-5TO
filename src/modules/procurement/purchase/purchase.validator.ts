@@ -27,6 +27,7 @@ export class PurchaseValidator {
             }),
 
         body("exchangeRateId")
+            .optional()
             .isInt({ gt: 0 })
             .withMessage("exchangeRateId debe ser un entero positivo")
             .custom(async (value) => {

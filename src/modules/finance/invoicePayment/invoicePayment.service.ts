@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
 import { CreateInvoicePaymentDto, UpdateInvoicePaymentDto } from "./invoicePayment.interface";
+import { resolveExchangeRate } from "@/utils/exchange-rate.util";
 
 const IGTF_RATE = 0.03;
 
@@ -34,25 +35,12 @@ function shouldApplyIgtf(method: { type: string; currency: string }) {
 }
 
 export class InvoicePaymentService {
-
-    private async resolveExchangeRateId(exchangeRateId?: number) {
-        if (exchangeRateId) {
-            const rate = await prisma.exchangeRate.findUnique({ where: { id: exchangeRateId } });
-            if (!rate) throw new Error("La tasa de cambio no existe");
-            return rate;
-        }
-
-        const active = await prisma.exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
-        if (!active) throw new Error("No existe una tasa de cambio activa");
-        return active;
-    }
-
     async create(data: CreateInvoicePaymentDto) {
         try {
             const method = await prisma.paymentMethod.findUnique({ where: { id: data.paymentMethodId } });
             if (!method) throw new Error("El método de pago no existe");
 
-            const rate = await this.resolveExchangeRateId(data.exchangeRateId);
+            const rate = await resolveExchangeRate(data.exchangeRateId);
 
             const amountPaid = Number(data.amount_paid);
             const igtfAmount = shouldApplyIgtf(method) ? roundMoney(amountPaid * IGTF_RATE) : 0;
@@ -146,7 +134,7 @@ export class InvoicePaymentService {
             const method = await prisma.paymentMethod.findUnique({ where: { id: methodId } });
             if (!method) throw new Error("El método de pago no existe");
 
-            const rate = await this.resolveExchangeRateId(data.exchangeRateId ?? existing.exchangeRateId);
+            const rate = await resolveExchangeRate(data.exchangeRateId ?? existing.exchangeRateId);
             const amountPaid = data.amount_paid !== undefined ? Number(data.amount_paid) : Number(existing.amount_paid);
             const igtfAmount = shouldApplyIgtf(method) ? roundMoney(amountPaid * IGTF_RATE) : 0;
 

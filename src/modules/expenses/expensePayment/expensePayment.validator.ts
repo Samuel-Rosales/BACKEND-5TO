@@ -41,6 +41,7 @@ export class ExpensePaymentValidator {
             .withMessage("amount debe ser un número mayor a 0"),
 
         body("exchangeRateId")
+            .optional()
             .isInt({ gt: 0 })
             .withMessage("El exchangeRateId debe ser un número entero positivo")
             .custom(async (value) => {

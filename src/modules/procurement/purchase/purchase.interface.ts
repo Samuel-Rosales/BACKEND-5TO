@@ -10,7 +10,7 @@ export interface CreatePurchaseItemDto {
 export interface CreatePurchaseDto {
     supplierId: number;
     userId: number;
-    exchangeRateId: number;
+    exchangeRateId?: number;
     status: StatusPurchase;
     reference?: string;
     observation?: string;

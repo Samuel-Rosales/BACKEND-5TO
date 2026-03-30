@@ -2,7 +2,7 @@ export interface CreateExpensePaymentDto {
     invoiceExpenseId: number;
     paymentMethodId: number;
     amount: string | number;
-    exchangeRateId: number;
+    exchangeRateId?: number;
     date_at?: string | Date;
 }
 

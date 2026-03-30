@@ -37,6 +37,7 @@ export class InvoiceExpenseValidator {
             }),
 
         body("exchangeRateId")
+            .optional()
             .isInt({ gt: 0 })
             .withMessage("El exchangeRateId debe ser un número entero positivo")
             .custom(async (value) => {

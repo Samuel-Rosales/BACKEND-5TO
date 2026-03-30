@@ -2,6 +2,7 @@ import { prisma } from "@/configs";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { CreateInvoiceDto, CreateInvoiceDetailDto, UpdateInvoiceDto } from "./invoice.interface";
 import { Decimal } from "@prisma/client/runtime/client";
+import { resolveExchangeRate } from "@/utils/exchange-rate.util";
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -82,20 +83,6 @@ function computeCommissions(details: Array<{ quantity: number; unit_price: any; 
 export class InvoiceService {
 
     constructor(private db: DbClient = prisma) { }
-
-    private async resolveExchangeRateId(exchangeRateId?: number, tx?: Prisma.TransactionClient) {
-        if (exchangeRateId) {
-
-            const rate = await (tx || this.db).exchangeRate.findUnique({ where: { id: exchangeRateId } });
-
-            if (!rate) throw new Error("La tasa de cambio no existe");
-            return rate;
-        }
-
-        const active = await (tx || this.db).exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
-        if (!active) throw new Error("No existe una tasa de cambio activa");
-        return active;
-    }
 
     private async resolveStatusId(statusId?: number, tx?: Prisma.TransactionClient) {
         if (statusId) {
@@ -180,7 +167,7 @@ export class InvoiceService {
     }
 
     private async createImpl(data: CreateInvoiceDto) {
-        const exchangeRate = await this.resolveExchangeRateId(data.exchangeRateId);
+        const exchangeRate = await resolveExchangeRate(data.exchangeRateId, this.db);
         const status = await this.resolveStatusId(data.statusId);
 
         // const details = data.details && data.details.length > 0
@@ -224,7 +211,7 @@ export class InvoiceService {
     async create(data: CreateInvoiceDto) {
         try {
             const { created, commissions } = await prisma.$transaction(async (tx) => {
-                const exchangeRate = await this.resolveExchangeRateId(data.exchangeRateId, tx);
+                const exchangeRate = await resolveExchangeRate(data.exchangeRateId, tx);
                 const status = await this.resolveStatusId(data.statusId, tx);
 
                 const taxId = data.taxId ?? (await this.resolveDefaultTaxId(tx));

@@ -2,6 +2,7 @@ import { prisma } from "@/configs";
 import { CreatePurchaseDto, UpdatePurchaseDto } from "./purchase.interface";
 import { Decimal } from "@prisma/client/runtime/client";
 import { StatusPurchase } from "@prisma/client";
+import { resolveExchangeRate } from "@/utils/exchange-rate.util";
 
 const purchaseStockReason = (purchaseId: number) => `PURCHASE:${purchaseId}`;
 // Backward-compat: some movements were created with this key.
@@ -90,21 +91,9 @@ const purchaseSelect = {
 } as const;
 
 export class PurchaseService {
-    private async resolveExchangeRateId(exchangeRateId?: number) {
-        if (exchangeRateId) {
-            const rate = await prisma.exchangeRate.findUnique({ where: { id: exchangeRateId } });
-            if (!rate) throw new Error("La tasa de cambio no existe");
-            return rate;
-        }
-
-        const active = await prisma.exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
-        if (!active) throw new Error("No existe una tasa de cambio activa");
-        return active;
-    }
-
     async create(data: CreatePurchaseDto) {
         try {
-            const rate = await this.resolveExchangeRateId(data.exchangeRateId);
+            const rate = await resolveExchangeRate(data.exchangeRateId);
 
             if (!Array.isArray(data.items) || data.items.length === 0) {
                 return {

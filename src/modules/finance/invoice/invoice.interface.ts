@@ -10,7 +10,7 @@ export interface CreateInvoiceDetailDto {
 export interface CreateInvoiceDto {
     patientId: number;
     receptionistId: number;
-    exchangeRateId: number;
+    exchangeRateId?: number;
     taxId: number;
     statusId: number;
     total_usd?: string | number;

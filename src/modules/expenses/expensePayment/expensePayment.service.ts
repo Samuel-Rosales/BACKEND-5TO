@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
 import { CreateExpensePaymentDto, UpdateExpensePaymentDto } from "./expensePayment.interface";
+import { resolveExchangeRate } from "@/utils/exchange-rate.util";
 
 const exchangeRateSelect = {
     id: true,
@@ -58,8 +59,15 @@ export class ExpensePaymentService {
 
     async create(data: CreateExpensePaymentDto) {
         try {
+            const rate = await resolveExchangeRate(data.exchangeRateId);
             const payment = await prisma.expensePayment.create({
-                data,
+                data: {
+                    invoiceExpenseId: data.invoiceExpenseId,
+                    paymentMethodId: data.paymentMethodId,
+                    amount: data.amount as any,
+                    exchangeRateId: rate.id,
+                    date_at: data.date_at ? new Date(data.date_at) : undefined,
+                },
                 select: expensePaymentSelect,
             });
 
