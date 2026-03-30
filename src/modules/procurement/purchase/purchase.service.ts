@@ -91,6 +91,44 @@ const purchaseSelect = {
 } as const;
 
 export class PurchaseService {
+    private async resolveActiveTaxRate() {
+        const tax = await prisma.tax.findFirst({
+            where: { isActive: true },
+            orderBy: { id: "asc" },
+            select: { id: true, name: true, rate: true },
+        });
+
+        return tax;
+    }
+
+    private withComputedTotals(
+        purchase: any,
+        tax: { id: number; name: string; rate: any } | null,
+    ) {
+        if (!purchase) return purchase;
+
+        const totalUsd = (purchase.items || []).reduce((acc: Decimal, item: any) => {
+            const unitCost = new Decimal(item.unit_cost as any);
+            return acc.plus(unitCost.mul(new Decimal(item.quantity)));
+        }, new Decimal(0));
+
+        const rate = purchase.exchangeRate?.rate ? new Decimal(purchase.exchangeRate.rate as any) : new Decimal(0);
+        const totalBs = totalUsd.mul(rate);
+
+        const taxRate = tax?.rate !== undefined && tax?.rate !== null ? new Decimal(tax.rate as any) : new Decimal(0);
+        const ivaUsd = totalUsd.mul(taxRate).div(new Decimal(100));
+        const ivaBs = totalBs.mul(taxRate).div(new Decimal(100));
+
+        return {
+            ...purchase,
+            total_usd: totalUsd.toNumber(),
+            total_bs: totalBs.toNumber(),
+            iva_rate: tax ? taxRate.toNumber() : null,
+            iva_usd: ivaUsd.toNumber(),
+            iva_bs: ivaBs.toNumber(),
+        };
+    }
+
     async create(data: CreatePurchaseDto) {
         try {
             const rate = await resolveExchangeRate(data.exchangeRateId);
@@ -329,10 +367,13 @@ export class PurchaseService {
                 return purchase;
             });
 
+            const tax = await this.resolveActiveTaxRate();
+            const computed = this.withComputedTotals(created, tax);
+
             return {
                 status: 201,
                 message: "Compra creada éxitosamente y stock actualizado por lotes",
-                data: created,
+                data: computed,
             };
         } catch (error) {
             console.error("Error creando la compra:", error);
@@ -347,17 +388,18 @@ export class PurchaseService {
 
     async findAll() {
         try {
-
-            
+            const tax = await this.resolveActiveTaxRate();
             const purchases = await prisma.purchase.findMany({
                 orderBy: { date: "desc" },
                 select: purchaseSelect,
             });
 
+            const purchasesComputed = purchases.map((p) => this.withComputedTotals(p, tax));
+
             return {
                 status: 200,
-                message: purchases.length === 0 ? "No se encontraron compras" : "Compras encontradas éxitosamente",
-                data: purchases,
+                message: purchasesComputed.length === 0 ? "No se encontraron compras" : "Compras encontradas éxitosamente",
+                data: purchasesComputed,
             };
         } catch (error) {
             console.error("Error buscando compras:", error);
@@ -372,15 +414,18 @@ export class PurchaseService {
 
     async findOne(id: number) {
         try {
+            const tax = await this.resolveActiveTaxRate();
             const purchase = await prisma.purchase.findUnique({
                 where: { id },
                 select: purchaseSelect,
             });
 
+            const computed = this.withComputedTotals(purchase, tax);
+
             return {
                 status: 200,
                 message: "Compra encontrada éxitosamente",
-                data: purchase,
+                data: computed,
             };
         } catch (error) {
             console.error("Error buscando la compra:", error);
@@ -395,16 +440,19 @@ export class PurchaseService {
 
     async update(id: number, data: UpdatePurchaseDto) {
         try {
+            const tax = await this.resolveActiveTaxRate();
             const purchase = await prisma.purchase.update({
                 where: { id },
                 data,
                 select: purchaseSelect,
             });
 
+            const computed = this.withComputedTotals(purchase, tax);
+
             return {
                 status: 200,
                 message: "Compra actualizada éxitosamente",
-                data: purchase,
+                data: computed,
             };
         } catch (error) {
             console.error("Error actualizando la compra:", error);
@@ -419,6 +467,7 @@ export class PurchaseService {
 
     async delete(id: number) {
         try {
+            const tax = await this.resolveActiveTaxRate();
             const reasons = [purchaseStockReason(id), legacyPurchaseStockReason(id)];
             const movements = await prisma.stockMovement.findMany({
                 where: { reason: { in: reasons } },
@@ -460,10 +509,12 @@ export class PurchaseService {
                 });
             });
 
+            const computed = this.withComputedTotals(deleted, tax);
+
             return {
                 status: 200,
                 message: "Compra eliminada éxitosamente",
-                data: deleted,
+                data: computed,
             };
         } catch (error) {
             console.error("Error eliminando la compra:", error);
