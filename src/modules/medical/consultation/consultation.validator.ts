@@ -162,8 +162,8 @@ export class ConsultationValidator {
 
         body("supplies.*.quantity")
             .if(body("supplies").exists())
-            .isFloat({ gt: 0 })
-            .withMessage("supplies.*.quantity debe ser un número mayor a 0"),
+            .isInt({ gt: 0 })
+            .withMessage("supplies.*.quantity debe ser un entero mayor a 0"),
 
         body("prescriptions")
             .exists()

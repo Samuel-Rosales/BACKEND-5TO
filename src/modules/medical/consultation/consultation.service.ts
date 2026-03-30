@@ -5,6 +5,8 @@ import {
     UpdateConsultationDto,
 } from "./consultation.interface";
 
+const consultationStockReason = (consultationId: number) => `CONSULTATION:${consultationId}`;
+
 const consultationSelect = {
     id: true,
     invoiceId: true,
@@ -134,6 +136,38 @@ export class ConsultationService {
             const consultation = await prisma.$transaction(async (tx) => {
                 const finishedAt = data.finished_at ? new Date(data.finished_at) : new Date();
 
+                const existing = await tx.consultation.findUnique({
+                    where: { id },
+                    select: {
+                        id: true,
+                        doctor: { select: { userId: true } },
+                    },
+                });
+
+                if (!existing) {
+                    throw new Error("La consulta no existe");
+                }
+
+                const reason = consultationStockReason(id);
+
+                // If the consultation is re-finished, rollback previous stock consumption first.
+                const previousMovements = await tx.stockMovement.findMany({
+                    where: { reason, type: "OUT" },
+                    select: { id: true, stockLotId: true, quantity: true },
+                    orderBy: { id: "asc" },
+                });
+
+                if (previousMovements.length > 0) {
+                    for (const m of previousMovements) {
+                        await tx.stockLot.update({
+                            where: { id: m.stockLotId },
+                            data: { quantity: { increment: m.quantity } },
+                        });
+                    }
+
+                    await tx.stockMovement.deleteMany({ where: { reason } });
+                }
+
                 await tx.consultation.update({
                     where: { id },
                     data: { finished_at: finishedAt },
@@ -153,6 +187,58 @@ export class ConsultationService {
                             quantity: s.quantity,
                         })),
                     });
+                }
+
+                // Consume stock (FIFO by expiration_date, then createdAt) and register OUT movements.
+                for (const s of data.supplies) {
+                    const requested = Number(s.quantity);
+                    if (!Number.isFinite(requested) || requested <= 0) {
+                        throw new Error("Cantidad de insumo inválida");
+                    }
+
+                    // StockLot quantity is Int, so we only support integer consumption.
+                    const requestedInt = Math.trunc(requested);
+                    if (requestedInt !== requested) {
+                        throw new Error("La cantidad de insumo debe ser un entero (sin decimales)");
+                    }
+
+                    let remaining = requestedInt;
+
+                    const lots = await tx.stockLot.findMany({
+                        where: { supplyId: s.supplyId, quantity: { gt: 0 } },
+                        orderBy: [{ expiration_date: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+                        select: { id: true, quantity: true },
+                    });
+
+                    const available = lots.reduce((acc, lot) => acc + lot.quantity, 0);
+                    if (available < remaining) {
+                        throw new Error(`Stock insuficiente para el insumo ${s.supplyId}. Disponible: ${available}, Requerido: ${remaining}`);
+                    }
+
+                    for (const lot of lots) {
+                        if (remaining <= 0) break;
+                        const take = Math.min(remaining, lot.quantity);
+                        if (take <= 0) continue;
+
+                        await tx.stockLot.update({
+                            where: { id: lot.id },
+                            data: { quantity: { decrement: take } },
+                        });
+
+                        await tx.stockMovement.create({
+                            data: {
+                                supplyId: s.supplyId,
+                                stockLotId: lot.id,
+                                userId: existing.doctor.userId,
+                                type: "OUT",
+                                quantity: take,
+                                reason,
+                                date: finishedAt,
+                            },
+                        });
+
+                        remaining -= take;
+                    }
                 }
 
                 if (data.prescriptions.length > 0) {
