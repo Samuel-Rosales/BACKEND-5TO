@@ -14,8 +14,11 @@ export interface CreatePurchaseDto {
     status: StatusPurchase;
     reference?: string;
     observation?: string;
-    discount?: string | number;
     items: CreatePurchaseItemDto[];
+    payments: {
+        paymentMethodId: number;
+        amount: string | number;
+    }[];
 }
 
 export interface UpdatePurchaseDto {

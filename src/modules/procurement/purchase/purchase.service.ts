@@ -1,5 +1,11 @@
 import { prisma } from "@/configs";
 import { CreatePurchaseDto, UpdatePurchaseDto } from "./purchase.interface";
+import { Decimal } from "@prisma/client/runtime/client";
+import { StatusPurchase } from "@prisma/client";
+
+const purchaseStockReason = (purchaseId: number) => `PURCHASE:${purchaseId}`;
+// Backward-compat: some movements were created with this key.
+const legacyPurchaseStockReason = (purchaseId: number) => `COMPRA:${purchaseId}`;
 
 const exchangeRateSelect = {
     id: true,
@@ -84,10 +90,191 @@ const purchaseSelect = {
 } as const;
 
 export class PurchaseService {
+    private async resolveExchangeRateId(exchangeRateId?: number) {
+        if (exchangeRateId) {
+            const rate = await prisma.exchangeRate.findUnique({ where: { id: exchangeRateId } });
+            if (!rate) throw new Error("La tasa de cambio no existe");
+            return rate;
+        }
+
+        const active = await prisma.exchangeRate.findFirst({ where: { is_active: true }, orderBy: { createdAt: "desc" } });
+        if (!active) throw new Error("No existe una tasa de cambio activa");
+        return active;
+    }
 
     async create(data: CreatePurchaseDto) {
         try {
-            const reason = (purchaseId: number) => `PURCHASE:${purchaseId}`;
+            const rate = await this.resolveExchangeRateId(data.exchangeRateId);
+
+            if (!Array.isArray(data.items) || data.items.length === 0) {
+                return {
+                    status: 400,
+                    message: "Debe proporcionar al menos un item en items",
+                    error: "Validación",
+                };
+            }
+
+            const supplier = await prisma.supplier.findUnique({
+                where: { id: data.supplierId },
+                select: { id: true },
+            });
+
+            if (!supplier) {
+                return {
+                    status: 400,
+                    message: "El proveedor no existe",
+                    error: "Validación",
+                };
+            }
+
+            const supplyIds = [...new Set(data.items.map((i) => i.supplyId))];
+            const supplies = await prisma.supply.findMany({
+                where: { id: { in: supplyIds }, active: true },
+                select: { id: true },
+            });
+
+            if (supplies.length !== supplyIds.length) {
+                return {
+                    status: 400,
+                    message: "Hay suministros inválidos o inactivos en items",
+                    error: "Validación",
+                };
+            }
+
+            if (!Array.isArray(data.payments) || data.payments.length === 0) {
+                return {
+                    status: 400,
+                    message: "Debe proporcionar al menos un pago en payments",
+                    error: "Validación",
+                };
+            }
+
+            const paymentMethodIds = [...new Set(data.payments.map((p) => p.paymentMethodId))];
+
+            if (paymentMethodIds.length === 0) {
+                return {
+                    status: 400,
+                    message: "Debe proporcionar al menos un método de pago",
+                    error: "Validación",
+                };
+            }
+
+            const methodPayments = await prisma.paymentMethod.findMany({
+                where: { id: { in: paymentMethodIds } },
+                select: {
+                    id: true,
+                    currency: true,
+                },
+            });
+
+            if (methodPayments.length !== paymentMethodIds.length) {
+                return {
+                    status: 400,
+                    message: "No se encontraron métodos de pago válidos para todos los pagos",
+                    error: "Validación",
+                };
+            }
+
+            let totalAmountItems = new Decimal(0);
+
+            for (const item of data.items) {
+                if (item.quantity <= 0) {
+                    return {    
+                        status: 400,
+                        message: "La cantidad de cada item debe ser mayor a 0",
+                        error: "Validación",
+                    };
+                }
+                let unitCost: Decimal;
+                try {
+                    unitCost = new Decimal(item.unit_cost as any);
+                } catch {
+                    return {
+                        status: 400,
+                        message: "El costo unitario de cada item debe ser un número válido",
+                        error: "Validación",
+                    };
+                }
+
+                if (unitCost.lte(new Decimal(0))) {
+                    return {
+                        status: 400,
+                        message: "El costo unitario de cada item debe ser mayor a 0",
+                        error: "Validación",
+                    };
+                }
+
+                if (item.expiration_date) {
+                    const exp = new Date(item.expiration_date);
+                    if (Number.isNaN(exp.getTime())) {
+                        return {
+                            status: 400,
+                            message: "La fecha de vencimiento de cada item debe ser una fecha válida",
+                            error: "Validación",
+                        };
+                    }
+                }
+
+                totalAmountItems = totalAmountItems.plus(unitCost.times(item.quantity));
+            }
+
+            let totalPaidBase = new Decimal(0);
+
+            const totalAmountBase = totalAmountItems;
+            
+            const methodById = new Map(methodPayments.map((m) => [m.id, m] as const));
+
+            for ( const pay of data.payments ) {
+                const method = methodById.get(pay.paymentMethodId);
+
+                if (!method) {
+                    throw new Error(`El método de pago con ID ${pay.paymentMethodId} no existe`);
+                }
+
+                let amount: Decimal;
+                try {
+                    amount = new Decimal(pay.amount as any);
+                } catch {
+                    return {
+                        status: 400,
+                        message: "El monto de cada pago debe ser un número válido",
+                        error: "Validación",
+                    };
+                }
+
+                if (amount.lte(new Decimal(0))) {
+                    return {
+                        status: 400,
+                        message: "El monto de cada pago debe ser mayor a 0",
+                        error: "Validación",
+                    };
+                }
+
+                if (method.currency !== "USD") {
+                    if (rate.rate.lte(new Decimal(0))) {
+                        return {
+                            status: 400,
+                            message: "La tasa de cambio debe ser mayor a 0 para convertir a USD",
+                            error: "Validación",
+                        };
+                    }
+
+                    totalPaidBase = totalPaidBase.plus(amount.div(rate.rate));
+                } else {
+                    totalPaidBase = totalPaidBase.plus(amount);
+                }
+            }
+
+            if (totalPaidBase.sub(totalAmountBase).abs().gt(new Decimal(0.01))) {
+                return {
+                    message: `Error en montos de la compra. Pagos (USD): ${totalPaidBase.toFixed(2)}, Items (USD): ${totalAmountBase.toFixed(2)}`,
+                    status: 400,
+                    data: null,
+                    error: "Validación",
+                };
+            }
+
+            const reason = purchaseStockReason;
 
             const created = await prisma.$transaction(async (tx) => {
 
@@ -95,8 +282,8 @@ export class PurchaseService {
                     data: {
                         supplierId: data.supplierId,
                         userId: data.userId,
-                        exchangeRateId: data.exchangeRateId,
-                        status: data.status,
+                        exchangeRateId: rate.id,
+                        status: StatusPurchase.COMPLETED,
                         reference: data.reference,
                         observation: data.observation,
                         items: {
@@ -106,6 +293,22 @@ export class PurchaseService {
                                 unit_cost: i.unit_cost as any,
                                 expiration_date: i.expiration_date ? new Date(i.expiration_date) : undefined,
                             })),
+                        },
+                        payments: {
+                            create: data.payments.map((p) => {
+                                const method = methodById.get(p.paymentMethodId);
+                                if (!method) {
+                                    // Should be impossible due to previous validations.
+                                    throw new Error(`El método de pago con ID ${p.paymentMethodId} no existe`);
+                                }
+
+                                return {
+                                    paymentMethod: { connect: { id: p.paymentMethodId } },
+                                    amount: p.amount as any,
+                                    currency: method.currency,
+                                    payment_date: new Date(),
+                                };
+                            }),
                         },
                     },
                     select: purchaseSelect,
@@ -155,6 +358,8 @@ export class PurchaseService {
 
     async findAll() {
         try {
+
+            
             const purchases = await prisma.purchase.findMany({
                 orderBy: { date: "desc" },
                 select: purchaseSelect,
@@ -225,9 +430,9 @@ export class PurchaseService {
 
     async delete(id: number) {
         try {
-            const reason = `PURCHASE:${id}`;
+            const reasons = [purchaseStockReason(id), legacyPurchaseStockReason(id)];
             const movements = await prisma.stockMovement.findMany({
-                where: { reason },
+                where: { reason: { in: reasons } },
                 select: { stockLotId: true },
             });
 
@@ -237,7 +442,7 @@ export class PurchaseService {
                 const otherMovement = await prisma.stockMovement.findFirst({
                     where: {
                         stockLotId: { in: lotIds },
-                        NOT: { reason },
+                        NOT: { reason: { in: reasons } },
                     },
                     select: { id: true },
                 });
@@ -256,7 +461,7 @@ export class PurchaseService {
                 await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
 
                 if (lotIds.length > 0) {
-                    await tx.stockMovement.deleteMany({ where: { reason } });
+                    await tx.stockMovement.deleteMany({ where: { reason: { in: reasons } } });
                     await tx.stockLot.deleteMany({ where: { id: { in: lotIds } } });
                 }
 

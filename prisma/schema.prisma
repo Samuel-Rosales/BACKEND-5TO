@@ -462,7 +462,7 @@ model Purchase {
   exchangeRateId Int
   reference      String?
   observation    String?
-  date           DateTime     @default(now())
+  date           DateTime?     @default(now())
 
   supplier   Supplier @relation(fields: [supplierId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
