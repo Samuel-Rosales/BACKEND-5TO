@@ -2,13 +2,43 @@
 
 Base URL: `/api/v1/expenses/invoice-expense`
 
+## Modelo (Prisma: `InvoiceExpense`)
+
+- `id` (Int, autoincrement)
+- `categoryId` (Int, requerido) → FK a `ExpenseCategory.id`
+- `supplierId` (Int, requerido) → FK a `Supplier.id`
+- `exchangeRateId` (Int, **requerido en BD**) → FK a `ExchangeRate.id`
+- `total_amount` (Decimal)
+- `date_at` (DateTime?, default: `now()`)
+
+Relaciones:
+
+- `InvoiceExpense (1) -> (N) ExpensePayment`
+
+Notas:
+
+- `total_amount` es `Decimal`: en respuestas normalmente llega como **string**.
+- Aunque `exchangeRateId` es requerido en BD, algunos backends lo pueden resolver automáticamente si no lo envías.
+
 ## POST `/`
+
+Qué hace:
+
+- Crea un gasto (`InvoiceExpense`) y (opcionalmente) registra uno o más pagos asociados.
+
+Cómo usarlo (pasos):
+
+1) Crea/obtén `categoryId` y `supplierId`.
+2) Define `total_amount` (monto total en USD según el modelo).
+3) Define `exchangeRateId` (requerido en BD) o deja que el backend lo resuelva si la API lo permite.
+4) Arma `payments[]` con métodos de pago y montos.
+5) Envía el JSON.
 
 Body:
 
 - `categoryId` (int > 0, **requerido**, debe existir)
 - `supplierId` (int > 0, **requerido**, debe existir)
-- `exchangeRateId?` (int > 0, opcional; debe existir si se envía; si no se envía se usa la última tasa del sistema — primero intenta la activa más reciente)
+- `exchangeRateId` (int > 0, **requerido en BD**; debe existir)
 - `total_amount` (number, **requerido**, > 0) — **monto total en USD**
 - `date_at?` (string ISO)
 - `payments` (array, **requerido**, min 1)
@@ -29,6 +59,7 @@ Request (JSON):
 {
   "categoryId": 1,
   "supplierId": 1,
+  "exchangeRateId": 1,
   "total_amount": 120,
   "date_at": "2026-03-23T12:00:00.000Z",
   "payments": [
@@ -59,5 +90,16 @@ Response (201) (ejemplo, resumen):
 ```
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
+
+Qué hacen:
+
+- `GET /`: lista gastos.
+- `GET /:id`: obtiene un gasto.
+- `PUT /:id`: actualiza campos simples del gasto.
+- `DELETE /:id`: elimina el gasto (hard delete).
+
+Cómo usar `PUT`:
+
+- Envía solo campos a cambiar (p.ej. `total_amount`, `date_at`, etc.) según lo soporte la API.
 
 DELETE es hard delete.

@@ -2,7 +2,36 @@
 
 Base URL: `/api/v1/medical/patient`
 
+## Modelo (Prisma: `Patient`)
+
+- `id` (Int, autoincrement)
+- `userId` (Int?, **único**) → FK a `User.id` (opcional)
+- `tipo_sangre` (String?)
+- `medical_history` (String?)
+- `last_visit_at` (DateTime?)
+- `active` (Boolean, default: `true`) → soft delete
+
+Relaciones:
+
+- `Patient (1) -> (N) Appointment`
+- `Patient (1) -> (N) Invoice`
+
+Notas:
+
+- `userId` es opcional pero si se usa, es único (un usuario no puede ser paciente dos veces).
+- `DELETE` recomendado como soft delete (`active=false`).
+
 ## POST `/`
+
+Qué hace:
+
+- Crea un paciente y opcionalmente lo asocia a un `User`.
+
+Cómo usarlo (pasos):
+
+1) (Opcional) Selecciona un `userId` existente y activo.
+2) (Opcional) Registra `tipo_sangre` y `medical_history`.
+3) Envía el JSON.
 
 Body:
 
@@ -44,6 +73,16 @@ Response (201) (ejemplo, resumen):
 ```
 
 ## GET `/` / GET `/:id` / PUT `/:id`
+
+Qué hacen:
+
+- `GET /`: lista pacientes.
+- `GET /:id`: obtiene un paciente.
+- `PUT /:id`: actualiza campos.
+
+Cómo usar `PUT`:
+
+- Envía solo los campos a cambiar.
 
 PUT body: mismos campos pero opcionales.
 

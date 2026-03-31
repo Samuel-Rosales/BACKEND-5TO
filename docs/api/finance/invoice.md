@@ -2,7 +2,41 @@
 
 Base URL: `/api/v1/finance/invoice`
 
+## Modelo (Prisma: `Invoice`)
+
+Campos persistidos en BD según `schema.prisma`:
+
+- `id` (Int, autoincrement)
+- `patientId` (Int, requerido) → FK a `Patient.id`
+- `receptionistId` (Int, requerido) → FK a `User.id`
+- `exchangeRateId` (Int, **requerido en BD**) → FK a `ExchangeRate.id`
+- `statusId` (Int, **requerido en BD**) → FK a `StatusInvoice.id`
+- `taxId` (Int, **requerido en BD**) → FK a `Tax.id`
+- `total_usd` (Decimal, requerido)
+
+Relaciones:
+
+- `Invoice (1) -> (N) InvoicePayment`
+- `Invoice (1) -> (1) Consultation` (opcional)
+
+Notas:
+
+- `total_usd` es `Decimal`: en respuestas normalmente llega como **string**.
+- Campos como `appointmentId`, `commissions` o `details` pueden existir en la API como entrada/salida **calculada**, pero no son columnas del modelo `Invoice`.
+
 ## POST `/`
+
+Qué hace:
+
+- Crea una factura (`Invoice`).
+
+Cómo usarlo (pasos):
+
+1) Define `patientId`.
+2) Define `receptionistId`.
+3) Define `taxId`, `statusId` y `exchangeRateId` (son requeridos en BD). Si tu backend aplica defaults automáticos, puedes omitirlos solo si la API lo permite.
+4) Define `total_usd` o envía un `appointmentId` si tu backend calcula el total.
+5) Envía el JSON.
 
 Body:
 
@@ -10,9 +44,9 @@ Body:
 - `receptionistId` (int > 0, **requerido**, debe existir)
 - `appointmentId?` (int > 0, debe existir y pertenecer al `patientId`) → si se envía, el backend calcula `total_usd` desde la especialidad del doctor y también calcula `commissions`.
 - `total_usd?` (number > 0) → si **no** se envía `appointmentId`, entonces **debe** enviarse `total_usd`.
-- `exchangeRateId?` (int > 0, debe existir; si no se envía se usa la tasa activa)
-- `statusId?` (int > 0, debe existir; si no se envía intenta `"Proforma"` o el primer status)
-- `taxId?` (int > 0, debe existir; si no se envía usa el primer impuesto activo)
+- `exchangeRateId?` (int > 0; **en BD es requerido**; si no se envía, el backend puede usar la tasa activa)
+- `statusId?` (int > 0; **en BD es requerido**; si no se envía, el backend puede usar un status por defecto)
+- `taxId?` (int > 0; **en BD es requerido**; si no se envía, el backend puede usar el impuesto activo)
 
 Notas:
 
@@ -70,6 +104,14 @@ Response (201) (resumen):
 ```
 
 ## GET `/`
+
+Qué hace:
+
+- Lista facturas.
+
+Cómo usarlo:
+
+- Útil para panel administrativo; normalmente incluye relaciones básicas y pagos.
 
 Respuesta `data`: `Invoice[]`.
 

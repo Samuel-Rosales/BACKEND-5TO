@@ -2,7 +2,37 @@
 
 Base URL: `/api/v1/finance/exchange-rate`
 
+## Modelo (Prisma: `ExchangeRate`)
+
+- `id` (Int, autoincrement)
+- `rate` (Decimal)
+- `createdAt` (DateTime, default: `now()`)
+- `is_active` (Boolean, default: `true`)
+
+Relaciones:
+
+- `ExchangeRate (1) -> (N) Invoice`
+- `ExchangeRate (1) -> (N) InvoicePayment`
+- `ExchangeRate (1) -> (N) InvoiceExpense`
+- `ExchangeRate (1) -> (N) ExpensePayment`
+- `ExchangeRate (1) -> (N) Purchase`
+
+Notas:
+
+- `rate` es `Decimal`: en respuestas normalmente llega como **string**.
+- `is_active` suele representar la tasa vigente para cálculos automáticos.
+
 ## POST `/`
+
+Qué hace:
+
+- Crea una tasa de cambio.
+
+Cómo usarlo (pasos):
+
+1) Define `rate` (> 0).
+2) Decide si debe quedar activa (`is_active=true`).
+3) Envía el JSON.
 
 Body:
 
@@ -35,6 +65,17 @@ Response (201):
 ```
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
+
+Qué hacen:
+
+- `GET /`: lista tasas.
+- `GET /:id`: obtiene una tasa.
+- `PUT /:id`: actualiza `rate` y/o `is_active`.
+- `DELETE /:id`: elimina una tasa (hard delete).
+
+Recomendación:
+
+- En vez de borrar tasas históricas, normalmente se conserva el historial y solo se alterna `is_active`.
 
 Nota: si el `:id` no existe, el backend responde `400` (error de validación con `express-validator`).
 

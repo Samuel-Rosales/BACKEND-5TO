@@ -2,6 +2,16 @@
 
 Base URL: `/api/v1/procurement`
 
+Este módulo corresponde al **Módulo de Reabastecimiento** del `schema.prisma`.
+
+## Modelos (Prisma)
+
+- `Supplier`
+- `Purchase`
+- `PurchaseItem`
+- `PurchasePayment`
+- `StatusPurchase` (enum)
+
 Notas:
 
 - En la mayoría de recursos, los endpoints `GET /:id`, `PUT /:id`, `DELETE /:id` validan que el ID exista mediante `express-validator`. Si el ID no existe, la API responde **400** con el formato de error de validación.

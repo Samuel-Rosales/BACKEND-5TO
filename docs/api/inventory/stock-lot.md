@@ -2,7 +2,36 @@
 
 Base URL: `/api/v1/inventory/stock-lot`
 
+## Modelo (Prisma: `StockLot`)
+
+- `id` (Int, autoincrement)
+- `quantity` (Int)
+- `supplyId` (Int, requerido) → FK a `Supply.id`
+- `expiration_date` (DateTime?)
+- `lot_cost` (Decimal)
+- `createdAt` (DateTime, default: `now()`)
+
+Relaciones:
+
+- `StockLot.supplyId -> Supply.id`
+- `StockLot (1) -> (N) StockMovement`
+
+Notas:
+
+- `lot_cost` es `Decimal`: en respuestas normalmente llega como **string**.
+
 ## POST `/`
+
+Qué hace:
+
+- Crea un lote (una entrada de stock con costo y opcionalmente vencimiento) asociado a un insumo.
+
+Cómo usarlo (pasos):
+
+1) Verifica que el `supplyId` exista y esté activo.
+2) Define `quantity` (> 0) y `lot_cost` (> 0).
+3) (Opcional) Define `expiration_date` si el insumo es perecedero.
+4) Envía el JSON.
 
 Body:
 
@@ -49,6 +78,17 @@ Response (201) (ejemplo, resumen):
 ```
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
+
+Qué hacen:
+
+- `GET /`: lista lotes.
+- `GET /:id`: devuelve un lote.
+- `PUT /:id`: actualiza campos del lote.
+- `DELETE /:id`: elimina el lote (según implementación puede ser borrado físico).
+
+Cómo usar `PUT`:
+
+- Envía solo los campos a cambiar; el resto se conserva.
 
 PUT body: mismos campos que POST pero opcionales.
 

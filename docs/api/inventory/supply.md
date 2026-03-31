@@ -2,7 +2,48 @@
 
 Base URL: `/api/v1/inventory/supply`
 
+## Modelo (Prisma: `Supply`)
+
+Campos del modelo según `schema.prisma`:
+
+- `id` (Int, autoincrement)
+- `name` (String)
+- `sku` (String?, **único**) → puede ser `null`
+- `description` (String?)
+- `image_url` (String?)
+- `cost_price` (Decimal)
+- `min_stock` (Int, default: `0`)
+- `is_perishable` (Boolean, default: `false`)
+- `active` (Boolean, default: `true`) → soft delete
+- `type` (String?)
+- `categoryId` (Int, requerido) → FK a `Category.id`
+- `unitId` (Int, requerido) → FK a `MeasurementUnit.id`
+
+Relaciones:
+
+- `Supply.categoryId -> Category.id`
+- `Supply.unitId -> MeasurementUnit.id`
+- `Supply (1) -> (N) StockLot`
+- `Supply (1) -> (N) StockMovement`
+- `Supply (1) -> (N) SupplyPresentation`
+
+Notas:
+
+- `cost_price` es `Decimal`: en respuestas normalmente llega como **string**.
+- `sku` es único: evita duplicados.
+
 ## POST `/`
+
+Qué hace:
+
+- Crea un insumo y lo asocia a una categoría y unidad de medida.
+
+Cómo usarlo (pasos):
+
+1) Crea/obtén `categoryId` (ver Categorías).
+2) Crea/obtén `unitId` (ver Unidades de medida).
+3) Envía el body con `name` y `cost_price`.
+4) (Opcional) Envía `sku/description/min_stock/active`.
 
 Body:
 
@@ -54,7 +95,15 @@ Response (201) (ejemplo, resumen):
 
 ## GET `/`
 
-Devuelve solo supplyos con `active: true`.
+Qué hace:
+
+- Lista insumos.
+
+Cómo usarlo:
+
+- Para catálogo/selección, normalmente se listan solo los activos (`active: true`).
+
+Devuelve solo insumos con `active: true`.
 
 Response (200) (ejemplo):
 
@@ -81,9 +130,28 @@ Response (200) (ejemplo):
 
 ## GET `/:id`
 
-Devuelve supplyo con `active: true`.
+Qué hace:
+
+- Devuelve un insumo por `id`.
+
+Cómo usarlo:
+
+1) Toma el `id` desde el listado.
+2) Consulta el detalle para edición o para ver relaciones (`category`, `unit`).
+
+Devuelve insumo con `active: true`.
 
 ## PUT `/:id`
+
+Qué hace:
+
+- Actualiza datos del insumo.
+
+Cómo usarlo (pasos):
+
+1) Envía solo los campos que quieras cambiar.
+2) Si cambias `categoryId`/`unitId`, deben existir.
+3) Si cambias `sku`, recuerda que es único.
 
 Body (todos opcionales):
 
@@ -96,6 +164,14 @@ Request (JSON):
 ```
 
 ## DELETE `/:id`
+
+Qué hace:
+
+- Realiza **soft delete**: marca el insumo como inactivo.
+
+Cómo usarlo:
+
+- Úsalo para retirar un insumo del catálogo sin perder historial (lotes/movimientos/relaciones).
 
 Soft delete: setea `active: false`.
 

@@ -2,7 +2,39 @@
 
 Base URL: `/api/v1/expenses/expense-payment`
 
+## Modelo (Prisma: `ExpensePayment`)
+
+- `id` (Int, autoincrement)
+- `invoiceExpenseId` (Int, requerido) → FK a `InvoiceExpense.id`
+- `paymentMethodId` (Int, requerido) → FK a `PaymentMethod.id`
+- `amount` (Decimal)
+- `exchangeRateId` (Int, requerido) → FK a `ExchangeRate.id`
+- `date_at` (DateTime?, default: `now()`)
+
+Relaciones:
+
+- `ExpensePayment.invoiceExpenseId -> InvoiceExpense.id`
+- `ExpensePayment.paymentMethodId -> PaymentMethod.id`
+- `ExpensePayment.exchangeRateId -> ExchangeRate.id`
+
+Notas:
+
+- `amount` es `Decimal`: en respuestas normalmente llega como **string**.
+
 ## POST `/`
+
+Qué hace:
+
+- Registra un pago asociado a un gasto (`InvoiceExpense`).
+
+Cómo usarlo (pasos):
+
+1) Verifica que exista el `invoiceExpenseId`.
+2) Verifica que exista el `paymentMethodId`.
+3) Define `amount` (> 0).
+4) Define `exchangeRateId` (tasa usada para conversiones/reportes).
+5) (Opcional) Define `date_at`.
+6) Envía el JSON.
 
 Body:
 
@@ -53,5 +85,12 @@ Response (201) (ejemplo, resumen):
 ```
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
+
+Qué hacen:
+
+- `GET /`: lista pagos.
+- `GET /:id`: obtiene un pago.
+- `PUT /:id`: actualiza campos.
+- `DELETE /:id`: elimina (hard delete).
 
 DELETE es hard delete.

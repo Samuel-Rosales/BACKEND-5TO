@@ -2,7 +2,35 @@
 
 Base URL: `/api/v1/inventory/supply-consultation`
 
+## Modelo (Prisma: `SupplyConsultation`)
+
+- `id` (Int, autoincrement)
+- `supplyId` (Int, requerido) → FK a `Supply.id`
+- `consultationId` (Int, requerido) → FK a `Consultation.id`
+- `quantity` (Decimal)
+
+Relaciones:
+
+- `SupplyConsultation.supplyId -> Supply.id`
+- `SupplyConsultation.consultationId -> Consultation.id`
+
+Notas:
+
+- `quantity` es `Decimal`: en respuestas normalmente llega como **string**.
+- Este recurso registra el consumo/uso de un insumo durante una consulta.
+
 ## POST `/`
+
+Qué hace:
+
+- Crea un registro de insumo usado en una consulta.
+
+Cómo usarlo (pasos):
+
+1) Verifica que exista el `consultationId`.
+2) Verifica que exista el `supplyId` y esté activo.
+3) Define `quantity` (> 0).
+4) Envía el JSON.
 
 Body:
 
@@ -33,6 +61,13 @@ Response (201) (ejemplo, resumen):
 ```
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
+
+Qué hacen:
+
+- `GET /`: lista registros.
+- `GET /:id`: devuelve un registro.
+- `PUT /:id`: actualiza campos.
+- `DELETE /:id`: elimina el registro (borrado físico).
 
 PUT body: mismos campos que POST pero opcionales.
 
