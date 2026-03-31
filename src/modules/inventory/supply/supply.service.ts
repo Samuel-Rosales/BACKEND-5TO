@@ -41,7 +41,7 @@ export class SupplyService {
 
             return {
                 status: 201,
-                message: "Supplyo creado éxitosamente",
+                message: "Insumo creado éxitosamente",
                 data: supply,
             };
         } catch (error) {
@@ -77,7 +77,7 @@ export class SupplyService {
 
             return {
                 status: 200,
-                message: "Supplyos encontrados éxitosamente",
+                message: "Insumos encontrados éxitosamente",
                 data: supplies,
             };
         } catch (error) {
@@ -104,7 +104,7 @@ export class SupplyService {
 
             return {
                 status: 200,
-                message: "Supplyo encontrado éxitosamente",
+                message: "Insumo encontrado éxitosamente",
                 data: supply,
             };
         } catch (error) {
@@ -132,7 +132,7 @@ export class SupplyService {
 
             return {
                 status: 200,
-                message: "Supplyo actualizado éxitosamente",
+                message: "Insumo actualizado éxitosamente",
                 data: supply,
             };
         } catch (error) {
@@ -160,7 +160,7 @@ export class SupplyService {
 
             return {
                 status: 200,
-                message: "Supplyo eliminado éxitosamente",
+                message: "Insumo eliminado éxitosamente",
                 data: supply,
             };
         } catch (error) {
