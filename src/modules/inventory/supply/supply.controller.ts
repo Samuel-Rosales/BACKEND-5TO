@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { ProductService } from "./product.service";
+import { SupplyService } from "./supply.service";
 
-const service = new ProductService();
+const service = new SupplyService();
 
-export class ProductController {
+export class SupplyController {
 
     async create(req: Request, res: Response) {
         const data = req.body;

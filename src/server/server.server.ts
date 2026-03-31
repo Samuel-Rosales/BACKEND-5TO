@@ -6,7 +6,7 @@ import { RoleRoute, UserRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
-import { CategoryRoute, MeasurementUnitRoute, ProductRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
+import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
@@ -28,27 +28,31 @@ export class Server {
             roles: `${this.prefix}/auth/role`,
             users: `${this.prefix}/auth/user`,
             login: `${this.prefix}/auth/login`,
-            procducts: `${this.prefix}/inventory/product`,
+            
             medicalSpecialties: `${this.prefix}/medical/specialty`,
             patients: `${this.prefix}/medical/patient`,
             doctors: `${this.prefix}/medical/doctor`,
             consultations: `${this.prefix}/medical/consultation`,
             prescriptions: `${this.prefix}/medical/prescription`,
+
             appointmentStatuses: `${this.prefix}/scheduling/status-appointment`,
             appointmentTypes: `${this.prefix}/scheduling/appointment-type`,
             appointments: `${this.prefix}/scheduling/appointment`,
             doctorAvailabilities: `${this.prefix}/scheduling/doctor-availability`,
             doctorScheduleOverrides: `${this.prefix}/scheduling/doctor-schedule-override`,
+
             expenseCategories: `${this.prefix}/expenses/category`,
             invoiceExpenses: `${this.prefix}/expenses/invoice-expense`,
             expensePayments: `${this.prefix}/expenses/expense-payment`,
+
             inventoryCategories: `${this.prefix}/inventory/category`,
             measurementUnits: `${this.prefix}/inventory/measurement-unit`,
             stockLots: `${this.prefix}/inventory/stock-lot`,
             stockMovements: `${this.prefix}/inventory/stock-movement`,
             supplyConsultations: `${this.prefix}/inventory/supply-consultation`,
             supplyPresentations: `${this.prefix}/inventory/supply-presentation`,
-
+            supplies: `${this.prefix}/inventory/supply`,
+            
             exchangeRates: `${this.prefix}/finance/exchange-rate`,
             taxes: `${this.prefix}/finance/tax`,
             paymentMethods: `${this.prefix}/finance/payment-method`,
@@ -93,7 +97,7 @@ export class Server {
         this.app.use(this.paths.users, UserRoute);        
         this.app.use(this.paths.login, LoginRoute);        
 
-        this.app.use(this.paths.procducts, ProductRoute);
+        this.app.use(this.paths.supplies, SupplyRoute);
         this.app.use(this.paths.inventoryCategories, CategoryRoute);
         this.app.use(this.paths.measurementUnits, MeasurementUnitRoute);
         this.app.use(this.paths.stockLots, StockLotRoute);

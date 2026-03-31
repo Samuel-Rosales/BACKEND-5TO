@@ -7,7 +7,7 @@ Base URL: `/api/v1/inventory/stock-lot`
 Body:
 
 - `quantity` (int, **requerido**, > 0)
-- `productId` (int, **requerido**, debe existir y estar activo)
+- `supplyId` (int, **requerido**, debe existir y estar activo)
 - `expiration_date?` (string ISO)
 - `lot_cost` (number, **requerido**, > 0)
 
@@ -16,7 +16,7 @@ Request (JSON):
 ```json
 {
   "quantity": 10,
-  "productId": 1,
+  "supplyId": 1,
   "expiration_date": "2026-12-31T00:00:00.000Z",
   "lot_cost": 15
 }
@@ -30,11 +30,20 @@ Response (201) (ejemplo, resumen):
   "data": {
     "id": 1,
     "quantity": 10,
-    "productId": 1,
+    "supplyId": 1,
     "expiration_date": "2026-12-31T00:00:00.000Z",
     "lot_cost": "15",
     "createdAt": "2026-03-23T12:00:00.000Z",
-    "product": { "id": 1, "name": "Paracetamol", "sku": "PARA-500", "active": true }
+    "supply": {
+      "id": 1,
+      "name": "Paracetamol",
+      "sku": "PARA-500",
+      "active": true,
+      "categoryId": 1,
+      "unitId": 1,
+      "category": { "id": 1, "name": "Medicamentos" },
+      "unit": { "id": 1, "name": "Unidad", "symbol": "u" }
+    }
   }
 }
 ```

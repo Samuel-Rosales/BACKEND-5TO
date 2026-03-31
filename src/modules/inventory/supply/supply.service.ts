@@ -1,7 +1,7 @@
 import { prisma } from "@/configs";
-import { CreateProductDto, UpdateProductDto } from "./product.interface";
+import { CreateSupplyDto, UpdateSupplyDto } from "./supply.interface";
 
-const productSelect = {
+const supplySelect = {
     id: true,
     name: true,
     sku: true,
@@ -26,30 +26,30 @@ const productSelect = {
     },
 } as const;
 
-export class ProductService {
+export class SupplyService {
 
-    async create(data: CreateProductDto) {
+    async create(data: CreateSupplyDto) {
         try {
-            const product = await prisma.supply.create({
+            const supply = await prisma.supply.create({
                 data,
-                select: productSelect,
+                select: supplySelect,
             });
 
-            if (!product) {
-                throw new Error("Error creando el producto");
+            if (!supply) {
+                throw new Error("Error creando el insumo");
             }
 
             return {
                 status: 201,
-                message: "Producto creado éxitosamente",
-                data: product,
+                message: "Supplyo creado éxitosamente",
+                data: supply,
             };
         } catch (error) {
-            console.error("Error creando el producto:", error);
+            console.error("Error creando el insumo:", error);
 
             return {
                 status: 500,
-                message: "Error interno al crear el producto",
+                message: "Error interno al crear el insumo",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }
@@ -57,35 +57,35 @@ export class ProductService {
 
     async findAll() {
         try {
-            const products = await prisma.supply.findMany({
+            const supplies = await prisma.supply.findMany({
                 where: { active: true },
                 orderBy: { id: "desc" },
-                select: productSelect,
+                select: supplySelect,
             });
 
-            if (!products) {
-                throw new Error("Error buscando productos");
+            if (!supplies) {
+                throw new Error("Error buscando supplies");
             }
 
-            if (products.length === 0) {
+            if (supplies.length === 0) {
                 return {
                     status: 200,
-                    message: "No se encontraron productos",
+                    message: "No se encontraron supplies",
                     data: [],
                 };
             }
 
             return {
                 status: 200,
-                message: "Productos encontrados éxitosamente",
-                data: products,
+                message: "Supplyos encontrados éxitosamente",
+                data: supplies,
             };
         } catch (error) {
-            console.error("Error buscando productos:", error);
+            console.error("Error buscando supplies:", error);
 
             return {
                 status: 500,
-                message: "Error interno al buscar los productos",
+                message: "Error interno al buscar los supplies",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }
@@ -93,54 +93,54 @@ export class ProductService {
 
     async findOne(id: number) {
         try {
-            const product = await prisma.supply.findUnique({
+            const supply = await prisma.supply.findUnique({
                 where: { id, active: true },
-                select: productSelect,
+                select: supplySelect,
             });
 
-            if (!product) {
-                throw new Error("Error buscando el producto");
+            if (!supply) {
+                throw new Error("Error buscando el insumo");
             }
 
             return {
                 status: 200,
-                message: "Producto encontrado éxitosamente",
-                data: product,
+                message: "Supplyo encontrado éxitosamente",
+                data: supply,
             };
         } catch (error) {
-            console.error("Error buscando el producto:", error);
+            console.error("Error buscando el insumo:", error);
 
             return {
                 status: 500,
-                message: "Error interno al buscar el producto",
+                message: "Error interno al buscar el insumo",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }
     }
 
-    async update(id: number, data: UpdateProductDto) {
+    async update(id: number, data: UpdateSupplyDto) {
         try {
-            const product = await prisma.supply.update({
+            const supply = await prisma.supply.update({
                 where: { id, active: true },
                 data,
-                select: productSelect,
+                select: supplySelect,
             });
 
-            if (!product) {
-                throw new Error("Error actualizando el producto");
+            if (!supply) {
+                throw new Error("Error actualizando el insumo");
             }
 
             return {
                 status: 200,
-                message: "Producto actualizado éxitosamente",
-                data: product,
+                message: "Supplyo actualizado éxitosamente",
+                data: supply,
             };
         } catch (error) {
-            console.error("Error actualizando el producto:", error);
+            console.error("Error actualizando el insumo:", error);
 
             return {
                 status: 500,
-                message: "Error interno al actualizar el producto",
+                message: "Error interno al actualizar el insumo",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }
@@ -148,27 +148,27 @@ export class ProductService {
 
     async delete(id: number) {
         try {
-            const product = await prisma.supply.update({
+            const supply = await prisma.supply.update({
                 where: { id, active: true },
                 data: { active: false },
-                select: productSelect,
+                select: supplySelect,
             });
 
-            if (!product) {
-                throw new Error("Error eliminando el producto");
+            if (!supply) {
+                throw new Error("Error eliminando el insumo");
             }
 
             return {
                 status: 200,
-                message: "Producto eliminado éxitosamente",
-                data: product,
+                message: "Supplyo eliminado éxitosamente",
+                data: supply,
             };
         } catch (error) {
-            console.error("Error eliminando el producto:", error);
+            console.error("Error eliminando el insumo:", error);
 
             return {
                 status: 500,
-                message: "Error interno al eliminar el producto",
+                message: "Error interno al eliminar el insumo",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }

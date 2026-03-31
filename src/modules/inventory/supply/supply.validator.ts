@@ -1,9 +1,9 @@
 import { prisma } from "@/configs";
 import { body, param, ValidationChain } from "express-validator";
 
-export class ProductValidator {
+export class SupplyValidator {
 
-    public createProductValidator: ValidationChain[] = [
+    public createSupplyValidator: ValidationChain[] = [
         body("name")
             .trim()
             .isLength({ min: 2, max: 150 })
@@ -58,7 +58,7 @@ export class ProductValidator {
             }),
     ];
 
-    public updateProductValidator: ValidationChain[] = [
+    public updateSupplyValidator: ValidationChain[] = [
         body("name")
             .optional()
             .trim()
@@ -120,16 +120,16 @@ export class ProductValidator {
     public IdParamValidator: ValidationChain[] = [
         param("id")
             .isInt({ gt: 0 })
-            .withMessage("El ID del producto debe ser un número entero positivo"),
+            .withMessage("El ID del insumo debe ser un número entero positivo"),
     ];
 
-    public ProductExistsValidator: ValidationChain[] = [
+    public SupplyExistsValidator: ValidationChain[] = [
         param("id")
             .custom(async (value) => {
-                const product = await prisma.supply.findUnique({ where: { id: Number(value) } });
+                const supply = await prisma.supply.findUnique({ where: { id: Number(value) } });
 
-                if (!product || !product.active) {
-                    return Promise.reject("El producto no existe o no está activo");
+                if (!supply || !supply.active) {
+                    return Promise.reject("El insumo no existe o no está activo");
                 }
             }),
     ];

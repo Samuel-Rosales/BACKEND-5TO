@@ -6,27 +6,27 @@ Base URL: `/api/v1/inventory/supply-consultation`
 
 Body:
 
-- `productId` (int, **requerido**, debe existir y estar activo)
+- `supplyId` (int, **requerido**, debe existir y estar activo)
 - `consultationId` (int, **requerido**, debe existir)
 - `quantity` (number, **requerido**, > 0)
 
 Request (JSON):
 
 ```json
-{ "productId": 1, "consultationId": 10, "quantity": 2 }
+{ "supplyId": 1, "consultationId": 10, "quantity": 2 }
 ```
 
 Response (201) (ejemplo, resumen):
 
 ```json
 {
-  "message": "Insumo agregado a consulta éxitosamente",
+  "message": "Suministro creado éxitosamente",
   "data": {
     "id": 1,
-    "productId": 1,
+    "supplyId": 1,
     "consultationId": 10,
     "quantity": "2",
-    "product": { "id": 1, "name": "Paracetamol", "sku": "PARA-500", "active": true },
+    "supply": { "id": 1, "name": "Paracetamol", "sku": "PARA-500", "active": true },
     "consultation": { "id": 10, "patientId": 4, "doctorId": 3, "date": "2026-03-23T10:00:00.000Z", "started_at": null, "finished_at": null }
   }
 }

@@ -1,4 +1,4 @@
-export interface CreateProductDto {
+export interface CreateSupplyDto {
     name: string;
     sku?: string;
     description?: string;
@@ -9,7 +9,7 @@ export interface CreateProductDto {
     unitId: number;
 }
 
-export interface UpdateProductDto {
+export interface UpdateSupplyDto {
     name?: string;
     sku?: string;
     description?: string;

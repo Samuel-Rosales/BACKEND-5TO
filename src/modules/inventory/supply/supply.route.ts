@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { handleValidationErrors } from "@/middlewares/validation.middleware";
-import { ProductController } from "./product.controller";
-import { ProductValidator } from "./product.validator";
+import { SupplyController } from "./supply.controller";
+import { SupplyValidator } from "./supply.validator";
 
 const productRouter = Router();
 
-const controller = new ProductController();
-const validator = new ProductValidator();
+const controller = new SupplyController();
+const validator = new SupplyValidator();
 
 productRouter.post(
     "/",
-    validator.createProductValidator,
+    validator.createSupplyValidator,
     handleValidationErrors,
     controller.create
 );
@@ -23,7 +23,7 @@ productRouter.get(
 productRouter.get(
     "/:id",
     validator.IdParamValidator,
-    validator.ProductExistsValidator,
+    validator.SupplyExistsValidator,
     handleValidationErrors,
     controller.findOne
 );
@@ -31,8 +31,8 @@ productRouter.get(
 productRouter.put(
     "/:id",
     validator.IdParamValidator,
-    validator.ProductExistsValidator,
-    validator.updateProductValidator,
+    validator.SupplyExistsValidator,
+    validator.updateSupplyValidator,
     handleValidationErrors,
     controller.update
 );
@@ -40,9 +40,9 @@ productRouter.put(
 productRouter.delete(
     "/:id",
     validator.IdParamValidator,
-    validator.ProductExistsValidator,
+    validator.SupplyExistsValidator,
     handleValidationErrors,
     controller.delete
 );
 
-export const ProductRoute = productRouter;
+export const SupplyRoute = productRouter;
