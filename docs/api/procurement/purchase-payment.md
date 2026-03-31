@@ -30,7 +30,7 @@ Response (201) (ejemplo):
 
 ```json
 {
-  "message": "Pago de compra creado éxitosamente",
+  "message": "Pago de compra registrado éxitosamente",
   "data": {
     "id": 1,
     "purchaseId": 1,
@@ -38,7 +38,9 @@ Response (201) (ejemplo):
     "amount": "50",
     "currency": "usd",
     "reference": "TRX-999",
-    "payment_date": "2026-03-23T12:00:00.000Z"
+    "payment_date": "2026-03-23T12:00:00.000Z",
+    "paymentMethod": { "id": 1, "name": "Transferencia", "type": "TRANSFER", "currency": "USD", "is_active": true },
+    "purchase": { "id": 1, "supplierId": 1, "userId": 1, "status": "COMPLETED", "exchangeRateId": 1, "reference": "FAC-123", "date": "2026-03-23T12:00:00.000Z", "discount": "0" }
   }
 }
 ```

@@ -32,7 +32,6 @@ const purchaseSelect = {
     reference: true,
     observation: true,
     date: true,
-    discount: true,
     supplier: {
         select: {
             id: true,
