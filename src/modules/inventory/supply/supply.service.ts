@@ -60,32 +60,67 @@ export class SupplyService {
             const supplies = await prisma.supply.findMany({
                 where: { active: true },
                 orderBy: { id: "desc" },
-                select: supplySelect,
+                select: { 
+                    id: true,
+                    name: true,
+                    sku: true,
+                    description: true,
+                    cost_price: true,
+                    min_stock: true,
+                    category: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    unit: {
+                        select: {
+                            name: true,
+                            symbol: true,
+                        },
+                    },
+                    stockLots: {
+                        select: {
+                            id: true,
+                            quantity: true,
+                            expiration_date: true,
+                        },
+                    },
+                },
             });
 
             if (!supplies) {
-                throw new Error("Error buscando supplies");
+                throw new Error("Error buscando insumos");
             }
 
             if (supplies.length === 0) {
                 return {
                     status: 200,
-                    message: "No se encontraron supplies",
+                    message: "No se encontraron insumos",
                     data: [],
                 };
             }
 
+            const formattedSupplies = supplies.map(supply => {
+
+                const sumStock = supply.stockLots.reduce((sum, lot) => sum + lot.quantity, 0);
+
+                return {
+                    ...supply,
+                    stock: sumStock,
+                };
+            });
+
             return {
                 status: 200,
                 message: "Insumos encontrados éxitosamente",
-                data: supplies,
+                data: formattedSupplies,
             };
         } catch (error) {
-            console.error("Error buscando supplies:", error);
+            console.error("Error buscando insumos:", error);
 
             return {
                 status: 500,
-                message: "Error interno al buscar los supplies",
+                message: "Error interno al buscar los insumos",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }
@@ -95,17 +130,44 @@ export class SupplyService {
         try {
             const supply = await prisma.supply.findUnique({
                 where: { id, active: true },
-                select: supplySelect,
+                select: { 
+                    id: true,
+                    name: true,
+                    sku: true,
+                    description: true,
+                    cost_price: true,
+                    min_stock: true,
+                    category: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    unit: {
+                        select: {
+                            name: true,
+                            symbol: true,
+                        },
+                    },
+                    stockLots: {
+                        select: {
+                            id: true,
+                            quantity: true,
+                            expiration_date: true,
+                        },
+                    },
+                },
             });
 
             if (!supply) {
                 throw new Error("Error buscando el insumo");
             }
 
+            const sumStock = supply.stockLots.reduce((sum, lot) => sum + lot.quantity, 0);
+
             return {
                 status: 200,
                 message: "Insumo encontrado éxitosamente",
-                data: supply,
+                data: { ...supply, stock: sumStock },
             };
         } catch (error) {
             console.error("Error buscando el insumo:", error);
