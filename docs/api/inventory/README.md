@@ -10,7 +10,7 @@ Notas:
 
 - [Categorías](category.md)
 - [Unidades de medida](measurement-unit.md)
-- [Productos](product.md)
+- [Insumos](supply.md)
 - [Lotes de stock](stock-lot.md)
 - [Movimientos de stock](stock-movement.md)
 - [Insumos por consulta](supply-consultation.md)

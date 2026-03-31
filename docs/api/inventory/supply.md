@@ -2,8 +2,6 @@
 
 Base URL: `/api/v1/inventory/supply`
 
-> Nota: internamente en la base de datos (Prisma) este recurso se maneja como `supply`, pero el endpoint público se mantiene como `supply`.
-
 ## POST `/`
 
 Body:
