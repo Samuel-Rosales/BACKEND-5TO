@@ -2,6 +2,22 @@
 
 Base URL: `/api/v1/medical/consultation`
 
+## Modelo (Prisma: `Consultation`)
+
+- `id` (Int, autoincrement)
+- `invoiceId` (Int, **único**, requerido) → FK a `Invoice.id`
+- `doctorId` (Int, requerido) → FK a `Doctor.id`
+- `date` (Date, default: `now()`; `@db.Date`)
+- `started_at` (DateTime, default: `now()`)
+- `finished_at` (DateTime?)
+
+Relaciones:
+
+- `Consultation.invoiceId -> Invoice.id`
+- `Consultation.doctorId -> Doctor.id`
+- `Consultation.supplies` (`SupplyConsultation[]`)
+- `Consultation.prescriptions` (`Prescription[]`)
+
 Formato de respuesta (éxito / error de service):
 
 ```json
@@ -188,10 +204,10 @@ Body:
 
 - `finished_at?` (string ISO)
 - `supplies` (**requerido**, array)
-  - `productId` (int > 0, debe existir)
-  - `quantity` (number > 0)
+  - `supplyId` (int > 0, debe existir)
+  - `quantity` (number > 0) (si el backend serializa Decimal, también puede venir como string)
 - `prescriptions` (**requerido**, array)
-  - `productId?` (int > 0, debe existir)
+  - `supplyId?` (int > 0, debe existir)
   - `medication_name?` (string)
   - `dosage?` (string)
   - `frequency?` (string)
@@ -223,7 +239,7 @@ Request (JSON) (ejemplo):
 ```json
 {
   "finished_at": "2026-03-23T10:30:00.000Z",
-  "supplies": [{ "productId": 1, "quantity": 1 }],
+  "supplies": [{ "supplyId": 1, "quantity": 1 }],
   "prescriptions": [
     {
       "medication_name": "Ibuprofeno",
