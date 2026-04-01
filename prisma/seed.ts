@@ -1,18 +1,16 @@
 import "dotenv/config";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
 import * as bcrypt from "bcryptjs";
 
 if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL no está definido en el entorno");
 }
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
-
-const adapter = new PrismaPg(pool);
+// NOTE: In npm workspaces it's easy to end up with duplicated `@types/pg`.
+// Passing a Pool instance can then fail to type-check (Pool types come from
+// different node_modules). Passing a connection string avoids that entirely.
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 function hashPassword(plain: string) {
@@ -21,20 +19,60 @@ function hashPassword(plain: string) {
 }
 
 async function ensureRole(name: string, code: string) {
-    const existing = await prisma.role.findFirst({
-        where: {
-            OR: [
-                { name: { equals: name, mode: "insensitive" } },
-                { code: { equals: code, mode: "insensitive" } },
-            ],
-        },
-        select: { id: true },
+    const normalizedName = name.trim();
+    const normalizedCode = code.trim().toUpperCase();
+
+    // Prefer matching by code (it's intended to be stable).
+    const existingByCode = await prisma.role.findFirst({
+        where: { code: { equals: normalizedCode, mode: "insensitive" } },
+        select: { id: true, active: true, name: true, code: true },
     });
 
-    if (existing) return existing;
+    if (existingByCode) {
+        if (
+            !existingByCode.active ||
+            existingByCode.name !== normalizedName ||
+            existingByCode.code !== normalizedCode
+        ) {
+            return prisma.role.update({
+                where: { id: existingByCode.id },
+                data: { name: normalizedName, code: normalizedCode, active: true },
+                select: { id: true },
+            });
+        }
+
+        return { id: existingByCode.id };
+    }
+
+    // Fallback: match by name, then revive/update if possible.
+    const existingByName = await prisma.role.findFirst({
+        where: { name: { equals: normalizedName, mode: "insensitive" } },
+        select: { id: true, active: true, name: true, code: true },
+    });
+
+    if (existingByName) {
+        if (existingByName.active && existingByName.name === normalizedName && existingByName.code === normalizedCode) {
+            return { id: existingByName.id };
+        }
+
+        try {
+            return await prisma.role.update({
+                where: { id: existingByName.id },
+                data: { name: normalizedName, code: normalizedCode, active: true },
+                select: { id: true },
+            });
+        } catch {
+            // If changing the code conflicts with an existing role, at least ensure it's active.
+            return prisma.role.update({
+                where: { id: existingByName.id },
+                data: { name: normalizedName, active: true },
+                select: { id: true },
+            });
+        }
+    }
 
     return prisma.role.create({
-        data: { name, code, active: true },
+        data: { name: normalizedName, code: normalizedCode, active: true },
         select: { id: true },
     });
 }
@@ -667,5 +705,4 @@ main()
     })
     .finally(async () => {
         await prisma.$disconnect();
-        await pool.end();
     });
