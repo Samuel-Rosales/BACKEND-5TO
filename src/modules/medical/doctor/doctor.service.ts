@@ -35,6 +35,19 @@ export class DoctorService {
 
     async create(data: CreateDoctorDto) {
         try {
+
+            const user = await prisma.user.findUnique({
+                where: { id: data.userId },
+                include: { role: true },
+            });
+
+            if (user?.role.code !== "DOCTOR") {
+                return {
+                    status: 400,
+                    message: "El usuario debe tener el rol de doctor",
+                };
+            }
+
             const doctor = await prisma.doctor.create({
                 data,
                 select: doctorSelect,
