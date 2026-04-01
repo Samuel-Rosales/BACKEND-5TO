@@ -29,6 +29,17 @@ export class PatientService {
 
     async create(data: CreatePatientDto) {
         try {
+            const user = await prisma.user.findUnique({
+                where: { id: data.userId },
+                include: { role: true },
+            });
+
+            if (user?.role.code !== "PATIENT") {
+                return {
+                    status: 400,
+                    message: "El usuario debe tener el rol de paciente",
+                };
+            }
             const patient = await prisma.patient.create({
                 data,
                 select: patientSelect,
