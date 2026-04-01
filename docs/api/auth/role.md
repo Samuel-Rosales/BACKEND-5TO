@@ -20,6 +20,19 @@ Notas importantes:
 - Si intentas crear/actualizar un rol con `name` o `code` repetido (por el constraint `@unique`), el backend debería responder error.
 - El endpoint `DELETE` normalmente **no borra** el registro: cambia `active` a `false`.
 
+## Roles por defecto (seed)
+
+Si ejecutas el seed (`npm run prisma:seed`), el proyecto crea (si no existen) estos roles base:
+
+| code | name | Uso típico |
+| --- | --- | --- |
+| `ADMIN` | `Admin` | Administración del sistema |
+| `DOCTOR` | `Doctor` | Personal médico |
+| `RECEPTION` | `Recepcionista` | Recepción / creación de facturas |
+| `PATIENT` | `Paciente` | Pacientes / usuarios tipo paciente |
+
+Puedes crear roles adicionales con `POST /` si tu sistema lo requiere; estos son solo los roles “mínimos” usados en los datos demo.
+
 ## POST `/`
 
 Qué hace:

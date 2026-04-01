@@ -4,7 +4,15 @@ Base URL: `http://localhost:3000/api/v1`
 
 ## Autenticación
 
-Según el código actual, estas rutas **no exigen** token ni headers especiales.
+Según el código actual, **la mayoría** de rutas no exigen token.
+
+Cuando un endpoint está protegido por `authMiddleware`, debes enviar:
+
+```
+Authorization: Bearer <jwt>
+```
+
+Ejemplo de endpoint protegido: `GET /api/v1/auth/login/me`.
 
 ## Formato estándar de respuesta
 
