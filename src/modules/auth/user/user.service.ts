@@ -23,22 +23,6 @@ export class UserService {
         try {
             const hashedPassword = await bcrypt.hash(data.password, 10);
 
-            if (!data.roleId) {
-                const defaultRole = await prisma.role.findFirst({
-                    where: { code: "PATIENT" },
-                });
-
-                if (!defaultRole) {
-                    return {
-                        status: 500,
-                        message: "Error interno al crear el usuario",
-                        error: "Rol por defecto no encontrado",
-                    };
-                }
-
-                data.roleId = defaultRole.id;
-            }
-
             const user = await prisma.user.create({
                 data: {
                     ...data,

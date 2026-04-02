@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
-import { RoleRoute, UserRoute } from '@/modules/auth';
+import { RoleRoute, UserRoute, RegisterRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
@@ -28,6 +28,7 @@ export class Server {
             roles: `${this.prefix}/auth/role`,
             users: `${this.prefix}/auth/user`,
             login: `${this.prefix}/auth/login`,
+            register: `${this.prefix}/auth/register`,
             
             medicalSpecialties: `${this.prefix}/medical/specialty`,
             patients: `${this.prefix}/medical/patient`,
@@ -96,6 +97,7 @@ export class Server {
         this.app.use(this.paths.roles, RoleRoute);
         this.app.use(this.paths.users, UserRoute);        
         this.app.use(this.paths.login, LoginRoute);        
+        this.app.use(this.paths.register, RegisterRoute);
 
         this.app.use(this.paths.supplies, SupplyRoute);
         this.app.use(this.paths.inventoryCategories, CategoryRoute);
