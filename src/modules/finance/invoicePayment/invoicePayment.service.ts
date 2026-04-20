@@ -18,6 +18,39 @@ const invoicePaymentSelect = {
     exchangeRate: {
         select: { id: true, rate: true, createdAt: true, is_active: true },
     },
+    invoice: {
+        select: { 
+            id: true,
+    patientId: true,
+    receptionistId: true,
+    exchangeRateId: true,
+    total_usd: true,
+    statusId: true,
+    taxId: true,
+    status: {
+        select: { id: true, name: true, color_hex: true },
+    },
+    exchangeRate: {
+        select: { id: true, rate: true, createdAt: true, is_active: true },
+    },
+    tax: {
+        select: { id: true, name: true, rate: true, code: true, isActive: true },
+    },
+    patient: {
+        select: {
+            id: true,
+            user: { select: { id: true, ci: true, name: true } },
+        },
+    },
+    receptionist: {
+        select: {
+            id: true,
+            ci: true,
+            name: true,
+        },
+    }
+        }
+    }
 } as const;
 
 function roundMoney(value: number) {
