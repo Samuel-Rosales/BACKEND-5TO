@@ -271,7 +271,6 @@ model InvoicePayment {
   invoiceId       Int
   paymentMethodId Int
   exchangeRateId  Int
-  currencyId      Int
 
   amount_paid     Decimal       @db.Decimal(12, 2)
   igtf_amount     Decimal       @default(0) @db.Decimal(12, 2)
@@ -309,8 +308,8 @@ model Tax {
 model PaymentMethod {
   id               Int               @id @default(autoincrement())
   name             String
-  type             String // Cash, Transfer, etc.
-  currency         String // USD, VES
+  type             String           // Cash, Transfer, etc.
+  currency         Currency       @default(USD)// USD, VES d
   is_active        Boolean           @default(true)
 
   invoicePayments  InvoicePayment[]
@@ -519,4 +518,9 @@ enum StatusPurchase {
   COMPLETED
   CANCELLED
   ANULLED
+}
+
+enum Currency {
+  USD
+  VES
 }

@@ -218,6 +218,21 @@ export class InvoiceService {
 
                 const taxId = data.taxId ?? (await this.resolveDefaultTaxId(tx));
 
+                if (data.payments.length === 0) {
+                    throw new Error("Debe haber al menos un pago");
+                }
+
+                let totalPaymentUsd = 0;
+                for (const payment of data.payments) {
+                    const method = await tx.paymentMethod.findUnique({ where: { id: payment.paymentMethodId } });
+                    if (!method) throw new Error(`El método de pago con ID ${payment.paymentMethodId} no existe`);
+                    
+                    if (method.currency !== "USD") {
+                        totalPaymentUsd += Number(payment.amount_paid) * Number(exchangeRate.rate);
+                    } // esto es temporal, luego se permitirá en otras monedas
+                    totalPaymentUsd += payment.amount_paid;
+                }
+
                 let totalUsd: number | null = null;
                 let computedCommissions: ReturnType<typeof computeCommissions> | null = null;
 
@@ -261,6 +276,10 @@ export class InvoiceService {
                     throw new Error("total_usd inválido");
                 }
 
+                if (totalPaymentUsd < totalUsd) {
+                    throw new Error(`El total pagado en USD (${totalPaymentUsd.toFixed(2)}) es menor al total de la factura (${totalUsd.toFixed(2)})`);
+                }
+
                 const created = await tx.invoice.create({
                     data: {
                         patientId: data.patientId,
@@ -273,6 +292,19 @@ export class InvoiceService {
                     },
                     select: invoiceSelect,
                 });
+
+                for (const payment of data.payments) {
+                    await tx.invoicePayment.create({
+                        data: {
+                            invoiceId: created.id,
+                            paymentMethodId: payment.paymentMethodId,
+                            amount_paid: payment.amount_paid,
+                            igtf_amount: payment.igtf_amount,
+                            exchangeRateId: exchangeRate.id,
+                            currencyId: payment.currencyId,
+                        },
+                    });
+                }
 
                 return { created, commissions: computedCommissions };
             });
