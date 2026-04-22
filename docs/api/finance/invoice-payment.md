@@ -7,7 +7,6 @@ Base URL: `/api/v1/finance/invoice-payment`
 - `id` (Int, autoincrement)
 - `invoiceId` (Int, requerido) → FK a `Invoice.id`
 - `paymentMethodId` (Int, requerido) → FK a `PaymentMethod.id`
-- `currencyId` (Int, requerido)
 - `amount_paid` (Decimal, requerido)
 - `igtf_amount` (Decimal, default: `0`)
 - `date_at` (DateTime, opcional, default: `now()`)
@@ -19,13 +18,6 @@ Relaciones:
 - `InvoicePayment.paymentMethodId -> PaymentMethod.id`
 - `InvoicePayment.exchangeRateId -> ExchangeRate.id`
 
-Notas:
-
-- `currencyId` existe en el schema como `Int`, pero no hay un modelo `Currency` declarado en este `schema.prisma`. En la práctica, puede ser:
-  - un catálogo externo/tabla no incluida, o
-  - un identificador usado por la API.
-- `amount_paid` y `igtf_amount` son `Decimal`.
-
 ## POST `/`
 
 Qué hace:
@@ -36,7 +28,6 @@ Cómo usarlo (pasos):
 
 1) Verifica que exista `invoiceId`.
 2) Selecciona `paymentMethodId` (define tipo y moneda).
-3) Define `currencyId` (según tu catálogo).
 4) Define `amount_paid` (> 0).
 5) Define `exchangeRateId` (requerido en BD) o deja que el backend use la tasa activa si la API lo permite.
 6) Envía el JSON.
@@ -45,7 +36,6 @@ Body:
 
 - `invoiceId` (int > 0, **requerido**, debe existir)
 - `paymentMethodId` (int > 0, **requerido**, debe existir)
-- `currencyId` (int > 0, **requerido**)
 - `amount_paid` (number, **requerido**, > 0)
 - `exchangeRateId?` (int > 0; **en BD es requerido**; si no se envía el backend puede usar la tasa activa)
 
@@ -55,7 +45,6 @@ Request (JSON):
 {
   "invoiceId": 1,
   "paymentMethodId": 1,
-  "currencyId": 1,
   "amount_paid": 100,
   "exchangeRateId": 1
 }
@@ -76,7 +65,6 @@ Response (201) (ejemplo, con IGTF aplicado):
     "id": 1,
     "invoiceId": 1,
     "paymentMethodId": 1,
-    "currencyId": 1,
     "amount_paid": 100,
     "igtf_amount": 3,
     "exchangeRateId": 1,
@@ -111,7 +99,7 @@ Cómo usarlo:
 
 Body:
 
-- `paymentMethodId?`, `currencyId?`, `amount_paid?`, `exchangeRateId?`
+- `paymentMethodId?`, `amount_paid?`, `exchangeRateId?`
 
 Request (JSON):
 
