@@ -216,10 +216,10 @@ export class DoctorAvailabilityService {
         }
     }
 
-    async findOne(id: number) {
+    async findOne(doctorId: number) {
         try {
-            const availability = await prisma.doctorAvailability.findUnique({
-                where: { id },
+            const availability = await prisma.doctorAvailability.findMany({
+                where: { doctorId },
                 select: doctorAvailabilitySelect,
             });
 

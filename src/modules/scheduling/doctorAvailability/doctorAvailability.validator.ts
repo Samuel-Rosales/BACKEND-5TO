@@ -146,13 +146,13 @@ export class DoctorAvailabilityValidator {
     ];
 
     public IdParamValidator: ValidationChain[] = [
-        param("id")
+        param("doctor_id")
             .isInt({ gt: 0 })
-            .withMessage("El ID de la disponibilidad debe ser un número entero positivo"),
+            .withMessage(`El ID de la disponibilidad debe ser un número entero positivo`),
     ];
 
     public DoctorAvailabilityExistsValidator: ValidationChain[] = [
-        param("id")
+        param("doctor_id")
             .custom(async (value) => {
                 const availability = await prisma.doctorAvailability.findUnique({ where: { id: Number(value) } });
 
