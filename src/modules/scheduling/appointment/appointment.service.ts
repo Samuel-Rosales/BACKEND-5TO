@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { Prisma } from "@prisma/client";
 import { CreateAppointmentDto, UpdateAppointmentDto } from "./appointment.interface";
 
 const appointmentSelect = {
@@ -36,6 +37,8 @@ const appointmentSelect = {
         select: {
             id: true,
             userId: true,
+            ci: true,
+            name: true,
             active: true,
             user: {
                 select: {
@@ -62,6 +65,42 @@ const appointmentSelect = {
 } as const;
 
 export class AppointmentService {
+
+    private normalizeRange(value?: string) {
+        if (!value) return undefined;
+        const normalized = value.trim().toLowerCase();
+
+        if (normalized === "today" || normalized === "hoy") return "today" as const;
+        if (normalized === "week" || normalized === "semana") return "week" as const;
+        if (normalized === "month" || normalized === "mes") return "month" as const;
+
+        return undefined;
+    }
+
+    private rangeBoundsUTC(range: "today" | "week" | "month", now: Date) {
+        const todayStart = this.dayStartUTC(now);
+
+        if (range === "today") {
+            const end = new Date(todayStart);
+            end.setUTCDate(end.getUTCDate() + 1);
+            return { start: todayStart, end };
+        }
+
+        if (range === "week") {
+            const dow = todayStart.getUTCDay();
+            const daysSinceMonday = (dow + 6) % 7;
+            const start = new Date(todayStart);
+            start.setUTCDate(start.getUTCDate() - daysSinceMonday);
+            const end = new Date(start);
+            end.setUTCDate(end.getUTCDate() + 7);
+            return { start, end };
+        }
+
+        // month
+        const start = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1, 0, 0, 0, 0));
+        const end = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+        return { start, end };
+    }
 
     private dayStartUTC(dateTime: Date) {
         return new Date(Date.UTC(dateTime.getUTCFullYear(), dateTime.getUTCMonth(), dateTime.getUTCDate(), 0, 0, 0, 0));
@@ -294,9 +333,25 @@ export class AppointmentService {
         }
     }
 
-    async findAll() {
+    async findAll(filters?: { range?: string }) {
         try {
+            const range = this.normalizeRange(filters?.range);
+            if (filters?.range && !range) {
+                return {
+                    status: 400,
+                    message: "Filtro inválido",
+                    error: "range debe ser: hoy|semana|mes (o today|week|month)",
+                };
+            }
+
+            const where: Prisma.AppointmentWhereInput = {};
+            if (range) {
+                const { start, end } = this.rangeBoundsUTC(range, new Date());
+                where.date_time = { gte: start, lt: end };
+            }
+
             const appointments = await prisma.appointment.findMany({
+                where,
                 orderBy: { date_time: "desc" },
                 select: appointmentSelect,
             });

@@ -105,6 +105,8 @@ Response (201) (ejemplo, resumen):
       "total_usd": "20.00",
       "patient": {
         "id": 4,
+        "ci": "V-12345678",
+        "name": "Juan Pérez",
         "user": { "ci": "30000000", "name": "Paciente" }
       }
     },
@@ -138,7 +140,7 @@ Response (200) (ejemplo):
       "date": "2026-03-23T00:00:00.000Z",
       "started_at": "2026-03-23T10:00:00.000Z",
       "finished_at": null,
-      "invoice": { "id": 10, "patientId": 4, "total_usd": "20.00", "patient": { "id": 4, "user": { "ci": "30000000", "name": "Paciente" } } },
+      "invoice": { "id": 10, "patientId": 4, "total_usd": "20.00", "patient": { "id": 4, "ci": "V-12345678", "name": "Juan Pérez", "user": { "ci": "30000000", "name": "Paciente" } } },
       "doctor": { "id": 3, "userId": 12, "specialtyId": 1, "user": { "id": 12, "ci": "20000000", "name": "Doctor" }, "specialty": { "id": 1, "name": "Medicina General" } }
     }
   ]

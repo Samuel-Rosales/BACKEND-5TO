@@ -42,8 +42,10 @@ model User {
 
 model Patient {
   id              Int     @id @default(autoincrement())
-  userId          Int?    @unique
+  userId          Int?
   user            User?   @relation(fields: [userId], references: [id])
+  ci              String?
+  name            String?
   tipo_sangre     String? @db.Text
   medical_history String? @db.Text
   last_visit_at   DateTime?

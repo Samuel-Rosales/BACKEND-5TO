@@ -126,23 +126,20 @@ async function ensureDoctor(params: { userId: number; specialtyId: number }) {
     });
 }
 
-async function ensurePatient(params: { userId?: number; tipo_sangre?: string; medical_history?: string }) {
-    if (params.userId) {
-        const existing = await prisma.patient.findUnique({ where: { userId: params.userId }, select: { id: true, active: true } });
-        if (existing && existing.active) return { id: existing.id };
-        if (existing && !existing.active) {
-            const revived = await prisma.patient.update({
-                where: { userId: params.userId },
-                data: { active: true },
-                select: { id: true },
-            });
-            return revived;
-        }
+async function ensurePatient(params: { userId?: number; ci?: string; name?: string; tipo_sangre?: string; medical_history?: string }) {
+    if (params.ci) {
+        const existingByCi = await prisma.patient.findFirst({
+            where: { ci: params.ci, active: true },
+            select: { id: true },
+        });
+        if (existingByCi) return existingByCi;
     }
 
     const existing = await prisma.patient.findFirst({
         where: {
             userId: params.userId ?? null,
+            ci: params.ci ?? null,
+            name: params.name ?? null,
             tipo_sangre: params.tipo_sangre ?? null,
             medical_history: params.medical_history ?? null,
             active: true,
@@ -152,9 +149,32 @@ async function ensurePatient(params: { userId?: number; tipo_sangre?: string; me
 
     if (existing) return existing;
 
+    // Si existía inactivo con la misma cédula, revivimos.
+    if (params.ci) {
+        const inactiveByCi = await prisma.patient.findFirst({
+            where: { ci: params.ci, active: false },
+            select: { id: true },
+        });
+        if (inactiveByCi) {
+            return prisma.patient.update({
+                where: { id: inactiveByCi.id },
+                data: {
+                    active: true,
+                    userId: params.userId,
+                    name: params.name,
+                    tipo_sangre: params.tipo_sangre,
+                    medical_history: params.medical_history,
+                },
+                select: { id: true },
+            });
+        }
+    }
+
     return prisma.patient.create({
         data: {
             userId: params.userId,
+            ci: params.ci,
+            name: params.name,
             tipo_sangre: params.tipo_sangre,
             medical_history: params.medical_history,
             active: true,
@@ -482,14 +502,17 @@ async function ensureDemoData() {
     const doctor2 = await ensureDoctor({ userId: doctorUser2.id, specialtyId: specPedi.id });
 
     // Pacientes
-    const patient1 = await ensurePatient({ userId: patientUser.id, tipo_sangre: "O+", medical_history: "SEED: sin alergias conocidas" });
-    const patient2 = await ensurePatient({ tipo_sangre: "A+", medical_history: "SEED: asma leve" });
-    const patient3 = await ensurePatient({ tipo_sangre: "B-", medical_history: "SEED: hipertensión" });
+    const patient1 = await ensurePatient({ userId: patientUser.id, ci: "V-70000001", name: "Paciente Demo", tipo_sangre: "O+", medical_history: "SEED: sin alergias conocidas" });
+    const patient2 = await ensurePatient({ userId: patientUser.id, ci: "V-70000002", name: "Paciente Demo 2", tipo_sangre: "A+", medical_history: "SEED: asma leve" });
+    const patient3 = await ensurePatient({ userId: patientUser.id, ci: "V-70000003", name: "Paciente Demo 3", tipo_sangre: "B-", medical_history: "SEED: hipertensión" });
 
     const bloodTypes = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
     const extraPatients: Array<{ id: number }> = [];
     for (let i = 1; i <= 12; i++) {
         const p = await ensurePatient({
+            userId: patientUser.id,
+            ci: `V-70100${String(i).padStart(3, "0")}`,
+            name: `Paciente Extra #${i}`,
             tipo_sangre: bloodTypes[i % bloodTypes.length],
             medical_history: `SEED: paciente extra #${i}`,
         });

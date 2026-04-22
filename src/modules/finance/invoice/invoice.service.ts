@@ -26,6 +26,8 @@ const invoiceSelect = {
     patient: {
         select: {
             id: true,
+            ci: true,
+            name: true,
             user: { select: { id: true, ci: true, name: true } },
         },
     },

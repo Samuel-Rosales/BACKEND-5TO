@@ -49,12 +49,29 @@ Response (201) (ejemplo, resumen):
     "price": "50",
     "date_time": "2026-03-23T14:00:00.000Z",
     "doctor": { "id": 3, "userId": 12, "specialtyId": 1, "active": true, "user": { "id": 12, "ci": "20000000", "name": "Doctor" }, "specialty": { "id": 1, "name": "Medicina General", "active": true } },
-    "patient": { "id": 4, "userId": 21, "active": true, "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
+    "patient": { "id": 4, "userId": 21, "ci": "V-12345678", "name": "Juan Pérez", "active": true, "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
     "status": { "id": 1, "name": "Pendiente", "color_hex": "#F59E0B" },
     "type": { "id": 1, "name": "Consulta" }
   }
 }
 ```
+
+## GET `/`
+
+Qué hace:
+
+- Lista citas.
+
+Query params (opcionales):
+
+- `range`: filtra por rango de fechas usando `date_time`.
+  - valores soportados: `hoy` | `semana` | `mes` (también acepta `today` | `week` | `month`).
+
+Ejemplos:
+
+- `GET /api/v1/scheduling/appointment?range=hoy`
+- `GET /api/v1/scheduling/appointment?range=semana`
+- `GET /api/v1/scheduling/appointment?range=mes`
 
 ## GET `/` / GET `/:id` / PUT `/:id` / DELETE `/:id`
 

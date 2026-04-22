@@ -16,12 +16,37 @@ export class PatientValidator {
                 if (!user || !user.active) {
                     return Promise.reject("El usuario no existe o no está activo");
                 }
+            }),
 
-                const existingPatient = await prisma.patient.findUnique({ where: { userId } });
+        body("ci")
+            .optional()
+            .trim()
+            .isLength({ min: 3, max: 30 })
+            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres"),
 
-                if (existingPatient && existingPatient.active) {
-                    return Promise.reject("Ya existe un paciente asociado a este usuario");
+        body("name")
+            .optional()
+            .trim()
+            .isLength({ min: 2, max: 120 })
+            .withMessage("El nombre del paciente debe tener entre 2 y 120 caracteres"),
+
+        body()
+            .custom((_, { req }) => {
+                const userId = req.body?.userId;
+                const ci = typeof req.body?.ci === "string" ? req.body.ci.trim() : "";
+                const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+
+                // Si no hay userId, obligamos a enviar identidad del paciente.
+                if (!userId && (!ci || !name)) {
+                    throw new Error("Debe enviar userId o (ci y name) del paciente");
                 }
+
+                // Si viene uno de ci/name, deben venir ambos.
+                if ((ci && !name) || (!ci && name)) {
+                    throw new Error("Debe enviar ambos campos: ci y name");
+                }
+
+                return true;
             }),
 
         body("tipo_sangre")
@@ -55,13 +80,19 @@ export class PatientValidator {
                 if (!user || !user.active) {
                     return Promise.reject("El usuario no existe o no está activo");
                 }
-
-                const existingPatient = await prisma.patient.findUnique({ where: { userId } });
-
-                if (existingPatient && existingPatient.id !== patientId && existingPatient.active) {
-                    return Promise.reject("Ya existe un paciente asociado a este usuario");
-                }
             }),
+
+        body("ci")
+            .optional()
+            .trim()
+            .isLength({ min: 3, max: 30 })
+            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres"),
+
+        body("name")
+            .optional()
+            .trim()
+            .isLength({ min: 2, max: 120 })
+            .withMessage("El nombre del paciente debe tener entre 2 y 120 caracteres"),
 
         body("tipo_sangre")
             .optional()

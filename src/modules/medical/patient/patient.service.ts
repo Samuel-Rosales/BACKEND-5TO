@@ -4,6 +4,8 @@ import { CreatePatientDto, UpdatePatientDto } from "./patient.interface";
 const patientSelect = {
     id: true,
     userId: true,
+    ci: true,
+    name: true,
     tipo_sangre: true,
     medical_history: true,
     active: true,
@@ -29,19 +31,42 @@ export class PatientService {
 
     async create(data: CreatePatientDto) {
         try {
-            const user = await prisma.user.findUnique({
-                where: { id: data.userId },
-                include: { role: true },
-            });
+            let resolvedUser: { id: number; ci: string; name: string } | null = null;
+            if (data.userId) {
+                resolvedUser = await prisma.user.findUnique({
+                    where: { id: data.userId },
+                    select: { id: true, ci: true, name: true },
+                });
 
-            if (user?.role.code !== "PATIENT") {
-                return {
-                    status: 400,
-                    message: "El usuario debe tener el rol de paciente",
-                };
+                if (!resolvedUser) {
+                    return {
+                        status: 400,
+                        message: "El usuario no existe",
+                        error: "Validación",
+                    };
+                }
             }
+
+            const payload: CreatePatientDto = {
+                ci: data.ci ?? resolvedUser?.ci,
+                name: data.name ?? resolvedUser?.name,
+                tipo_sangre: data.tipo_sangre,
+                medical_history: data.medical_history,
+            };
+
+            const createData: any = {
+                ci: payload.ci,
+                name: payload.name,
+                tipo_sangre: payload.tipo_sangre,
+                medical_history: payload.medical_history,
+            };
+
+            if (data.userId) {
+                createData.user = { connect: { id: data.userId } };
+            }
+
             const patient = await prisma.patient.create({
-                data,
+                data: createData,
                 select: patientSelect,
             });
 
@@ -103,7 +128,7 @@ export class PatientService {
 
     async findOne(id: number) {
         try {
-            const patient = await prisma.patient.findUnique({
+            const patient = await prisma.patient.findFirst({
                 where: { id, active: true },
                 select: patientSelect,
             });
@@ -130,9 +155,41 @@ export class PatientService {
 
     async update(id: number, data: UpdatePatientDto) {
         try {
-            const patient = await prisma.patient.update({
+            const existing = await prisma.patient.findFirst({
                 where: { id, active: true },
-                data,
+                select: { id: true },
+            });
+
+            if (!existing) {
+                return {
+                    status: 404,
+                    message: "El paciente no existe o no está activo",
+                    error: "No encontrado",
+                };
+            }
+
+            const updateData: any = {};
+
+            if (data.ci !== undefined) updateData.ci = data.ci;
+            if (data.name !== undefined) updateData.name = data.name;
+            if (data.tipo_sangre !== undefined) updateData.tipo_sangre = data.tipo_sangre;
+            if (data.medical_history !== undefined) updateData.medical_history = data.medical_history;
+
+            if (data.userId !== undefined) {
+                updateData.user = { connect: { id: data.userId } };
+            }
+
+            if (Object.keys(updateData).length === 0) {
+                return {
+                    status: 400,
+                    message: "No hay campos válidos para actualizar",
+                    error: "Validación",
+                };
+            }
+
+            const patient = await prisma.patient.update({
+                where: { id },
+                data: updateData,
                 select: patientSelect,
             });
 
@@ -158,8 +215,21 @@ export class PatientService {
 
     async delete(id: number) {
         try {
-            const patient = await prisma.patient.update({
+            const existing = await prisma.patient.findFirst({
                 where: { id, active: true },
+                select: { id: true },
+            });
+
+            if (!existing) {
+                return {
+                    status: 404,
+                    message: "El paciente no existe o no está activo",
+                    error: "No encontrado",
+                };
+            }
+
+            const patient = await prisma.patient.update({
+                where: { id },
                 data: { active: false },
                 select: patientSelect,
             });

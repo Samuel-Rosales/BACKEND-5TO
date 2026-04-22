@@ -5,7 +5,9 @@ Base URL: `/api/v1/medical/patient`
 ## Modelo (Prisma: `Patient`)
 
 - `id` (Int, autoincrement)
-- `userId` (Int?, **único**) → FK a `User.id` (opcional)
+- `userId` (Int?) → FK a `User.id` (opcional)
+- `ci` (String?)
+- `name` (String?)
 - `tipo_sangre` (String?)
 - `medical_history` (String?)
 - `last_visit_at` (DateTime?)
@@ -18,32 +20,42 @@ Relaciones:
 
 Notas:
 
-- `userId` es opcional pero si se usa, es único (un usuario no puede ser paciente dos veces).
+- `userId` es opcional. Si se usa, un `User` puede gestionar **múltiples** pacientes.
+- `ci` y `name` viven en `Patient` para permitir varios pacientes bajo un mismo usuario.
 - `DELETE` recomendado como soft delete (`active=false`).
 
 ## POST `/`
 
 Qué hace:
 
-- Crea un paciente y opcionalmente lo asocia a un `User`.
+- Crea un paciente y opcionalmente lo asocia a un `User` (gestor/propietario).
 
 Cómo usarlo (pasos):
 
-1) (Opcional) Selecciona un `userId` existente y activo.
-2) (Opcional) Registra `tipo_sangre` y `medical_history`.
+1) (Recomendado) Envía `ci` y `name` del paciente.
+2) (Opcional) Envía `userId` si quieres asociar el paciente a un usuario.
+3) (Opcional) Registra `tipo_sangre` y `medical_history`.
 3) Envía el JSON.
 
 Body:
 
-- `userId?` (int > 0, debe existir y estar activo; no puede estar asociado a otro paciente activo)
+- `userId?` (int > 0, debe existir y estar activo)
+- `ci?` (string, 3..30)
+- `name?` (string, 2..120)
 - `tipo_sangre?` (string, 1..10)
 - `medical_history?` (string, 1..5000)
+
+Regla:
+
+- Debe enviar `userId` **o** ambos campos `ci` y `name`.
 
 Request (JSON):
 
 ```json
 {
   "userId": 21,
+  "ci": "V-12345678",
+  "name": "Juan Pérez",
   "tipo_sangre": "O+",
   "medical_history": "Sin antecedentes."
 }
@@ -57,6 +69,8 @@ Response (201) (ejemplo, resumen):
   "data": {
     "id": 4,
     "userId": 21,
+    "ci": "V-12345678",
+    "name": "Juan Pérez",
     "tipo_sangre": "O+",
     "medical_history": "Sin antecedentes.",
     "active": true,

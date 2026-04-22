@@ -89,7 +89,7 @@ Response (201) (resumen):
     "status": { "id": 1, "name": "Proforma", "color_hex": "#3B82F6" },
     "exchangeRate": { "id": 1, "rate": "38.5", "createdAt": "2026-03-23T12:00:00.000Z", "is_active": true },
     "tax": { "id": 1, "name": "IVA", "rate": "16", "code": "IVA", "isActive": true },
-    "patient": { "id": 4, "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
+    "patient": { "id": 4, "ci": "V-12345678", "name": "Juan Pérez", "user": { "id": 21, "ci": "30000000", "name": "Paciente" } },
     "receptionist": { "id": 21, "ci": "30000000", "name": "Recepcionista" },
     "payments": [],
     "commissions": {

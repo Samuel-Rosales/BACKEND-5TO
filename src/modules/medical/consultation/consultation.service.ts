@@ -22,6 +22,8 @@ const consultationSelect = {
             patient: {
                 select: {
                     id: true,
+                    ci: true,
+                    name: true,
                     user: {
                         select: {
                             ci: true,
@@ -66,6 +68,8 @@ const oneConsultationSelect = {
             patient: {
                 select: {
                     id: true,
+                    ci: true,
+                    name: true,
                     user: {
                         select: {
                             ci: true,

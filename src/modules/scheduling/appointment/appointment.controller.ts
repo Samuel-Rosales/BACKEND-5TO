@@ -14,7 +14,11 @@ export class AppointmentController {
     }
 
     async findAll(req: Request, res: Response) {
-        const { data, status, message, error } = await service.findAll();
+        const range = (req.query.range ?? req.query.rango ?? req.query.filter) !== undefined
+            ? String(req.query.range ?? req.query.rango ?? req.query.filter)
+            : undefined;
+
+        const { data, status, message, error } = await service.findAll({ range });
 
         return res.status(status).json({ message, data, error });
     }

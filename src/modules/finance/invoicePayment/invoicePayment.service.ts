@@ -12,11 +12,53 @@ const invoicePaymentSelect = {
     amount_paid: true,
     igtf_amount: true,
     exchangeRateId: true,
+    date_at: true,
     paymentMethod: {
         select: { id: true, name: true, type: true, currency: true, is_active: true },
     },
     exchangeRate: {
         select: { id: true, rate: true, createdAt: true, is_active: true },
+    },
+    invoice: {
+        select: {
+            id: true,
+            patientId: true,
+            receptionistId: true,
+            exchangeRateId: true,
+            total_usd: true,
+            statusId: true,
+            taxId: true,
+            date_at: true,
+            status: {
+                select: { id: true, name: true, color_hex: true },
+            },
+            patient: {
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                    user: { select: { id: true, ci: true, name: true } },
+                },
+            },
+            receptionist: {
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                },
+            },
+            consultation: {
+                select: {
+                    id: true,
+                    doctor: {
+                        select: {
+                            id: true,
+                            user: { select: { id: true, ci: true, name: true } },
+                        },
+                    },
+                },
+            },
+        },
     },
 } as const;
 
