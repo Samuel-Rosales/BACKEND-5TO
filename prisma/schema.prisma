@@ -242,8 +242,8 @@ model Invoice {
   taxId          Int
   
   total_usd      Decimal          @db.Decimal(12, 2)
+  date_at        DateTime         @default(now())
 
-  @@index([patientId])
 
   tax            Tax              @relation(fields: [taxId], references: [id])
   patient        Patient          @relation(fields: [patientId], references: [id])
@@ -253,6 +253,8 @@ model Invoice {
 
   payments       InvoicePayment[]
   consultation   Consultation?
+  
+  @@index([patientId])
 }
 
 model StatusInvoice {
@@ -265,13 +267,17 @@ model StatusInvoice {
 model InvoicePayment {
   id              Int           @id @default(autoincrement())
   invoiceId       Int
-  invoice         Invoice       @relation(fields: [invoiceId], references: [id])
   paymentMethodId Int
-  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  exchangeRateId  Int
   currencyId      Int
+
   amount_paid     Decimal       @db.Decimal(12, 2)
   igtf_amount     Decimal       @default(0) @db.Decimal(12, 2)
-  exchangeRateId  Int
+  date_at        DateTime?      @default(now())
+
+
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id])
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
   exchangeRate    ExchangeRate  @relation(fields: [exchangeRateId], references: [id])
 }
 
