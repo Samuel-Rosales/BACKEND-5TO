@@ -23,6 +23,14 @@ export class AppointmentController {
         return res.status(status).json({ message, data, error });
     }
 
+    async findManyByDr(req: Request, res: Response) {
+        const { id } = req.params;
+
+        const { data, status, message, error } = await service.findManyByDr(Number(id));
+
+        return res.status(status).json({ message, data, error });
+    }
+
     async findOne(req: Request, res: Response) {
         const { id } = req.params;
 

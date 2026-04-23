@@ -32,9 +32,9 @@ export class DoctorAvailabilityController {
     }
 
     async findOne(req: Request, res: Response) {
-        const { id } = req.params;
+        const { doctor_id } = req.params;
 
-        const { data, status, message, error } = await service.findOne(Number(id));
+        const { data, status, message, error } = await service.findOne(Number(doctor_id));
 
         return res.status(status).json({ message, data, error });
     }

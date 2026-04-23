@@ -23,9 +23,9 @@ doctorAvailabilityRouter.get(
 );
 
 doctorAvailabilityRouter.get(
-    "/:id",
+    "/:doctor_id",
     validator.IdParamValidator,
-    validator.DoctorAvailabilityExistsValidator,
+    //validator.DoctorAvailabilityExistsValidator,
     handleValidationErrors,
     controller.findOne
 );

@@ -28,6 +28,13 @@ appointmentRouter.get(
     controller.findOne
 );
 
+appointmentRouter.get(
+    "/doctor/:id", //id del doctor
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.findManyByDr
+);
+
 appointmentRouter.put(
     "/:id",
     validator.IdParamValidator,
