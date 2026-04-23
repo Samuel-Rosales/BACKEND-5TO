@@ -42,7 +42,6 @@ const invoiceSelect = {
         select: {
             id: true,
             paymentMethodId: true,
-            currencyId: true,
             amount_paid: true,
             igtf_amount: true,
             exchangeRateId: true,
