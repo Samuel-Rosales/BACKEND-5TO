@@ -46,8 +46,8 @@ model Patient {
   user            User?   @relation(fields: [userId], references: [id])
   ci              String?
   name            String?
-  tipo_sangre     String? @db.Text
-  medical_history String? @db.Text
+  // tipo_sangre     String? @db.Text
+  // medical_history String? @db.Text
   last_visit_at   DateTime?
   active          Boolean @default(true)
 
