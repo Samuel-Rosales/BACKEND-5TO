@@ -46,13 +46,42 @@ model Patient {
   user            User?   @relation(fields: [userId], references: [id])
   ci              String?
   name            String?
-  tipo_sangre     String? @db.Text
-  medical_history String? @db.Text
+  // tipo_sangre     String? @db.Text
+  // medical_history String? @db.Text
   last_visit_at   DateTime?
   active          Boolean @default(true)
 
   appointments  Appointment[]
   invoices       Invoice[]
+  info_patient   InfoPatient?
+}
+
+model InfoPatient {
+  id              Int     @id @default(autoincrement())
+  patientId       Int     @unique
+  
+  ci              String  @unique
+  name            String
+  last_name       String
+  sex             Sex
+  blood_type      String? @db.Text
+  nacionality      String? @db.Text
+  birth_date      DateTime
+  profession       String? @db.VarChar(100)
+
+  main_phone       String? @db.VarChar(20)
+  email           String? @db.VarChar(255)
+  address         String? @db.Text
+  city            String? @db.VarChar(100)
+
+  allergies      String? @db.Text
+  chronic_diseases String? @db.Text
+  current_medications String? @db.Text 
+  Cirugías_previas String? @db.Text
+  
+  active          Boolean @default(true)
+
+  patient         Patient @relation(fields: [patientId], references: [id])
 }
 
 model Doctor {
@@ -524,3 +553,9 @@ enum Currency {
   USD
   VES
 }
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
