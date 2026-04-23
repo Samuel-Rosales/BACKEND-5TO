@@ -126,7 +126,7 @@ async function ensureDoctor(params: { userId: number; specialtyId: number }) {
     });
 }
 
-async function ensurePatient(params: { userId?: number; ci?: string; name?: string; tipo_sangre?: string; medical_history?: string }) {
+async function ensurePatient(params: { userId?: number; ci?: string; name?: string }) {
     if (params.ci) {
         const existingByCi = await prisma.patient.findFirst({
             where: { ci: params.ci, active: true },
@@ -140,8 +140,6 @@ async function ensurePatient(params: { userId?: number; ci?: string; name?: stri
             userId: params.userId ?? null,
             ci: params.ci ?? null,
             name: params.name ?? null,
-            tipo_sangre: params.tipo_sangre ?? null,
-            medical_history: params.medical_history ?? null,
             active: true,
         },
         select: { id: true },
@@ -162,8 +160,6 @@ async function ensurePatient(params: { userId?: number; ci?: string; name?: stri
                     active: true,
                     userId: params.userId,
                     name: params.name,
-                    tipo_sangre: params.tipo_sangre,
-                    medical_history: params.medical_history,
                 },
                 select: { id: true },
             });
@@ -175,8 +171,59 @@ async function ensurePatient(params: { userId?: number; ci?: string; name?: stri
             userId: params.userId,
             ci: params.ci,
             name: params.name,
-            tipo_sangre: params.tipo_sangre,
-            medical_history: params.medical_history,
+            active: true,
+        },
+        select: { id: true },
+    });
+}
+
+async function ensureInfoPatient(params: {
+    patientId: number;
+    ci: string;
+    name: string;
+    last_name: string;
+    sex: Prisma.Sex;
+    birth_date: Date;
+    blood_type?: string;
+    nacionality?: string;
+    profession?: string;
+    main_phone?: string;
+    secondary_phone?: string;
+    email?: string;
+    address?: string;
+    city?: string;
+    allergies?: string;
+    chronic_diseases?: string;
+    current_medications?: string;
+    previous_surgeries?: string;
+}) {
+    const existing = await prisma.infoPatient.findUnique({
+        where: { patientId: params.patientId },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.infoPatient.create({
+        data: {
+            patientId: params.patientId,
+            ci: params.ci,
+            name: params.name,
+            last_name: params.last_name,
+            sex: params.sex,
+            birth_date: params.birth_date,
+            blood_type: params.blood_type,
+            nacionality: params.nacionality,
+            profession: params.profession,
+            main_phone: params.main_phone,
+            secondary_phone: params.secondary_phone,
+            email: params.email,
+            address: params.address,
+            city: params.city,
+            allergies: params.allergies,
+            chronic_diseases: params.chronic_diseases,
+            current_medications: params.current_medications,
+            previous_surgeries: params.previous_surgeries,
             active: true,
         },
         select: { id: true },
@@ -502,9 +549,9 @@ async function ensureDemoData() {
     const doctor2 = await ensureDoctor({ userId: doctorUser2.id, specialtyId: specPedi.id });
 
     // Pacientes
-    const patient1 = await ensurePatient({ userId: patientUser.id, ci: "70000001", name: "Paciente Demo", tipo_sangre: "O+", medical_history: "SEED: sin alergias conocidas" });
-    const patient2 = await ensurePatient({ userId: patientUser.id, ci: "70000002", name: "Paciente Demo 2", tipo_sangre: "A+", medical_history: "SEED: asma leve" });
-    const patient3 = await ensurePatient({ userId: patientUser.id, ci: "70000003", name: "Paciente Demo 3", tipo_sangre: "B-", medical_history: "SEED: hipertensión" });
+    const patient1 = await ensurePatient({ userId: patientUser.id, ci: "70000001", name: "Paciente Demo" });
+    const patient2 = await ensurePatient({ userId: patientUser.id, ci: "70000002", name: "Paciente Demo 2" });
+    const patient3 = await ensurePatient({ userId: patientUser.id, ci: "70000003", name: "Paciente Demo 3" });
 
     const bloodTypes = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
     const extraPatients: Array<{ id: number }> = [];
@@ -513,10 +560,68 @@ async function ensureDemoData() {
             userId: patientUser.id,
             ci: `70100${String(i).padStart(3, "0")}`,
             name: `Paciente Extra #${i}`,
-            tipo_sangre: bloodTypes[i % bloodTypes.length],
-            medical_history: `SEED: paciente extra #${i}`,
         });
         extraPatients.push(p);
+    }
+
+    await ensureInfoPatient({
+        patientId: patient1.id,
+        ci: "70000001",
+        name: "Paciente",
+        last_name: "Demo",
+        sex: Prisma.Sex.FEMALE,
+        birth_date: new Date("1995-01-10"),
+        blood_type: "O+",
+        nacionality: "Venezolana",
+        profession: "Docente",
+        main_phone: "0414-0000001",
+        email: "paciente.demo@example.com",
+        address: "Av. Siempre Viva 123",
+        city: "Caracas",
+        allergies: "SEED: sin alergias conocidas",
+    });
+
+    await ensureInfoPatient({
+        patientId: patient2.id,
+        ci: "70000002",
+        name: "Paciente",
+        last_name: "Demo 2",
+        sex: Prisma.Sex.MALE,
+        birth_date: new Date("1992-06-05"),
+        blood_type: "A+",
+        nacionality: "Venezolano",
+        profession: "Ingeniero",
+        main_phone: "0414-0000002",
+        allergies: "SEED: asma leve",
+    });
+
+    await ensureInfoPatient({
+        patientId: patient3.id,
+        ci: "70000003",
+        name: "Paciente",
+        last_name: "Demo 3",
+        sex: Prisma.Sex.MALE,
+        birth_date: new Date("1988-11-20"),
+        blood_type: "B-",
+        nacionality: "Venezolano",
+        profession: "Comerciante",
+        main_phone: "0414-0000003",
+        chronic_diseases: "SEED: hipertensión",
+    });
+
+    for (let i = 0; i < extraPatients.length; i++) {
+        const info = extraPatients[i];
+        const bloodType = bloodTypes[i % bloodTypes.length];
+        await ensureInfoPatient({
+            patientId: info.id,
+            ci: `70100${String(i + 1).padStart(3, "0")}`,
+            name: "Paciente",
+            last_name: `Extra #${i + 1}`,
+            sex: i % 2 === 0 ? Prisma.Sex.FEMALE : Prisma.Sex.MALE,
+            birth_date: new Date("1990-01-01"),
+            blood_type: bloodType,
+            nacionality: "Venezolano",
+        });
     }
 
     // Medical catalog (symptoms & diagnoses)

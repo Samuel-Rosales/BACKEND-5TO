@@ -6,8 +6,6 @@ const patientSelect = {
     userId: true,
     ci: true,
     name: true,
-    tipo_sangre: true,
-    medical_history: true,
     active: true,
     user: {
         select: {
@@ -49,16 +47,12 @@ export class PatientService {
 
             const payload: CreatePatientDto = {
                 ci: data.ci ?? resolvedUser?.ci,
-                name: data.name ?? resolvedUser?.name,
-                tipo_sangre: data.tipo_sangre,
-                medical_history: data.medical_history,
+                name: data.name ?? resolvedUser?.name
             };
 
             const createData: any = {
                 ci: payload.ci,
-                name: payload.name,
-                tipo_sangre: payload.tipo_sangre,
-                medical_history: payload.medical_history,
+                name: payload.name
             };
 
             if (data.userId) {
@@ -172,8 +166,6 @@ export class PatientService {
 
             if (data.ci !== undefined) updateData.ci = data.ci;
             if (data.name !== undefined) updateData.name = data.name;
-            if (data.tipo_sangre !== undefined) updateData.tipo_sangre = data.tipo_sangre;
-            if (data.medical_history !== undefined) updateData.medical_history = data.medical_history;
 
             if (data.userId !== undefined) {
                 updateData.user = { connect: { id: data.userId } };

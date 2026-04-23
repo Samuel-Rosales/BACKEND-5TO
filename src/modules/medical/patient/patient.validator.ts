@@ -48,18 +48,6 @@ export class PatientValidator {
 
                 return true;
             }),
-
-        body("tipo_sangre")
-            .optional()
-            .trim()
-            .isLength({ min: 1, max: 10 })
-            .withMessage("El tipo de sangre debe tener entre 1 y 10 caracteres"),
-
-        body("medical_history")
-            .optional()
-            .trim()
-            .isLength({ min: 1, max: 5000 })
-            .withMessage("El historial médico debe tener entre 1 y 5000 caracteres"),
     ];
 
     public updatePatientValidator: ValidationChain[] = [
@@ -92,19 +80,7 @@ export class PatientValidator {
             .optional()
             .trim()
             .isLength({ min: 2, max: 120 })
-            .withMessage("El nombre del paciente debe tener entre 2 y 120 caracteres"),
-
-        body("tipo_sangre")
-            .optional()
-            .trim()
-            .isLength({ min: 1, max: 10 })
-            .withMessage("El tipo de sangre debe tener entre 1 y 10 caracteres"),
-
-        body("medical_history")
-            .optional()
-            .trim()
-            .isLength({ min: 1, max: 5000 })
-            .withMessage("El historial médico debe tener entre 1 y 5000 caracteres"),
+            .withMessage("El nombre del paciente debe tener entre 2 y 120 caracteres")
     ];
 
     public IdParamValidator: ValidationChain[] = [
