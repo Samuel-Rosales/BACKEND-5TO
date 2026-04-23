@@ -486,11 +486,11 @@ async function ensureDemoData() {
     const rolePatient = await ensureRole("Paciente", "PATIENT");
 
     // Usuarios
-    const adminUser = await ensureUser({ ci: "V-90000001", name: "Admin Demo", password: "123456", roleId: roleAdmin.id });
-    const doctorUser1 = await ensureUser({ ci: "V-10000001", name: "Dr Demo 1", password: "123456", roleId: roleDoctor.id });
-    const doctorUser2 = await ensureUser({ ci: "V-10000002", name: "Dr Demo 2", password: "123456", roleId: roleDoctor.id });
-    const receptionUser = await ensureUser({ ci: "V-80000001", name: "Recepción Demo", password: "123456", roleId: roleReception.id });
-    const patientUser = await ensureUser({ ci: "V-70000001", name: "Paciente Demo", password: "123456", roleId: rolePatient.id });
+    const adminUser = await ensureUser({ ci: "90000001", name: "Admin Demo", password: "123456", roleId: roleAdmin.id });
+    const doctorUser1 = await ensureUser({ ci: "10000001", name: "Dr Demo 1", password: "123456", roleId: roleDoctor.id });
+    const doctorUser2 = await ensureUser({ ci: "10000002", name: "Dr Demo 2", password: "123456", roleId: roleDoctor.id });
+    const receptionUser = await ensureUser({ ci: "80000001", name: "Recepción Demo", password: "123456", roleId: roleReception.id });
+    const patientUser = await ensureUser({ ci: "70000001", name: "Paciente Demo", password: "123456", roleId: rolePatient.id });
 
     // Especialidades
     const specMG = await ensureMedicalSpecialty({ name: "Medicina General", consultation_price: 20, commission_percentage: 30 });
@@ -502,16 +502,16 @@ async function ensureDemoData() {
     const doctor2 = await ensureDoctor({ userId: doctorUser2.id, specialtyId: specPedi.id });
 
     // Pacientes
-    const patient1 = await ensurePatient({ userId: patientUser.id, ci: "V-70000001", name: "Paciente Demo", tipo_sangre: "O+", medical_history: "SEED: sin alergias conocidas" });
-    const patient2 = await ensurePatient({ userId: patientUser.id, ci: "V-70000002", name: "Paciente Demo 2", tipo_sangre: "A+", medical_history: "SEED: asma leve" });
-    const patient3 = await ensurePatient({ userId: patientUser.id, ci: "V-70000003", name: "Paciente Demo 3", tipo_sangre: "B-", medical_history: "SEED: hipertensión" });
+    const patient1 = await ensurePatient({ userId: patientUser.id, ci: "70000001", name: "Paciente Demo", tipo_sangre: "O+", medical_history: "SEED: sin alergias conocidas" });
+    const patient2 = await ensurePatient({ userId: patientUser.id, ci: "70000002", name: "Paciente Demo 2", tipo_sangre: "A+", medical_history: "SEED: asma leve" });
+    const patient3 = await ensurePatient({ userId: patientUser.id, ci: "70000003", name: "Paciente Demo 3", tipo_sangre: "B-", medical_history: "SEED: hipertensión" });
 
     const bloodTypes = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
     const extraPatients: Array<{ id: number }> = [];
     for (let i = 1; i <= 12; i++) {
         const p = await ensurePatient({
             userId: patientUser.id,
-            ci: `V-70100${String(i).padStart(3, "0")}`,
+            ci: `70100${String(i).padStart(3, "0")}`,
             name: `Paciente Extra #${i}`,
             tipo_sangre: bloodTypes[i % bloodTypes.length],
             medical_history: `SEED: paciente extra #${i}`,
