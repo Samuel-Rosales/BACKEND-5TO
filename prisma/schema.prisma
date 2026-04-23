@@ -70,6 +70,7 @@ model InfoPatient {
   profession       String? @db.VarChar(100)
 
   main_phone       String? @db.VarChar(20)
+  secondary_phone String? @db.VarChar(20)
   email           String? @db.VarChar(255)
   address         String? @db.Text
   city            String? @db.VarChar(100)
@@ -77,7 +78,7 @@ model InfoPatient {
   allergies      String? @db.Text
   chronic_diseases String? @db.Text
   current_medications String? @db.Text 
-  Cirugías_previas String? @db.Text
+  previous_surgeries String? @db.Text
   
   active          Boolean @default(true)
 
