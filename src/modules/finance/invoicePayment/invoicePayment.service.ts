@@ -8,7 +8,6 @@ const invoicePaymentSelect = {
     id: true,
     invoiceId: true,
     paymentMethodId: true,
-    currencyId: true,
     amount_paid: true,
     igtf_amount: true,
     exchangeRateId: true,
@@ -91,7 +90,6 @@ export class InvoicePaymentService {
                 data: {
                     invoiceId: data.invoiceId,
                     paymentMethodId: data.paymentMethodId,
-                    currencyId: data.currencyId,
                     amount_paid: amountPaid,
                     igtf_amount: igtfAmount,
                     exchangeRateId: rate.id,

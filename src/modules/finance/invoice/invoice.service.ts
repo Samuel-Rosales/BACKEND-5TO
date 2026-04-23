@@ -277,7 +277,11 @@ export class InvoiceService {
                 }
 
                 if (totalPaymentUsd < totalUsd) {
-                    throw new Error(`El total pagado en USD (${totalPaymentUsd.toFixed(2)}) es menor al total de la factura (${totalUsd.toFixed(2)})`);
+                    return {
+                        status: 400,
+                        message: `El total pagado en USD (${totalPaymentUsd.toFixed(2)}) es menor al total de la factura (${totalUsd.toFixed(2)})`,
+                        data: null,
+                    };  
                 }
 
                 const created = await tx.invoice.create({
@@ -301,7 +305,6 @@ export class InvoiceService {
                             amount_paid: payment.amount_paid,
                             igtf_amount: payment.igtf_amount,
                             exchangeRateId: exchangeRate.id,
-                            currencyId: payment.currencyId,
                         },
                     });
                 }

@@ -22,11 +22,11 @@ model Role {
 
 model User {
   id       Int     @id @default(autoincrement())
-  ci       String  @unique
+  ci       String  @unique // nuevo campo para cédula de identidad
   name     String
   password String  @db.VarChar(255)
   roleId   Int
-  active   Boolean @default(true)
+  active   Boolean @default(true) 
 
   role           Role            @relation(fields: [roleId], references: [id])
   doctor         Doctor?

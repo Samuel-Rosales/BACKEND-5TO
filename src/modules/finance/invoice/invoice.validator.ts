@@ -35,7 +35,10 @@ export class InvoiceValidator {
                     return Promise.reject("El status de la factura no existe");
                 }
             }),
-
+        body("payments")
+            .isArray({ min: 1 })
+            .withMessage("payments debe ser un arreglo con al menos 1 elemento"),
+            
         body("details")
             .optional()
             .isArray({ min: 1 })
