@@ -47,6 +47,7 @@ Body:
 - `exchangeRateId?` (int > 0; **en BD es requerido**; si no se envía, el backend puede usar la tasa activa)
 - `statusId?` (int > 0; **en BD es requerido**; si no se envía, el backend puede usar un status por defecto)
 - `taxId?` (int > 0; **en BD es requerido**; si no se envía, el backend puede usar el impuesto activo)
+- `payments` (array > 0; **en BD es requerido**; si no se envía, el backend no te permitirá registrar una factura)
 
 Notas:
 
@@ -69,7 +70,13 @@ Request (JSON) (creación manual con `total_usd`):
 {
   "patientId": 4,
   "receptionistId": 21,
-  "total_usd": 53
+  "total_usd": 53,
+  "payments": [
+    {
+      "paymentMethodId": 1,
+      "amount_paid": 25
+    }
+  ]
 }
 ```
 
