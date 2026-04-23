@@ -178,13 +178,15 @@ export class InvoiceService {
         // const totalUsd = computeTotals(details);
         // const totalBs = roundMoney(totalUsd * Number(exchangeRate.rate));
 
+        const taxId = data.taxId ?? (await this.resolveDefaultTaxId());
+
         const created = await this.db.invoice.create({
             data: {
                 patientId: data.patientId,
                 receptionistId: data.receptionistId,
                 exchangeRateId: exchangeRate.id,
                 statusId: status.id,
-                taxId: data.taxId,
+                taxId,
 
                 total_usd: data.total_usd ? Number(data.total_usd) : 0,
             },

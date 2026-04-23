@@ -182,7 +182,7 @@ async function ensureInfoPatient(params: {
     ci: string;
     name: string;
     last_name: string;
-    sex: Prisma.Sex;
+    sex: "MALE" | "FEMALE" | string;
     birth_date: Date;
     blood_type?: string;
     nacionality?: string;
@@ -210,7 +210,7 @@ async function ensureInfoPatient(params: {
             ci: params.ci,
             name: params.name,
             last_name: params.last_name,
-            sex: params.sex,
+            sex: params.sex as any,
             birth_date: params.birth_date,
             blood_type: params.blood_type,
             nacionality: params.nacionality,
@@ -569,7 +569,7 @@ async function ensureDemoData() {
         ci: "70000001",
         name: "Paciente",
         last_name: "Demo",
-        sex: Prisma.Sex.FEMALE,
+        sex: "FEMALE",
         birth_date: new Date("1995-01-10"),
         blood_type: "O+",
         nacionality: "Venezolana",
@@ -586,7 +586,7 @@ async function ensureDemoData() {
         ci: "70000002",
         name: "Paciente",
         last_name: "Demo 2",
-        sex: Prisma.Sex.MALE,
+        sex: "MALE",
         birth_date: new Date("1992-06-05"),
         blood_type: "A+",
         nacionality: "Venezolano",
@@ -600,7 +600,7 @@ async function ensureDemoData() {
         ci: "70000003",
         name: "Paciente",
         last_name: "Demo 3",
-        sex: Prisma.Sex.MALE,
+        sex: "MALE",
         birth_date: new Date("1988-11-20"),
         blood_type: "B-",
         nacionality: "Venezolano",
@@ -617,7 +617,7 @@ async function ensureDemoData() {
             ci: `70100${String(i + 1).padStart(3, "0")}`,
             name: "Paciente",
             last_name: `Extra #${i + 1}`,
-            sex: i % 2 === 0 ? Prisma.Sex.FEMALE : Prisma.Sex.MALE,
+            sex: i % 2 === 0 ? "FEMALE" : "MALE",
             birth_date: new Date("1990-01-01"),
             blood_type: bloodType,
             nacionality: "Venezolano",
