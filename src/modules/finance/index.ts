@@ -4,3 +4,5 @@ export * from "./paymentMethod";
 export * from "./statusInvoice";
 export * from "./invoice";
 export * from "./invoicePayment";
+export * from "./payroll";
+export * from "./payrollLine";

@@ -7,7 +7,7 @@ import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, Pr
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
-import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
+import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
 
@@ -61,6 +61,8 @@ export class Server {
             invoiceStatuses: `${this.prefix}/finance/status-invoice`,
             invoices: `${this.prefix}/finance/invoice`,
             invoicePayments: `${this.prefix}/finance/invoice-payment`,
+            payrolls: `${this.prefix}/finance/payroll`,
+            payrollLines: `${this.prefix}/finance/payroll-line`,
 
             suppliers: `${this.prefix}/procurement/supplier`,
             purchases: `${this.prefix}/procurement/purchase`,
@@ -130,6 +132,9 @@ export class Server {
         this.app.use(this.paths.invoiceStatuses, StatusInvoiceRoute);
         this.app.use(this.paths.invoices, InvoiceRoute);
         this.app.use(this.paths.invoicePayments, InvoicePaymentRoute);
+
+        this.app.use(this.paths.payrolls, PayrollRoute);
+        this.app.use(this.paths.payrollLines, PayrollLineRoute);
 
         this.app.use(this.paths.suppliers, SupplierRoute);
         this.app.use(this.paths.purchases, PurchaseRoute);
