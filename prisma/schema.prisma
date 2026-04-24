@@ -122,9 +122,11 @@ model Consultation {
 
   supplies              SupplyConsultation[]
   prescriptions         Prescription[]
-  symptomsConsultations     SymptomsConsultation[]
+  symptomsConsultations SymptomsConsultation[]
   clinicalExaminations  ClinicalExamination[]
   consultationDiagnoses ConsultationDiagnosis[]
+
+  payrollLine           PayrollLine?
 }
 
 model Prescription {
@@ -345,6 +347,31 @@ model PaymentMethod {
   invoicePayments  InvoicePayment[]
   expensePayments  ExpensePayment[]
   purchasePayments PurchasePayment[]
+}
+
+model Payroll {
+  id                  Int     @id @default(autoincrement())
+  period_start        DateTime
+  period_end          DateTime
+  
+  status              String  // Paid, Pending, etc.
+  created_at          DateTime @default(now())
+  
+  payrollLines         PayrollLine[]
+
+  @@unique([period_start, period_end])
+}
+
+model PayrollLine {
+  id                    Int     @id @default(autoincrement())
+  payrollId             Int
+  consultationId        Int     @unique
+
+  base_amount                 Decimal @db.Decimal(12, 2)
+  commission_percentage Decimal @db.Decimal(5, 2) // Ej: 30.00 para la clínica
+
+  payroll       Payroll @relation(fields: [payrollId], references: [id])
+  consultation  Consultation @relation(fields: [consultationId], references: [id])
 }
 
 // ==========================================
