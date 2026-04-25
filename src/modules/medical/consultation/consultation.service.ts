@@ -361,6 +361,43 @@ export class ConsultationService {
         }
     }
 
+    async findAllByDoctor(doctorId: number) {
+        try {
+            const consultations = await prisma.consultation.findMany({
+                where: { doctorId: doctorId },
+                orderBy: { date: "desc" },
+                select: consultationSelect,
+            });
+
+            if (!consultations) {
+                throw new Error("Error buscando consultas");
+            }
+
+            if (consultations.length === 0) {
+                return {
+                    status: 200,
+                    message: "Doctor no tiene consultas registradas",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Consultas encontradas éxitosamente",
+                data: consultations,
+            };
+        } catch (error) {
+            console.error("Error buscando consultas:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar las consultas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+
+    }
+
     async findOne(id: number) {
         try {
             const consultation = await prisma.consultation.findUnique({

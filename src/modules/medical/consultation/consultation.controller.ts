@@ -19,6 +19,27 @@ export class ConsultationController {
         return res.status(status).json({ message, data, error });
     }
 
+    async findAllByDoctor(req: Request, res: Response) {
+        const { id } = req.params;
+        const doctorIdHeader = req.header("x-doctor-id") ?? undefined;
+
+        const doctorIdFinal = id ?? doctorIdHeader;
+
+        const doctorIdNumber = Number(doctorIdFinal);
+        if (!Number.isFinite(doctorIdNumber) || doctorIdNumber <= 0) {
+            return res.status(400).json({
+                message: "doctorId inválido",
+                data: null,
+                error: "Validación",
+            });
+        }
+
+        const { data, status, message, error } = await service.findAllByDoctor(doctorIdNumber);
+
+        return res.status(status).json({ message, data, error });
+    }
+
+
     async findOne(req: Request, res: Response) {
         const { id } = req.params;
 

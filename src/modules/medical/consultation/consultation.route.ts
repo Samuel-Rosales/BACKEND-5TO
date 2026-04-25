@@ -24,6 +24,16 @@ consultationRouter.get(
 );
 
 consultationRouter.get(
+    "/doctor/:id",
+    validator.finAllByDoctorValidator,
+    handleValidationErrors,
+    controller.findAllByDoctor
+);
+
+
+
+
+consultationRouter.get(
     "/:id",
     validator.IdParamValidator,
     validator.ConsultationExistsValidator,
