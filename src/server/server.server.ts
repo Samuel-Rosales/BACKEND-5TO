@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
 import { RoleRoute, UserRoute, RegisterRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute, InfoPatientRoute } from '@/modules/medical';
-import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
+import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, DoctorScheduleRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
@@ -41,6 +41,7 @@ export class Server {
             appointmentTypes: `${this.prefix}/scheduling/appointment-type`,
             appointments: `${this.prefix}/scheduling/appointment`,
             doctorAvailabilities: `${this.prefix}/scheduling/doctor-availability`,
+            doctorSchedules: `${this.prefix}/scheduling/doctor-schedule`,
             doctorScheduleOverrides: `${this.prefix}/scheduling/doctor-schedule-override`,
 
             expenseCategories: `${this.prefix}/expenses/category`,
@@ -120,6 +121,7 @@ export class Server {
         this.app.use(this.paths.appointmentTypes, AppointmentTypeRoute);
         this.app.use(this.paths.appointments, AppointmentRoute);
         this.app.use(this.paths.doctorAvailabilities, DoctorAvailabilityRoute);
+        this.app.use(this.paths.doctorSchedules, DoctorScheduleRoute);
         this.app.use(this.paths.doctorScheduleOverrides, DoctorScheduleOverrideRoute);
 
         this.app.use(this.paths.expenseCategories, ExpenseCategoryRoute);
