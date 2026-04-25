@@ -120,6 +120,42 @@ export class PatientService {
         }
     }
 
+    async findAllFromUser(userId: number) {
+        try {
+            const patients = await prisma.patient.findMany({
+                where: { active: true, userId: userId },
+                orderBy: { id: "desc" },
+                select: patientSelect,
+            });
+
+            if (!patients) {
+                throw new Error("Error buscando pacientes");
+            }
+
+            if (patients.length === 0) {
+                return {
+                    status: 200,
+                    message: "No se encontraron pacientes",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Pacientes encontrados éxitosamente",
+                data: patients,
+            };
+        } catch (error) {
+            console.error("Error buscando pacientes:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar los pacientes",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
     async findOne(id: number) {
         try {
             const patient = await prisma.patient.findFirst({

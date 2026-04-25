@@ -19,6 +19,12 @@ patientRouter.get(
     "/",
     controller.findAll
 );
+patientRouter.get(
+    "/user/:id",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.findAllFromUser
+);
 
 patientRouter.get(
     "/:id",

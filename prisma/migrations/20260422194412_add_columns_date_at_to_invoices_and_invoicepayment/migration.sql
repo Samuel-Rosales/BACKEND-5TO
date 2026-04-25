@@ -1,8 +1,0 @@
--- AlterTable
-ALTER TABLE "Invoice" ADD COLUMN     "date_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
-
--- AlterTable
-ALTER TABLE "InvoicePayment" ADD COLUMN     "date_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
-
--- AlterTable
-ALTER TABLE "Purchase" ALTER COLUMN "date" DROP NOT NULL;

@@ -209,9 +209,19 @@ CREATE TABLE "AppointmentType" (
 );
 
 -- CreateTable
-CREATE TABLE "DoctorAvailability" (
+CREATE TABLE "DoctorSchedule" (
     "id" SERIAL NOT NULL,
     "doctorId" INTEGER NOT NULL,
+    "period_start" DATE NOT NULL,
+    "period_end" DATE,
+
+    CONSTRAINT "DoctorSchedule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DoctorAvailability" (
+    "id" SERIAL NOT NULL,
+    "doctorScheduleId" INTEGER NOT NULL,
     "day_of_week" INTEGER NOT NULL,
     "start_time" TIME NOT NULL,
     "end_time" TIME NOT NULL,
@@ -299,6 +309,28 @@ CREATE TABLE "PaymentMethod" (
     "is_active" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "PaymentMethod_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Payroll" (
+    "id" SERIAL NOT NULL,
+    "period_start" TIMESTAMP(3) NOT NULL,
+    "period_end" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Payroll_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PayrollLine" (
+    "id" SERIAL NOT NULL,
+    "payrollId" INTEGER NOT NULL,
+    "consultationId" INTEGER NOT NULL,
+    "base_amount" DECIMAL(12,2) NOT NULL,
+    "commission_percentage" DECIMAL(5,2) NOT NULL,
+
+    CONSTRAINT "PayrollLine_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -493,7 +525,22 @@ CREATE UNIQUE INDEX "Consultation_invoiceId_key" ON "Consultation"("invoiceId");
 CREATE UNIQUE INDEX "Diagnosis_code_key" ON "Diagnosis"("code");
 
 -- CreateIndex
+CREATE INDEX "DoctorSchedule_doctorId_period_start_idx" ON "DoctorSchedule"("doctorId", "period_start");
+
+-- CreateIndex
+CREATE INDEX "DoctorSchedule_doctorId_period_end_idx" ON "DoctorSchedule"("doctorId", "period_end");
+
+-- CreateIndex
+CREATE INDEX "DoctorAvailability_doctorScheduleId_day_of_week_idx" ON "DoctorAvailability"("doctorScheduleId", "day_of_week");
+
+-- CreateIndex
 CREATE INDEX "Invoice_patientId_idx" ON "Invoice"("patientId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Payroll_period_start_period_end_key" ON "Payroll"("period_start", "period_end");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PayrollLine_consultationId_key" ON "PayrollLine"("consultationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Supply_sku_key" ON "Supply"("sku");
@@ -553,7 +600,10 @@ ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_statusId_fkey" FOREIGN KEY
 ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "AppointmentType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DoctorAvailability" ADD CONSTRAINT "DoctorAvailability_doctorId_fkey" FOREIGN KEY ("doctorId") REFERENCES "Doctor"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "DoctorSchedule" ADD CONSTRAINT "DoctorSchedule_doctorId_fkey" FOREIGN KEY ("doctorId") REFERENCES "Doctor"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DoctorAvailability" ADD CONSTRAINT "DoctorAvailability_doctorScheduleId_fkey" FOREIGN KEY ("doctorScheduleId") REFERENCES "DoctorSchedule"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DoctorScheduleOverride" ADD CONSTRAINT "DoctorScheduleOverride_doctorId_fkey" FOREIGN KEY ("doctorId") REFERENCES "Doctor"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -581,6 +631,12 @@ ALTER TABLE "InvoicePayment" ADD CONSTRAINT "InvoicePayment_paymentMethodId_fkey
 
 -- AddForeignKey
 ALTER TABLE "InvoicePayment" ADD CONSTRAINT "InvoicePayment_exchangeRateId_fkey" FOREIGN KEY ("exchangeRateId") REFERENCES "ExchangeRate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PayrollLine" ADD CONSTRAINT "PayrollLine_payrollId_fkey" FOREIGN KEY ("payrollId") REFERENCES "Payroll"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PayrollLine" ADD CONSTRAINT "PayrollLine_consultationId_fkey" FOREIGN KEY ("consultationId") REFERENCES "Consultation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Supply" ADD CONSTRAINT "Supply_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

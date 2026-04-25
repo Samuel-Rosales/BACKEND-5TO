@@ -19,6 +19,14 @@ export class PatientController {
         return res.status(status).json({ message, data, error });
     }
 
+    async findAllFromUser(req: Request, res: Response) {
+        const { id } = req.params; //userId
+
+        const { data, status, message, error } = await service.findAllFromUser(Number(id));
+
+        return res.status(status).json({ message, data, error });
+    }
+
     async findOne(req: Request, res: Response) {
         const { id } = req.params;
 
