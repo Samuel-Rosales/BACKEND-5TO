@@ -1,5 +1,5 @@
 export interface CreateDoctorAvailabilityDto {
-    doctorId: number;
+    doctorScheduleId: number;
     day_of_week: number;
     start_time: string | Date;
     end_time: string | Date;
@@ -7,7 +7,7 @@ export interface CreateDoctorAvailabilityDto {
 }
 
 export interface UpdateDoctorAvailabilityDto {
-    doctorId?: number;
+    doctorScheduleId?: number;
     day_of_week?: number;
     start_time?: string | Date;
     end_time?: string | Date;

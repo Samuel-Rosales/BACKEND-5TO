@@ -162,9 +162,23 @@ export class AppointmentService {
             return { ok: false as const, reason: "El doctor no trabaja en esa fecha" };
         }
 
-        const availabilities = await prisma.doctorAvailability.findMany({
+        const schedule = await prisma.doctorSchedule.findFirst({
             where: {
                 doctorId,
+                period_start: { lte: dayStart },
+                OR: [{ period_end: null }, { period_end: { gt: dayStart } }],
+            },
+            orderBy: { period_start: "desc" },
+            select: { id: true },
+        });
+
+        if (!schedule) {
+            return { ok: false as const, reason: "No hay un horario (DoctorSchedule) vigente para esa fecha" };
+        }
+
+        const availabilities = await prisma.doctorAvailability.findMany({
+            where: {
+                doctorScheduleId: schedule.id,
                 day_of_week: dayOfWeek,
             },
             select: { start_time: true, end_time: true, patient_limit: true },

@@ -93,7 +93,7 @@ model Doctor {
 
   user           User                     @relation(fields: [userId], references: [id])
   specialty      MedicalSpecialty         @relation(fields: [specialtyId], references: [id])
-  availabilities DoctorAvailability[]
+  schedules      DoctorSchedule[]
   overrides      DoctorScheduleOverride[]
   appointments   Appointment[]
   consultations  Consultation[]
@@ -122,9 +122,11 @@ model Consultation {
 
   supplies              SupplyConsultation[]
   prescriptions         Prescription[]
-  symptomsConsultations     SymptomsConsultation[]
+  symptomsConsultations SymptomsConsultation[]
   clinicalExaminations  ClinicalExamination[]
   consultationDiagnoses ConsultationDiagnosis[]
+
+  payrollLine           PayrollLine?
 }
 
 model Prescription {
@@ -237,16 +239,30 @@ model AppointmentType {
 
   appointments Appointment[]
 }
+model DoctorSchedule {
+  id           Int       @id @default(autoincrement())
+  doctorId     Int
+  period_start DateTime  @db.Date
+  period_end   DateTime? @db.Date
+
+  doctor         Doctor             @relation(fields: [doctorId], references: [id])
+  availabilities DoctorAvailability[]
+
+  @@index([doctorId, period_start])
+  @@index([doctorId, period_end])
+}
 
 model DoctorAvailability {
-  id            Int      @id @default(autoincrement())
-  doctorId      Int
-  day_of_week   Int // 0-6
-  start_time    DateTime @db.Time
-  end_time      DateTime @db.Time
-  patient_limit Int // Número máximo de pacientes por franja horaria
+  id               Int      @id @default(autoincrement())
+  doctorScheduleId Int
+  day_of_week      Int // 0-6
+  start_time       DateTime @db.Time
+  end_time         DateTime @db.Time
+  patient_limit    Int // Número máximo de pacientes por franja horaria
 
-  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+  doctorSchedule   DoctorSchedule @relation(fields: [doctorScheduleId], references: [id])
+
+  @@index([doctorScheduleId, day_of_week])
 }
 
 model DoctorScheduleOverride {
@@ -345,6 +361,31 @@ model PaymentMethod {
   invoicePayments  InvoicePayment[]
   expensePayments  ExpensePayment[]
   purchasePayments PurchasePayment[]
+}
+
+model Payroll {
+  id                  Int     @id @default(autoincrement())
+  period_start        DateTime
+  period_end          DateTime
+  
+  status              String  // Paid, Pending, etc.
+  created_at          DateTime @default(now())
+  
+  payrollLines         PayrollLine[]
+
+  @@unique([period_start, period_end])
+}
+
+model PayrollLine {
+  id                    Int     @id @default(autoincrement())
+  payrollId             Int
+  consultationId        Int     @unique
+
+  base_amount                 Decimal @db.Decimal(12, 2)
+  commission_percentage Decimal @db.Decimal(5, 2) // Ej: 30.00 para la clínica
+
+  payroll       Payroll @relation(fields: [payrollId], references: [id])
+  consultation  Consultation @relation(fields: [consultationId], references: [id])
 }
 
 // ==========================================
