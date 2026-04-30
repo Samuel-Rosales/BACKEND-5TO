@@ -3,7 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
 import { RoleRoute, UserRoute } from '@/modules/auth';
-import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute } from '@/modules/medical';
+import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute, SymptomsRoute, DiagnosisRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
@@ -34,6 +34,8 @@ export class Server {
             doctors: `${this.prefix}/medical/doctor`,
             consultations: `${this.prefix}/medical/consultation`,
             prescriptions: `${this.prefix}/medical/prescription`,
+            symptoms: `${this.prefix}/medical/symptoms`,
+            diagnoses: `${this.prefix}/medical/diagnosis`,
 
             appointmentStatuses: `${this.prefix}/scheduling/status-appointment`,
             appointmentTypes: `${this.prefix}/scheduling/appointment-type`,
@@ -109,6 +111,8 @@ export class Server {
         this.app.use(this.paths.doctors, DoctorRoute);
         this.app.use(this.paths.consultations, ConsultationRoute);
         this.app.use(this.paths.prescriptions, PrescriptionRoute);
+        this.app.use(this.paths.symptoms, SymptomsRoute);
+        this.app.use(this.paths.diagnoses, DiagnosisRoute);
 
         this.app.use(this.paths.appointmentStatuses, StatusAppointmentRoute);
         this.app.use(this.paths.appointmentTypes, AppointmentTypeRoute);
