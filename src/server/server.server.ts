@@ -10,6 +10,7 @@ import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockM
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
+import { expenseLedgerRouter } from '@/modules/reports';
 
 export class Server {
 
@@ -68,6 +69,8 @@ export class Server {
             suppliers: `${this.prefix}/procurement/supplier`,
             purchases: `${this.prefix}/procurement/purchase`,
             purchasePayments: `${this.prefix}/procurement/purchase-payment`,
+
+            expenseLedger: `${this.prefix}/reports/expense-ledger`,
         };
 
         this.dbConnection();
@@ -141,6 +144,8 @@ export class Server {
         this.app.use(this.paths.suppliers, SupplierRoute);
         this.app.use(this.paths.purchases, PurchaseRoute);
         this.app.use(this.paths.purchasePayments, PurchasePaymentRoute);
+
+        this.app.use(this.paths.expenseLedger, expenseLedgerRouter);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);
