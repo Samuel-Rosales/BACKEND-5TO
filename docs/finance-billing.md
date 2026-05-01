@@ -183,11 +183,11 @@ Para que la facturación automática funcione, deben existir:
 - Al menos 1 `StatusInvoice` (idealmente `Proforma`).
 
 ### 5.1 Seed recomendado
-Se incluyó un seed mínimo para crear:
-- StatusInvoice: Proforma
+Se incluyó un seed modular para crear:
+- StatusInvoice: Proforma, Pagada, Anulada
 - Tax: IVA (16%)
-- ExchangeRate activa (rate=1 placeholder)
-- PaymentMethod: Efectivo USD, Transferencia Bs
+- ExchangeRate activa (rate=500) y una histórica (rate=475)
+- PaymentMethod: Efectivo USD, Transferencia Bs, Zelle USD, Pago móvil VES
 
 Ejecutar:
 ```bash
