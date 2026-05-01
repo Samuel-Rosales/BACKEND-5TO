@@ -10,7 +10,7 @@ import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockM
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
-import { expenseLedgerRouter } from '@/modules/reports';
+import { expenseLedgerRouter } from '@/modules/report';
 
 export class Server {
 
@@ -70,7 +70,7 @@ export class Server {
             purchases: `${this.prefix}/procurement/purchase`,
             purchasePayments: `${this.prefix}/procurement/purchase-payment`,
 
-            expenseLedger: `${this.prefix}/reports/expense-ledger`,
+            expenseLedger: `${this.prefix}/report/expense-ledger`,
         };
 
         this.dbConnection();

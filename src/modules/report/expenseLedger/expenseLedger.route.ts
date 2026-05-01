@@ -5,6 +5,6 @@ import { ExpenseLedgerController } from './expenseLedger.controller';
 const router = Router();
 
 // router.get('/expense-ledger', authenticateToken, ExpenseLedgerController.getLedger);
-router.get('/expense-ledger', ExpenseLedgerController.getLedger);
+router.get('/', ExpenseLedgerController.getLedger);
 
-export default router;
+export const expenseLedgerRouter = router;
