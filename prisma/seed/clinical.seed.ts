@@ -3,6 +3,8 @@ import {
     ensureAppointmentType,
     ensureDiagnosis,
     ensureDoctor,
+    ensureDoctorAvailability,
+    ensureDoctorSchedule,
     ensureInfoPatient,
     ensureMedicalSpecialty,
     ensurePatient,
@@ -267,6 +269,46 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
     const doctor2 = await ensureDoctor({ userId: deps.users.doctor2, specialtyId: specialtyPediatrics.id });
     const doctor3 = await ensureDoctor({ userId: deps.users.doctor3, specialtyId: specialtyCardiology.id });
     void specialtyTrauma;
+
+    // Crear horarios para cada doctor
+    const periodStart = new Date("2026-01-01");
+    const periodEnd = new Date("2026-12-31");
+
+    // Doctor 1: Medicina General - Lunes a Viernes 8am-5pm
+    const schedule1 = await ensureDoctorSchedule({ doctorId: doctor1.id, period_start: periodStart, period_end: periodEnd });
+    for (const day of [1, 2, 3, 4, 5]) { // Lun-Vie
+        await ensureDoctorAvailability({
+            doctorScheduleId: schedule1.id,
+            day_of_week: day,
+            start_time: new Date("2026-01-01T08:00:00"),
+            end_time: new Date("2026-01-01T17:00:00"),
+            patient_limit: 10,
+        });
+    }
+
+    // Doctor 2: Pediatría - Lunes a Viernes 8am-5pm
+    const schedule2 = await ensureDoctorSchedule({ doctorId: doctor2.id, period_start: periodStart, period_end: periodEnd });
+    for (const day of [1, 2, 3, 4, 5]) { // Lun-Vie
+        await ensureDoctorAvailability({
+            doctorScheduleId: schedule2.id,
+            day_of_week: day,
+            start_time: new Date("2026-01-01T08:00:00"),
+            end_time: new Date("2026-01-01T17:00:00"),
+            patient_limit: 8,
+        });
+    }
+
+    // Doctor 3: Cardiología - Lunes, Miércoles, Viernes 8am-2pm
+    const schedule3 = await ensureDoctorSchedule({ doctorId: doctor3.id, period_start: periodStart, period_end: periodEnd });
+    for (const day of [1, 3, 5]) { // Lun, Mie, Vie
+        await ensureDoctorAvailability({
+            doctorScheduleId: schedule3.id,
+            day_of_week: day,
+            start_time: new Date("2026-01-01T08:00:00"),
+            end_time: new Date("2026-01-01T14:00:00"),
+            patient_limit: 6,
+        });
+    }
 
     const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "70000001", name: "Paciente Demo" });
     const patient2 = await ensurePatient({ userId: deps.users.patient, ci: "70000002", name: "Paciente Demo 2" });

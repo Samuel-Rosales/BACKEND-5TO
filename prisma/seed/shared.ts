@@ -698,6 +698,55 @@ export async function ensurePayrollLine(params: {
     });
 }
 
+export async function ensureDoctorSchedule(params: {
+    doctorId: number;
+    period_start: Date;
+    period_end?: Date;
+}) {
+    const existing = await prisma.doctorSchedule.findFirst({
+        where: {
+            doctorId: params.doctorId,
+            period_start: params.period_start,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.doctorSchedule.create({
+        data: {
+            doctorId: params.doctorId,
+            period_start: params.period_start,
+            period_end: params.period_end,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensureDoctorAvailability(params: {
+    doctorScheduleId: number;
+    day_of_week: number;
+    start_time: Date;
+    end_time: Date;
+    patient_limit: number;
+}) {
+    const existing = await prisma.doctorAvailability.findFirst({
+        where: {
+            doctorScheduleId: params.doctorScheduleId,
+            day_of_week: params.day_of_week,
+            start_time: params.start_time,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.doctorAvailability.create({
+        data: params,
+        select: { id: true },
+    });
+}
+
 export async function ensureSeedPurchase(params: {
     reference: string;
     supplierId: number;
