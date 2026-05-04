@@ -34,6 +34,85 @@ const payrollLineSelect = {
     },
 } as const;
 
+const sameCalendarDay = (left: Date, right: Date) =>
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate();
+
+const getMonthlyPayrollPeriod = (referenceDate: Date) => {
+    const periodStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1, 0, 0, 0, 0);
+    const periodEnd = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    return { periodStart, periodEnd };
+};
+
+const isLastDayOfMonth = (date: Date) => {
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return sameCalendarDay(date, lastDay);
+};
+
+export const ensureMonthlyPayrollLine = async (tx: any, consultationId: number, referenceDate: Date) => {
+    const consultation = await tx.consultation.findUnique({
+        where: { id: consultationId },
+        select: {
+            id: true,
+            doctor: {
+                select: {
+                    specialty: {
+                        select: {
+                            consultation_price: true,
+                            commission_percentage: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!consultation) {
+        throw new Error("La consulta no existe");
+    }
+
+    const { periodStart, periodEnd } = getMonthlyPayrollPeriod(referenceDate);
+
+    let payroll = await tx.payroll.findFirst({
+        where: {
+            period_start: periodStart,
+            period_end: periodEnd,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    if (!payroll) {
+        payroll = await tx.payroll.create({
+            data: {
+                period_start: periodStart,
+                period_end: periodEnd,
+                status: "Pending",
+            },
+            select: {
+                id: true,
+            },
+        });
+    }
+
+    const lineData = {
+        payrollId: payroll.id,
+        consultationId,
+        base_amount: consultation.doctor.specialty.consultation_price,
+        commission_percentage: consultation.doctor.specialty.commission_percentage,
+    };
+
+    return tx.payrollLine.upsert({
+        where: { consultationId },
+        create: lineData,
+        update: lineData,
+        select: payrollLineSelect,
+    });
+};
+
 const payrollSelect = {
     id: true,
     period_start: true,
@@ -123,6 +202,26 @@ export class PayrollService {
 
     async update(id: number, data: UpdatePayrollDto) {
         try {
+            const currentPayroll = await prisma.payroll.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    period_end: true,
+                },
+            });
+
+            if (!currentPayroll) {
+                throw new Error("La nómina no existe");
+            }
+
+            const normalizedStatus = data.status?.trim().toLowerCase();
+            if (normalizedStatus === "paid") {
+                const today = new Date();
+                if (!isLastDayOfMonth(today) || !sameCalendarDay(today, currentPayroll.period_end)) {
+                    throw new Error("Solo se puede pagar la nómina al final del mes correspondiente");
+                }
+            }
+
             const updated = await prisma.payroll.update({
                 where: { id },
                 data: {
