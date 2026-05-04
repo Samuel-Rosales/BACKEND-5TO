@@ -133,7 +133,6 @@ private transformToDoctorSchedConfigArray(schedules: any[]): DoctorSchedConfigDT
             if (filters?.doctorId) where.doctorId = filters.doctorId;
             if(filters?.periodEnd !== undefined) where.period_end = filters.periodEnd; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
 
-            console.log('periodEnd = ', filters?.periodEnd)
             const schedules = await prisma.doctorSchedule.findMany({
                 where,
                 orderBy: [{ doctorId: "asc" }, { period_start: "desc" }],
