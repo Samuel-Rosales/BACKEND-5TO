@@ -347,7 +347,7 @@ export class AppointmentService {
         }
     }
 
-    async findAll(filters?: { range?: string }) {
+    async findAll(filters?: { range?: string, statusId?: number }) {
         try {
             const range = this.normalizeRange(filters?.range);
             if (filters?.range && !range) {
@@ -363,6 +363,7 @@ export class AppointmentService {
                 const { start, end } = this.rangeBoundsUTC(range, new Date());
                 where.date_time = { gte: start, lt: end };
             }
+            if(filters?.statusId) where.statusId = filters.statusId;
 
             const appointments = await prisma.appointment.findMany({
                 where,

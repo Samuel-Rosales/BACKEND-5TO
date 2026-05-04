@@ -17,8 +17,9 @@ export class AppointmentController {
         const range = (req.query.range ?? req.query.rango ?? req.query.filter) !== undefined
             ? String(req.query.range ?? req.query.rango ?? req.query.filter)
             : undefined;
+        const statusId = req.query?.statusId ? Number(req.query.statusId) : undefined;
 
-        const { data, status, message, error } = await service.findAll({ range });
+        const { data, status, message, error } = await service.findAll({ range, statusId });
 
         return res.status(status).json({ message, data, error });
     }
