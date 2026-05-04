@@ -78,9 +78,9 @@ export class DoctorScheduleService {
         }
         return parsed;
     }
-    private transformToDoctorSchedConfig(schedule: any): DoctorSchedConfigDTO {
-    return {
-        id: schedule.id,
+private transformToDoctorSchedConfigArray(schedules: any[]): DoctorSchedConfigDTO[] {
+    return schedules.map(schedule => ({
+        id: schedule.doctor.id,
         user: {
             id: schedule.doctor.user.id,
             ci: schedule.doctor.user.ci,
@@ -91,7 +91,7 @@ export class DoctorScheduleService {
             name: schedule.doctor.specialty.name,
             consultation_price: schedule.doctor.specialty.consultation_price,
         },
-    };
+    }));
 }
 
     async create(data: CreateDoctorScheduleDto) {
@@ -131,8 +131,9 @@ export class DoctorScheduleService {
         try {
             const where: Prisma.DoctorScheduleWhereInput = {};
             if (filters?.doctorId) where.doctorId = filters.doctorId;
-            if(filters?.periodEnd) where.period_end = filters.periodEnd; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
+            if(filters?.periodEnd !== undefined) where.period_end = filters.periodEnd; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
 
+            console.log('periodEnd = ', filters?.periodEnd)
             const schedules = await prisma.doctorSchedule.findMany({
                 where,
                 orderBy: [{ doctorId: "asc" }, { period_start: "desc" }],
@@ -154,7 +155,7 @@ export class DoctorScheduleService {
             return {
                 status: 200,
                 message: "DoctorSchedule encontrados éxitosamente",
-                data: doctorOnly ? this.transformToDoctorSchedConfig(schedules) : schedules,
+                data: doctorOnly ? this.transformToDoctorSchedConfigArray(schedules) : schedules,
             };
         } catch (error) {
             console.error("Error buscando DoctorSchedule:", error);
