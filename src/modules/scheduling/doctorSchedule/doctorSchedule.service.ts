@@ -86,10 +86,11 @@ export class DoctorScheduleService {
         }
     }
 
-    async findAll(filters?: { doctorId?: number }) {
+    async findAll(filters?: { doctorId?: number, period_end?: string | null}) {
         try {
             const where: Prisma.DoctorScheduleWhereInput = {};
             if (filters?.doctorId) where.doctorId = filters.doctorId;
+            if(filters?.period_end) where.period_end = filters.period_end; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
 
             const schedules = await prisma.doctorSchedule.findMany({
                 where,
