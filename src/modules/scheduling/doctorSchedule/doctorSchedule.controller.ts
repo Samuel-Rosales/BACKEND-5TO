@@ -17,7 +17,7 @@ export class DoctorScheduleController {
         const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
         const periodEnd = req.query.periodEnd ? String(req.query.periodEnd) : undefined;
         
-        const doctorOnly = req?.body?.doctorOnly;
+        const doctorOnly = req?.body?.doctorOnly; 
 
         const { data, status, message, error } = await service.findAll({ doctorId, periodEnd }, doctorOnly);
 
