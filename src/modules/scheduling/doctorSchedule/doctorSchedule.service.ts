@@ -151,11 +151,43 @@ export class DoctorScheduleService {
         }
     }
 
-    async findOne(id: number, doctorOnly: boolean = false) {
+    /*async findAllByDoctor(doctorId: number) {
+        try {
+            const schedules = await prisma.doctorSchedule.findMany({
+                where: { doctorId },
+                orderBy: [{ period_start: "desc" }],
+                select: doctorScheduleSelect,
+            });
+
+            if (!schedules) {
+                return {
+                    status: 404,
+                    message: "No se encontraron DoctorSchedule para el doctor especificado",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "DoctorSchedule encontrados éxitosamente",
+                data: schedules,
+            };
+        } catch (error) {
+            console.error("Error buscando DoctorSchedule por doctorId:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar DoctorSchedule",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }*/
+
+    async findOne(id: number) {
         try {
             const schedule = await prisma.doctorSchedule.findUnique({
                 where: { id },
-                select: doctorOnly ? doctorSelect : doctorScheduleSelect,
+                select: doctorScheduleSelect,
             });
 
             if (!schedule) {

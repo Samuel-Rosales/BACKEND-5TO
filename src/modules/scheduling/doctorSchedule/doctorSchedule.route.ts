@@ -22,6 +22,13 @@ doctorScheduleRouter.get(
     controller.findAll
 );
 
+/*doctorScheduleRouter.get(
+    "/doctor/:doctorId",
+    validator.DoctorIdParamValidator,
+    handleValidationErrors,
+    controller.findAllByDoctor
+);*/
+
 doctorScheduleRouter.get(
     "/:id",
     validator.IdParamValidator,
