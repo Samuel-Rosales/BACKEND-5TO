@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { ensureMonthlyPayrollLine } from "@/modules/finance/payroll/payroll.service";
 import {
     CreateConsultationDto,
     FinishConsultationDto,
@@ -299,6 +300,8 @@ export class ConsultationService {
                         })),
                     });
                 }
+
+                await ensureMonthlyPayrollLine(tx, id, finishedAt);
 
                 return tx.consultation.findUnique({
                     where: { id },
