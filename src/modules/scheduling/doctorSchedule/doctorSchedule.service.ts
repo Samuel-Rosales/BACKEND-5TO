@@ -1,6 +1,6 @@
 import { prisma } from "@/configs";
 import { Prisma } from "@prisma/client";
-import { CreateDoctorScheduleDto, UpdateDoctorScheduleDto } from "./doctorSchedule.interface";
+import { CreateDoctorScheduleDto, UpdateDoctorScheduleDto, DoctorSchedConfigDTO } from "./doctorSchedule.interface";
 
 const doctorScheduleSelect: Prisma.DoctorScheduleSelect = {
     id: true,
@@ -25,6 +25,7 @@ const doctorScheduleSelect: Prisma.DoctorScheduleSelect = {
                     id: true,
                     name: true,
                     active: true,
+                    consultation_price: true
                 },
             },
         },
@@ -42,7 +43,6 @@ const doctorScheduleSelect: Prisma.DoctorScheduleSelect = {
     },
 };
 const doctorSelect: Prisma.DoctorScheduleSelect = {
-    id: true,
     doctor: {
         select: {
             id: true,
@@ -61,6 +61,7 @@ const doctorSelect: Prisma.DoctorScheduleSelect = {
                     id: true,
                     name: true,
                     active: true,
+                    consultation_price: true,
                 },
             },
         },
@@ -68,7 +69,7 @@ const doctorSelect: Prisma.DoctorScheduleSelect = {
 };
 
 export class DoctorScheduleService {
-
+    
     private normalizeDate(value: string | Date) {
         if (value instanceof Date) return value;
         const parsed = new Date(value);
@@ -77,6 +78,21 @@ export class DoctorScheduleService {
         }
         return parsed;
     }
+    private transformToDoctorSchedConfig(schedule: any): DoctorSchedConfigDTO {
+    return {
+        id: schedule.id,
+        user: {
+            id: schedule.doctor.user.id,
+            ci: schedule.doctor.user.ci,
+            name: schedule.doctor.user.name,
+        },
+        specialty: {
+            id: schedule.doctor.specialty.id,
+            name: schedule.doctor.specialty.name,
+            consultation_price: schedule.doctor.specialty.consultation_price,
+        },
+    };
+}
 
     async create(data: CreateDoctorScheduleDto) {
         try {
@@ -138,7 +154,7 @@ export class DoctorScheduleService {
             return {
                 status: 200,
                 message: "DoctorSchedule encontrados éxitosamente",
-                data: schedules,
+                data: doctorOnly ? this.transformToDoctorSchedConfig(schedules) : schedules,
             };
         } catch (error) {
             console.error("Error buscando DoctorSchedule:", error);
