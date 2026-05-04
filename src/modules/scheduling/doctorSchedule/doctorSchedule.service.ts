@@ -41,6 +41,31 @@ const doctorScheduleSelect: Prisma.DoctorScheduleSelect = {
         orderBy: [{ day_of_week: "asc" }, { start_time: "asc" }],
     },
 };
+const doctorSelect: Prisma.DoctorScheduleSelect = {
+    id: true,
+    doctor: {
+        select: {
+            id: true,
+            userId: true,
+            specialtyId: true,
+            active: true,
+            user: {
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                },
+            },
+            specialty: {
+                select: {
+                    id: true,
+                    name: true,
+                    active: true,
+                },
+            },
+        },
+    },
+};
 
 export class DoctorScheduleService {
 
@@ -86,16 +111,16 @@ export class DoctorScheduleService {
         }
     }
 
-    async findAll(filters?: { doctorId?: number, period_end?: string | null}) {
+    async findAll(filters?: { doctorId?: number, periodEnd?: string | null}, doctorOnly: boolean = false) {
         try {
             const where: Prisma.DoctorScheduleWhereInput = {};
             if (filters?.doctorId) where.doctorId = filters.doctorId;
-            if(filters?.period_end) where.period_end = filters.period_end; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
+            if(filters?.periodEnd) where.period_end = filters.periodEnd; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
 
             const schedules = await prisma.doctorSchedule.findMany({
                 where,
                 orderBy: [{ doctorId: "asc" }, { period_start: "desc" }],
-                select: doctorScheduleSelect,
+                select: doctorOnly ? doctorSelect : doctorScheduleSelect,
             });
 
             if (!schedules) {
@@ -126,11 +151,11 @@ export class DoctorScheduleService {
         }
     }
 
-    async findOne(id: number) {
+    async findOne(id: number, doctorOnly: boolean = false) {
         try {
             const schedule = await prisma.doctorSchedule.findUnique({
                 where: { id },
-                select: doctorScheduleSelect,
+                select: doctorOnly ? doctorSelect : doctorScheduleSelect,
             });
 
             if (!schedule) {
