@@ -21,6 +21,12 @@ doctorScheduleRouter.get(
     handleValidationErrors,
     controller.findAll
 );
+doctorScheduleRouter.get(
+    "/available-doctors",
+    validator.findAllDoctorScheduleValidator,
+    handleValidationErrors,
+    controller.findAllAvailableDrs
+);
 
 /*doctorScheduleRouter.get(
     "/doctor/:doctorId",

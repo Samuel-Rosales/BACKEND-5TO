@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { DoctorScheduleService } from "./doctorSchedule.service";
+import { truncate } from "fs";
 
 const service = new DoctorScheduleService();
 
@@ -15,11 +16,17 @@ export class DoctorScheduleController {
 
     async findAll(req: Request, res: Response) {
         const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
-        const periodEnd = req.query.periodEnd ? String(req.query.periodEnd) : undefined;
-        
-        const doctorOnly = req?.body?.doctorOnly; 
+        const periodEnd = req.query.periodEnd === 'null' ? null : req.query.periodEnd as string || undefined        
 
-        const { data, status, message, error } = await service.findAll({ doctorId, periodEnd }, doctorOnly);
+        const { data, status, message, error } = await service.findAll({ doctorId, periodEnd });
+
+        return res.status(status).json({ message, data, error });
+    }
+    async findAllAvailableDrs(req: Request, res: Response) {
+        const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
+        const periodEnd = req.query.periodEnd === 'N/A' ? null : req.query.periodEnd as string || undefined        
+
+        const { data, status, message, error } = await service.findAll({ doctorId, periodEnd }, true);
 
         return res.status(status).json({ message, data, error });
     }
