@@ -16,15 +16,18 @@ export class DoctorScheduleController {
 
     async findAll(req: Request, res: Response) {
         const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
-        const periodEnd = req.query.periodEnd === 'null' ? null : req.query.periodEnd as string || undefined        
+        const periodEnd = req.query.periodEnd === 'null' ? null : req.query.periodEnd as string || undefined
+        const rangeStart = req.query.rangeStart ? req.query.rangeStart as string : undefined
+        const rangeEnd = req.query.rangeEnd ? req.query.rangeEnd as string : undefined
+        const range = rangeStart && rangeEnd ? {rangeStart: rangeStart, rangeEnd: rangeEnd} : undefined;
 
-        const { data, status, message, error } = await service.findAll({ doctorId, periodEnd });
+        const { data, status, message, error } = await service.findAll({ doctorId, periodEnd, range },);
 
         return res.status(status).json({ message, data, error });
     }
-    async findAllAvailableDrs(req: Request, res: Response) {
+    async findDrs(req: Request, res: Response) {
         const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
-        const periodEnd = req.query.periodEnd === 'N/A' ? null : req.query.periodEnd as string || undefined        
+        const periodEnd = req.query.periodEnd === 'N/A' ? null : req.query.periodEnd as string || undefined
 
         const { data, status, message, error } = await service.findAll({ doctorId, periodEnd }, true);
 

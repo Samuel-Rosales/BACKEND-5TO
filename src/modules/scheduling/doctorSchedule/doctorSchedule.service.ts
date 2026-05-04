@@ -69,7 +69,7 @@ const doctorSelect: Prisma.DoctorScheduleSelect = {
 };
 
 export class DoctorScheduleService {
-    
+
     private normalizeDate(value: string | Date) {
         if (value instanceof Date) return value;
         const parsed = new Date(value);
@@ -78,21 +78,47 @@ export class DoctorScheduleService {
         }
         return parsed;
     }
-private transformToDoctorSchedConfigArray(schedules: any[]): DoctorSchedConfigDTO[] {
-    return schedules.map(schedule => ({
-        id: schedule.doctor.id,
-        user: {
-            id: schedule.doctor.user.id,
-            ci: schedule.doctor.user.ci,
-            name: schedule.doctor.user.name,
-        },
-        specialty: {
-            id: schedule.doctor.specialty.id,
-            name: schedule.doctor.specialty.name,
-            consultation_price: schedule.doctor.specialty.consultation_price,
-        },
-    }));
-}
+    private parseDate(dateStr: string): Date {
+        const [day, month, year] = dateStr.split('-').map(Number);
+        // Crear fecha al inicio del día para comparaciones correctas
+        return new Date(year, month - 1, day, 0, 0, 0, 0);
+    }
+    private isValidDateInDDMMYYYY(dateStr: string): boolean {
+        // Valida formato dd-mm-aaaa con guiones
+        const regex = /^(\d{2})\-(\d{2})\-(\d{4})$/;
+        const match = dateStr.match(regex);
+        if (!match) return false;
+
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+
+        // Validar rangos básicos
+        if (month < 1 || month > 12) return false;
+        if (day < 1 || day > 31) return false;
+
+        // Validar días por mes (considera años bisiestos)
+        const daysInMonth = new Date(year, month, 0).getDate();
+        if (day > daysInMonth) return false;
+
+        return true;
+    }
+
+    private transformToDoctorSchedConfigArray(schedules: any[]): DoctorSchedConfigDTO[] {
+        return schedules.map(schedule => ({
+            id: schedule.doctor.id,
+            user: {
+                id: schedule.doctor.user.id,
+                ci: schedule.doctor.user.ci,
+                name: schedule.doctor.user.name,
+            },
+            specialty: {
+                id: schedule.doctor.specialty.id,
+                name: schedule.doctor.specialty.name,
+                consultation_price: schedule.doctor.specialty.consultation_price,
+            },
+        }));
+    }
 
     async create(data: CreateDoctorScheduleDto) {
         try {
@@ -127,11 +153,38 @@ private transformToDoctorSchedConfigArray(schedules: any[]): DoctorSchedConfigDT
         }
     }
 
-    async findAll(filters?: { doctorId?: number, periodEnd?: string | null}, doctorOnly: boolean = false) {
+    async findAll(filters?: { doctorId?: number, periodEnd?: string | null, range?: { rangeStart: string, rangeEnd: string } }, doctorOnly: boolean = false) {
         try {
             const where: Prisma.DoctorScheduleWhereInput = {};
             if (filters?.doctorId) where.doctorId = filters.doctorId;
-            if(filters?.periodEnd !== undefined) where.period_end = filters.periodEnd; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
+            if (filters?.periodEnd !== undefined) {
+                if (((typeof filters.periodEnd) == 'string' && this.isValidDateInDDMMYYYY(filters.periodEnd))
+                    || filters.periodEnd == null) {
+                    where.period_end = filters.periodEnd; // PARA OBTENER SOLO LOS QUE TIENEN PERIOD END NULL Y ASI OBTENER SOLO LOS HORARIOS VIGENTES
+                }
+            }
+            if (filters?.range) {
+                const { rangeStart, rangeEnd } = filters.range;
+                const startDate = this.parseDate(rangeStart);
+                const endDate = this.parseDate(rangeEnd);
+                // Condición de solapamiento:
+                where.OR = [
+                    {
+                        period_start: {
+                            lte: endDate,
+                        },
+                        period_end: null
+                    },
+                    {
+                        period_start: {
+                            lte: endDate,  // Comienza antes o en el fin del rango
+                        },
+                        period_end: {
+                            gte: startDate,  // Termina después o en el inicio del rango
+                        }
+                    }
+                ];
+            }
 
             const schedules = await prisma.doctorSchedule.findMany({
                 where,
@@ -153,12 +206,11 @@ private transformToDoctorSchedConfigArray(schedules: any[]): DoctorSchedConfigDT
 
             return {
                 status: 200,
-                message: "DoctorSchedule encontrados éxitosamente",
+                message: "DoctorSchedule encontrados exitosamente",
                 data: doctorOnly ? this.transformToDoctorSchedConfigArray(schedules) : schedules,
             };
         } catch (error) {
             console.error("Error buscando DoctorSchedule:", error);
-
             return {
                 status: 500,
                 message: "Error interno al buscar DoctorSchedule",

@@ -22,10 +22,10 @@ doctorScheduleRouter.get(
     controller.findAll
 );
 doctorScheduleRouter.get(
-    "/available-doctors",
+    "/doctors",
     validator.findAllDoctorScheduleValidator,
     handleValidationErrors,
-    controller.findAllAvailableDrs
+    controller.findDrs
 );
 
 /*doctorScheduleRouter.get(
