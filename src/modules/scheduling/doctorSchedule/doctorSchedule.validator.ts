@@ -65,6 +65,18 @@ export class DoctorScheduleValidator {
             }),
     ];
 
+    public DoctorIdParamValidator: ValidationChain[] = [
+        param("doctorId")
+            .isInt({ gt: 0 })
+            .withMessage("El ID del doctor debe ser un número entero positivo")
+            .custom(async (value) => {
+                const doctor = await prisma.doctor.findUnique({ where: { id: Number(value) } });
+                if (!doctor || !doctor.active) {
+                    return Promise.reject("El doctor no existe o no está activo");
+                }
+            }),
+    ];
+
     public updateDoctorScheduleValidator: ValidationChain[] = [
         body("doctorId")
             .optional()

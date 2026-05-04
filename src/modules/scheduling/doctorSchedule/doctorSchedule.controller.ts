@@ -21,6 +21,14 @@ export class DoctorScheduleController {
         return res.status(status).json({ message, data, error });
     }
 
+    async findAllByDoctor(req: Request, res: Response) {
+        const doctorId = Number(req.params.doctorId);
+
+        const { data, status, message, error } = await service.findAllByDoctor(doctorId);
+
+        return res.status(status).json({ message, data, error });
+    }
+
     async findOne(req: Request, res: Response) {
         const { id } = req.params;
 
