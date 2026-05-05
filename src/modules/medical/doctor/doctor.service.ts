@@ -108,6 +108,33 @@ export class DoctorService {
         }
     }
 
+    async findByUserId(userId: number) {
+        try {
+            const doctor = await prisma.doctor.findUnique({
+                where: { userId },
+                select: doctorSelect,
+            });
+
+            if (!doctor) {
+                throw new Error("Doctor no encontrado para este usuario");
+            }
+
+            return {
+                status: 200,
+                message: "Doctor encontrado",
+                data: doctor,
+            };
+        } catch (error) {
+            console.error("Error buscando doctor por userId:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar el doctor",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
     async findOne(id: number) {
         try {
             const doctor = await prisma.doctor.findUnique({
