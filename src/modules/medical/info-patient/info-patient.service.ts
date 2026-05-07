@@ -65,6 +65,15 @@ export class InfoPatientService {
         try {
             const infoPatient = await prisma.infoPatient.findUnique({
                 where: { patientId },
+                include: {
+                    patient: {
+                        select: {
+                            id: true,
+                            name: true,
+                            ci: true,
+                        },
+                    },
+                },
             });
 
             if (!infoPatient || !infoPatient.active) {
@@ -94,14 +103,34 @@ export class InfoPatientService {
         try {
             const existing = await prisma.infoPatient.findUnique({
                 where: { patientId },
-                select: { id: true },
             });
 
             if (!existing) {
+                const patient = await prisma.patient.findUnique({
+                    where: { id: patientId },
+                    select: { id: true },
+                });
+
+                if (!patient) {
+                    return {
+                        status: 404,
+                        message: "El paciente no existe",
+                        error: "No encontrado",
+                    };
+                }
+
+                const created = await prisma.infoPatient.create({
+                    data: {
+                        patientId,
+                        sex: data.sex || 'MALE',
+                        birth_date: data.birth_date ? new Date(data.birth_date) : new Date(),
+                    },
+                });
+
                 return {
-                    status: 404,
-                    message: "Información del paciente no encontrada",
-                    error: "No encontrado",
+                    status: 201,
+                    message: "Información del paciente creada",
+                    data: created,
                 };
             }
 
@@ -116,6 +145,7 @@ export class InfoPatientService {
                 data: updated,
             };
         } catch (error) {
+            console.error("Error updating info patient:", error);
             return {
                 status: 500,
                 message: "Error updating info patient",

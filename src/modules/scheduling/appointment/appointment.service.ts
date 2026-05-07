@@ -434,6 +434,42 @@ export class AppointmentService {
             };
         }
     }
+
+    async findByPatientId(patientId: number) {
+        try {
+            const appointments = await prisma.appointment.findMany({
+                where: { patientId },
+                orderBy: { date_time: "desc" },
+                select: appointmentSelect,
+            });
+
+            if (!appointments) {
+                throw new Error("Error buscando citas");
+            }
+
+            if (appointments.length === 0) {
+                return {
+                    status: 200,
+                    message: "No se encontraron citas para el paciente",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Citas encontradas éxitosamente",
+                data: appointments,
+            };
+        } catch (error) {
+            console.error("Error buscando citas:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar las citas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
     async findOne(id: number) {
         try {
             const appointment = await prisma.appointment.findUnique({

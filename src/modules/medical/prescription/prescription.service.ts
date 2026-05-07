@@ -83,6 +83,74 @@ export class PrescriptionService {
         }
     }
 
+    async findByPatientId(patientId: number) {
+        try {
+            const consultations = await prisma.consultation.findMany({
+                where: {
+                    invoice: {
+                        patientId,
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            const consultationIds = consultations.map(c => c.id);
+
+            const prescriptions = await prisma.prescription.findMany({
+                where: {
+                    consultationId: {
+                        in: consultationIds,
+                    },
+                },
+                orderBy: { id: "desc" },
+                select: {
+                    ...prescriptionSelect,
+                    consultation: {
+                        select: {
+                            id: true,
+                            date: true,
+                            doctor: {
+                                select: {
+                                    user: {
+                                        select: { name: true },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            if (!prescriptions) {
+                throw new Error("Error buscando prescripciones");
+            }
+
+            if (prescriptions.length === 0) {
+                return {
+                    status: 200,
+                    message: "No se encontraron prescripciones para el paciente",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Prescripciones encontradas éxitosamente",
+                data: prescriptions,
+            };
+        } catch (error) {
+            console.error("Error buscando prescripciones:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar las prescripciones",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
     async findOne(id: number) {
         try {
             const prescription = await prisma.prescription.findUnique({
