@@ -172,9 +172,6 @@ export async function ensurePatient(params: { userId?: number; ci?: string; name
 
 export async function ensureInfoPatient(params: {
     patientId: number;
-    ci: string;
-    name: string;
-    last_name: string;
     sex: "MALE" | "FEMALE" | string;
     birth_date: Date;
     blood_type?: string;
@@ -195,14 +192,18 @@ export async function ensureInfoPatient(params: {
         select: { id: true },
     });
 
-    if (existing) return existing;
+    if (existing) {
+        await prisma.patient.update({
+            where: { id: params.patientId },
+            data: { info_completed: true },
+            select: { id: true },
+        });
+        return existing;
+    }
 
     return prisma.infoPatient.create({
         data: {
             patientId: params.patientId,
-            ci: params.ci,
-            name: params.name,
-            last_name: params.last_name,
             sex: params.sex as any,
             birth_date: params.birth_date,
             blood_type: params.blood_type,
@@ -220,6 +221,13 @@ export async function ensureInfoPatient(params: {
             active: true,
         },
         select: { id: true },
+    }).then(async (created) => {
+        await prisma.patient.update({
+            where: { id: params.patientId },
+            data: { info_completed: true },
+            select: { id: true },
+        });
+        return created;
     });
 }
 

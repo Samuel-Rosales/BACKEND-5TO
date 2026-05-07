@@ -44,8 +44,10 @@ model Patient {
   id              Int     @id @default(autoincrement())
   userId          Int?
   user            User?   @relation(fields: [userId], references: [id])
-  ci              String?
+  ci              String? @unique // nuevo campo para cédula de identidad
   name            String?
+  last_name       String?
+  info_completed  Boolean @default(false)
   // tipo_sangre     String? @db.Text
   // medical_history String? @db.Text
   last_visit_at   DateTime?
@@ -59,10 +61,6 @@ model Patient {
 model InfoPatient {
   id              Int     @id @default(autoincrement())
   patientId       Int     @unique
-  
-  ci              String  @unique
-  name            String
-  last_name       String
   sex             Sex
   blood_type      String? @db.Text
   nacionality      String? @db.Text

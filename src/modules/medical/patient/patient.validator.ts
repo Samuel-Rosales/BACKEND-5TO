@@ -22,7 +22,23 @@ export class PatientValidator {
             .optional()
             .trim()
             .isLength({ min: 3, max: 30 })
-            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres"),
+            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres")
+            .custom(async (value) => {
+                const ci = String(value).trim();
+                if (!ci) return true;
+
+                const existingPatient = await prisma.patient.findFirst({
+                    where: {
+                        ci,
+                        active: true,
+                    },
+                    select: { id: true },
+                });
+
+                if (existingPatient) {
+                    return Promise.reject("Ya existe un paciente activo con esa cédula");
+                }
+            }),
 
         body("name")
             .optional()
@@ -74,7 +90,26 @@ export class PatientValidator {
             .optional()
             .trim()
             .isLength({ min: 3, max: 30 })
-            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres"),
+            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres")
+            .custom(async (value, { req }) => {
+                const ci = String(value).trim();
+                if (!ci) return true;
+
+                const patientId = Number(req.params?.id);
+
+                const existingPatient = await prisma.patient.findFirst({
+                    where: {
+                        ci,
+                        active: true,
+                        id: { not: patientId },
+                    },
+                    select: { id: true },
+                });
+
+                if (existingPatient) {
+                    return Promise.reject("Ya existe un paciente activo con esa cédula");
+                }
+            }),
 
         body("name")
             .optional()
