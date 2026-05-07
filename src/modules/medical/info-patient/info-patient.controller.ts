@@ -43,4 +43,13 @@ export class InfoPatientController {
 
         return res.status(status).json({ message, data: deleted, error });
     }
+
+    async updateContactInfo(req: Request, res: Response) {
+        const patientId = Number(req.params.patientId);
+        const data = req.body;
+
+        const { data: updated, status, message, error } = await service.updateContactInfo(patientId, data);
+
+        return res.status(status).json({ message, data: updated, error });
+    }
 }

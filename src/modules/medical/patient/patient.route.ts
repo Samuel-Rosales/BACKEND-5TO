@@ -27,6 +27,11 @@ patientRouter.get(
 );
 
 patientRouter.get(
+    "/ci/:ci",
+    controller.findByCI
+);
+
+patientRouter.get(
     "/:id",
     validator.IdParamValidator,
     validator.PatientExistsValidator,
