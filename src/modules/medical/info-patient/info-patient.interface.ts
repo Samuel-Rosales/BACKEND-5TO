@@ -54,14 +54,6 @@ export interface UpdateInfoPatientDto {
     last_visit_at?: Date | null;
 }
 
-export interface UpdateContactInfoDto {
-    main_phone?: string;
-    secondary_phone?: string;
-    email?: string;
-    address?: string;
-    city?: string;
-}
-
 // model InfoPatient {
 //   id              Int     @id @default(autoincrement())
 //   patientId       Int     @unique

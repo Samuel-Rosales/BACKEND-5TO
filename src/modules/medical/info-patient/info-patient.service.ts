@@ -157,45 +157,4 @@ export class InfoPatientService {
             };
         }
     }
-
-    async updateContactInfo(patientId: number, data: { main_phone?: string; secondary_phone?: string; email?: string; address?: string; city?: string }) {
-        try {
-            const existing = await prisma.infoPatient.findUnique({
-                where: { patientId },
-                select: { id: true },
-            });
-
-            if (!existing) {
-                return {
-                    status: 404,
-                    message: "Información del paciente no encontrada",
-                    error: "No encontrado",
-                };
-            }
-
-            const updateData: any = {};
-            if (data.main_phone !== undefined) updateData.main_phone = data.main_phone;
-            if (data.secondary_phone !== undefined) updateData.secondary_phone = data.secondary_phone;
-            if (data.email !== undefined) updateData.email = data.email;
-            if (data.address !== undefined) updateData.address = data.address;
-            if (data.city !== undefined) updateData.city = data.city;
-
-            const updated = await prisma.infoPatient.update({
-                where: { patientId },
-                data: updateData,
-            });
-
-            return {
-                status: 200,
-                message: "Información de contacto actualizada",
-                data: updated,
-            };
-        } catch (error) {
-            return {
-                status: 500,
-                message: "Error updating contact info",
-                error: "Error interno",
-            };
-        }
-    }
 }

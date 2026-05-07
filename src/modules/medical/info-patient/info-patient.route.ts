@@ -39,14 +39,6 @@ infoPatientRouter.put(
     controller.updateByPatientId
 );
 
-infoPatientRouter.patch(
-    "/patient/:patientId/contact",
-    validator.IdParamValidator,
-    validator.PatientExistsValidator,
-    handleValidationErrors,
-    controller.updateContactInfo
-);
-
 infoPatientRouter.delete(
     "/patient/:patientId",
     validator.IdParamValidator,
