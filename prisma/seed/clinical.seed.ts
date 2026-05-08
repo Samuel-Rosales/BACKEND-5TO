@@ -310,7 +310,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         });
     }
 
-    const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "70000001", name: "Paciente Demo" });
+    const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "27617584", name: "Juan Sun" });
     const patient2 = await ensurePatient({ userId: deps.users.patient, ci: "70000002", name: "Paciente Demo 2" });
     const patient3 = await ensurePatient({ userId: deps.users.patient, ci: "70000003", name: "Paciente Demo 3" });
     const patient4 = await ensurePatient({ userId: deps.users.patient, ci: "70000004", name: "Paciente Demo 4" });
@@ -322,16 +322,16 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
     const patientProfiles = [
         {
             patientId: patient1.id,
-            ci: "70000001",
-            name: "Paciente",
-            last_name: "Demo",
-            sex: "FEMALE" as const,
+            ci: "27617584",
+            name: "Juan",
+            last_name: "Sun",
+            sex: "MALE" as const,
             birth_date: new Date("1995-01-10"),
             blood_type: "O+",
-            nacionality: "Venezolana",
+            nacionality: "Venezolano",
             profession: "Docente",
             main_phone: "0414-0000001",
-            email: "paciente.demo@example.com",
+            email: "juan.sun@example.com",
             address: "Av. Siempre Viva 123",
             city: "Caracas",
             allergies: "SEED: sin alergias conocidas",
