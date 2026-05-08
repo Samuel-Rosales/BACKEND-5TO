@@ -30,7 +30,7 @@ model User {
 
   role           Role            @relation(fields: [roleId], references: [id])
   doctor         Doctor?
-  patient        Patient[]
+  patient        Patient?
   stockMovements StockMovement[]
   purchases      Purchase[]
   invoices       Invoice[]      
@@ -42,8 +42,8 @@ model User {
 
 model Patient {
   id              Int     @id @default(autoincrement())
-  userId          Int?
-  user            User?   @relation(fields: [userId], references: [id])
+  userId          Int     @unique
+  user            User    @relation(fields: [userId], references: [id])
   ci              String? @unique // nuevo campo para cédula de identidad
   name            String?
   last_name       String?

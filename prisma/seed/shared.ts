@@ -120,7 +120,7 @@ export async function ensureDoctor(params: { userId: number; specialtyId: number
     });
 }
 
-export async function ensurePatient(params: { userId?: number; ci?: string; name?: string }) {
+export async function ensurePatient(params: { userId: number; ci?: string; name?: string }) {
     if (params.ci) {
         const existingByCi = await prisma.patient.findFirst({
             where: { ci: params.ci, active: true },
@@ -130,12 +130,7 @@ export async function ensurePatient(params: { userId?: number; ci?: string; name
     }
 
     const existing = await prisma.patient.findFirst({
-        where: {
-            userId: params.userId ?? null,
-            ci: params.ci ?? null,
-            name: params.name ?? null,
-            active: true,
-        },
+        where: { userId: params.userId, active: true },
         select: { id: true },
     });
 
@@ -147,6 +142,12 @@ export async function ensurePatient(params: { userId?: number; ci?: string; name
             select: { id: true },
         });
         if (inactiveByCi) {
+            const occupied = await prisma.patient.findFirst({
+                where: { userId: params.userId, active: true },
+                select: { id: true },
+            });
+            if (occupied) return occupied;
+
             return prisma.patient.update({
                 where: { id: inactiveByCi.id },
                 data: {

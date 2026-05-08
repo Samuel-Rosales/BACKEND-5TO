@@ -1,7 +1,12 @@
 export interface CreatePatientDto {
-    userId?: number;
+    userId: number;
     ci?: string;
     name?: string;
+}
+
+export interface CreatePatientFromReceptionDto {
+    ci: string;
+    name: string;
 }
 
 export interface UpdatePatientDto {

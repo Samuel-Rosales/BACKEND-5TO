@@ -310,14 +310,10 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         });
     }
 
+    // With 1:1 user<->patient, we can only seed one patient per user.
     const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "27617584", name: "Juan Sun" });
-    const patient2 = await ensurePatient({ userId: deps.users.patient, ci: "70000002", name: "Paciente Demo 2" });
-    const patient3 = await ensurePatient({ userId: deps.users.patient, ci: "70000003", name: "Paciente Demo 3" });
-    const patient4 = await ensurePatient({ userId: deps.users.patient, ci: "70000004", name: "Paciente Demo 4" });
-    const patient5 = await ensurePatient({ userId: deps.users.patient, ci: "70000005", name: "Paciente Demo 5" });
-    const patient6 = await ensurePatient({ userId: deps.users.patient, ci: "70000006", name: "Paciente Demo 6" });
 
-    const patients = [patient1, patient2, patient3, patient4, patient5, patient6];
+    const patients = [patient1];
 
     const patientProfiles = [
         {
@@ -335,68 +331,6 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
             address: "Av. Siempre Viva 123",
             city: "Caracas",
             allergies: "SEED: sin alergias conocidas",
-        },
-        {
-            patientId: patient2.id,
-            ci: "70000002",
-            name: "Paciente",
-            last_name: "Demo 2",
-            sex: "MALE" as const,
-            birth_date: new Date("1992-06-05"),
-            blood_type: "A+",
-            nacionality: "Venezolano",
-            profession: "Ingeniero",
-            main_phone: "0414-0000002",
-            allergies: "SEED: asma leve",
-        },
-        {
-            patientId: patient3.id,
-            ci: "70000003",
-            name: "Paciente",
-            last_name: "Demo 3",
-            sex: "MALE" as const,
-            birth_date: new Date("1988-11-20"),
-            blood_type: "B-",
-            nacionality: "Venezolano",
-            profession: "Comerciante",
-            main_phone: "0414-0000003",
-            chronic_diseases: "SEED: hipertensión",
-        },
-        {
-            patientId: patient4.id,
-            ci: "70000004",
-            name: "Paciente",
-            last_name: "Demo 4",
-            sex: "FEMALE" as const,
-            birth_date: new Date("1991-03-15"),
-            blood_type: "AB+",
-            nacionality: "Venezolana",
-            profession: "Diseñadora",
-            main_phone: "0414-0000004",
-        },
-        {
-            patientId: patient5.id,
-            ci: "70000005",
-            name: "Paciente",
-            last_name: "Demo 5",
-            sex: "MALE" as const,
-            birth_date: new Date("1985-09-30"),
-            blood_type: "O-",
-            nacionality: "Venezolano",
-            profession: "Chofer",
-            main_phone: "0414-0000005",
-        },
-        {
-            patientId: patient6.id,
-            ci: "70000006",
-            name: "Paciente",
-            last_name: "Demo 6",
-            sex: "FEMALE" as const,
-            birth_date: new Date("1979-12-11"),
-            blood_type: "A-",
-            nacionality: "Venezolana",
-            profession: "Administrativa",
-            main_phone: "0414-0000006",
         },
     ];
 
