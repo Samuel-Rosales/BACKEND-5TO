@@ -361,7 +361,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
     const appointmentControl = await ensureAppointmentType("Control");
 
     const appointmentBase = new Date("2026-03-22T08:00:00.000Z");
-    const appointmentPatients = [patient1, patient2, patient3, patient4, patient5, patient6];
+    const appointmentPatients = [patient1, patient1, patient1, patient1, patient1, patient1];
 
     const appointments = [] as Array<{ id: number }>;
     for (let index = 0; index < appointmentPatients.length; index += 1) {
@@ -447,7 +447,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const consultation2 = await ensureConsultationBundle({
         doctorId: doctor2.id,
-        patientId: patient2.id,
+        patientId: patient1.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
         taxId: deps.finance.taxId,
@@ -488,7 +488,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const consultation3 = await ensureConsultationBundle({
         doctorId: doctor3.id,
-        patientId: patient3.id,
+        patientId: patient1.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
         taxId: deps.finance.taxId,
