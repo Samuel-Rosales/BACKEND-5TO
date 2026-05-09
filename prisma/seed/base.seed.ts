@@ -1,4 +1,4 @@
-import { ensureRole, ensureUser } from "./shared";
+import { ensureRole, ensureUser, prisma } from "./shared";
 
 export async function seedBase() {
     const roleAdmin = await ensureRole("Admin", "ADMIN");
@@ -12,6 +12,12 @@ export async function seedBase() {
     const doctorUser3 = await ensureUser({ ci: "29778174", name: "Dr. Jesus Ramos", password: "123456", roleId: roleDoctor.id });
     const receptionistUser = await ensureUser({ ci: "31987430", name: "Heracles Sanchez", password: "123456", roleId: roleReception.id });
     const patientUser = await ensureUser({ ci: "27617584", name: "Juan Sun", password: "123456", roleId: rolePatient.id });
+    const patientUser2 = await ensureUser({ ci: "25896321", name: "Maria Lopez", password: "123456", roleId: rolePatient.id });
+    const patientUser3 = await ensureUser({ ci: "30147852", name: "Carlos Perez", password: "123456", roleId: rolePatient.id });
+
+    // Inactive user (soft-deleted / disabled)
+    const inactiveUser = await ensureUser({ ci: "28569417", name: "Ana Martinez", password: "123456", roleId: rolePatient.id });
+    await prisma.user.update({ where: { id: inactiveUser.id }, data: { active: false } });
 
     return {
         roles: {
@@ -27,6 +33,9 @@ export async function seedBase() {
             doctor3: doctorUser3.id,
             reception: receptionistUser.id,
             patient: patientUser.id,
+            patient2: patientUser2.id,
+            patient3: patientUser3.id,
+            inactive: inactiveUser.id,
         },
     };
 }

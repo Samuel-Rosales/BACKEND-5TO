@@ -25,6 +25,9 @@ export async function seedFinance() {
     const utilityCategory = await ensureExpenseCategory("Servicios públicos");
     const softwareCategory = await ensureExpenseCategory("Software y suscripciones");
     const maintenanceCategory = await ensureExpenseCategory("Mantenimiento");
+    const rentCategory = await ensureExpenseCategory("Alquiler");
+    const professionalCategory = await ensureExpenseCategory("Servicios profesionales");
+    const officeCategory = await ensureExpenseCategory("Suministros de oficina");
 
     return {
         invoiceStatuses: {
@@ -47,6 +50,9 @@ export async function seedFinance() {
             utilities: utilityCategory.id,
             software: softwareCategory.id,
             maintenance: maintenanceCategory.id,
+            rent: rentCategory.id,
+            professional: professionalCategory.id,
+            office: officeCategory.id,
         },
     };
 }
