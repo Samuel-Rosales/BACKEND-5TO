@@ -30,6 +30,11 @@ consultationRouter.get(
     controller.findAllByDoctor
 );
 
+consultationRouter.get(
+    "/patient/:id",
+    controller.findAllByPatient
+);
+
 
 
 
