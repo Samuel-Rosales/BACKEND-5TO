@@ -10,7 +10,7 @@ import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockM
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, SalaryPaymentRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
-import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter } from '@/modules/report';
+import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter, monthlyRevenueRouter, specialtyDemandRouter } from '@/modules/report';
 
 export class Server {
 
@@ -74,6 +74,8 @@ export class Server {
             expenseLedger: `${this.prefix}/report/expense-ledger`,
             expenseSummary: `${this.prefix}/report/expense-summary`,
             incomeSummary: `${this.prefix}/report/income-summary`,
+            monthlyRevenue: `${this.prefix}/report/monthly-revenue`,
+            specialtyDemand: `${this.prefix}/report/specialty-demand`,
             dailyBook: `${this.prefix}/report/daily-book`,
         };
 
@@ -153,6 +155,8 @@ export class Server {
         this.app.use(this.paths.expenseLedger, expenseLedgerRouter);
         this.app.use(this.paths.expenseSummary, expenseSummaryRouter);
         this.app.use(this.paths.incomeSummary, incomeSummaryRouter);
+        this.app.use(this.paths.monthlyRevenue, monthlyRevenueRouter);
+        this.app.use(this.paths.specialtyDemand, specialtyDemandRouter);
         this.app.use(this.paths.dailyBook, dailyBookRouter);
 
         this.app.use((req, res) => {
