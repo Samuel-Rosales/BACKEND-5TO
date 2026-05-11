@@ -7,10 +7,10 @@ import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, Pr
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, DoctorScheduleRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
-import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
+import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, SalaryPaymentRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
-import { expenseLedgerRouter, incomeSummaryRouter } from '@/modules/report';
+import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter } from '@/modules/report';
 
 export class Server {
 
@@ -65,13 +65,16 @@ export class Server {
             invoicePayments: `${this.prefix}/finance/invoice-payment`,
             payrolls: `${this.prefix}/finance/payroll`,
             payrollLines: `${this.prefix}/finance/payroll-line`,
+            salaryPayments: `${this.prefix}/finance/salary-payment`,
 
             suppliers: `${this.prefix}/procurement/supplier`,
             purchases: `${this.prefix}/procurement/purchase`,
             purchasePayments: `${this.prefix}/procurement/purchase-payment`,
 
             expenseLedger: `${this.prefix}/report/expense-ledger`,
+            expenseSummary: `${this.prefix}/report/expense-summary`,
             incomeSummary: `${this.prefix}/report/income-summary`,
+            dailyBook: `${this.prefix}/report/daily-book`,
         };
 
         this.dbConnection();
@@ -141,13 +144,16 @@ export class Server {
 
         this.app.use(this.paths.payrolls, PayrollRoute);
         this.app.use(this.paths.payrollLines, PayrollLineRoute);
+        this.app.use(this.paths.salaryPayments, SalaryPaymentRoute);
 
         this.app.use(this.paths.suppliers, SupplierRoute);
         this.app.use(this.paths.purchases, PurchaseRoute);
         this.app.use(this.paths.purchasePayments, PurchasePaymentRoute);
 
         this.app.use(this.paths.expenseLedger, expenseLedgerRouter);
+        this.app.use(this.paths.expenseSummary, expenseSummaryRouter);
         this.app.use(this.paths.incomeSummary, incomeSummaryRouter);
+        this.app.use(this.paths.dailyBook, dailyBookRouter);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);

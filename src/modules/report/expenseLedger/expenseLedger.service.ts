@@ -230,7 +230,8 @@ export class ExpenseLedgerService {
       whereClause.payroll.status = status;
     }
 
-    const payrollLines = await prisma.payrollLine.findMany({
+    const [payrollLines, salaryPayments] = await Promise.all([
+      prisma.payrollLine.findMany({
       where: whereClause,
       include: {
         payroll: true,
@@ -244,7 +245,24 @@ export class ExpenseLedgerService {
           },
         },
       },
-    });
+      }),
+      prisma.salaryPayment.findMany({
+        where: {
+          date_at: {
+            gte: from,
+            lte: to,
+          },
+        },
+        include: {
+          payroll: true,
+          user: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      }),
+    ]);
 
     // We might need to get the active exchange rate for the day if payroll doesn't have an exchange rate attached
     // Since it's accrued, we can use the latest exchange rate for simplicity or standard calculation
@@ -254,7 +272,7 @@ export class ExpenseLedgerService {
     });
     const rate = latestRate ? Number(latestRate.rate) : 1;
 
-    return payrollLines.map((line) => {
+    const doctorItems: ExpenseLedgerItem[] = payrollLines.map((line) => {
       const baseAmt = Number(line.base_amount);
       const pct = Number(line.commission_percentage) / 100;
       // Depending on the logic: if the user gets the percentage of the base:
@@ -264,7 +282,7 @@ export class ExpenseLedgerService {
 
       return {
         id: `PAYROLL-${line.id}`,
-        source: 'PAYROLL',
+        source: 'PAYROLL' as const,
         sourceId: line.id,
         occurredAt: line.payroll.period_end.toISOString(),
         description: `Nómina devengada: ${line.consultation.doctor.user.name} (Consulta #${line.consultation.id})`,
@@ -278,7 +296,30 @@ export class ExpenseLedgerService {
         amountUsd,
         amountVes,
         notes: `Base: ${baseAmt}, Comisión: ${Number(line.commission_percentage)}%`,
-      };
+      } satisfies ExpenseLedgerItem;
     });
+
+    const salaryItems: ExpenseLedgerItem[] = salaryPayments.map((payment) => {
+      const amountUsd = Number(payment.amount);
+      return {
+        id: `SALARY-${payment.id}`,
+        source: 'PAYROLL' as const,
+        sourceId: payment.id,
+        occurredAt: (payment.date_at || payment.payroll.period_end || new Date()).toISOString(),
+        description: `Pago salarial: ${payment.user.name} (${payment.user.role.name})`,
+        counterparty: payment.user.name,
+        category: payment.user.role.name,
+        status: payment.payroll.status,
+        paymentMethod: null,
+        currencyOriginal: 'USD' as const,
+        amountOriginal: amountUsd,
+        exchangeRate: rate,
+        amountUsd,
+        amountVes: amountUsd * rate,
+        notes: payment.concept ?? `Salario base ${payment.user.role.base_salary ?? amountUsd}`,
+      } satisfies ExpenseLedgerItem;
+    });
+
+    return [...doctorItems, ...salaryItems];
   }
 }
