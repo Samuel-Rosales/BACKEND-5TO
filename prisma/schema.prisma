@@ -320,6 +320,7 @@ model InvoicePayment {
 
   amount_paid     Decimal       @db.Decimal(12, 2)
   igtf_amount     Decimal       @default(0) @db.Decimal(12, 2)
+  reference        String?      @db.VarChar(255)
   date_at        DateTime?      @default(now())
 
 
@@ -551,6 +552,7 @@ model ExpensePayment {
   paymentMethodId  Int
   amount           Decimal        @db.Decimal(12, 2) 
   exchangeRateId   Int
+  reference        String?      @db.VarChar(255)
   date_at          DateTime?       @default(now())
 
   paymentMethod    PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
