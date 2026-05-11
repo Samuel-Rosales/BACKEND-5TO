@@ -293,24 +293,52 @@ export class AppointmentService {
                 }
             }
 
-            const existing = await prisma.appointment.findFirst({
+            // ── Validar conflicto: mismo paciente + misma hora (con cualquier doctor) ──
+            const patientConflict = await prisma.appointment.findFirst({
                 where: {
-                    doctorId,
                     patientId: data.patientId,
                     date_time: dateTime,
                     status: {
-                        name: {
-                            not: { equals: "Cancelada" },
+                        name: { not: { equals: "Cancelada" } },
+                    },
+                },
+                select: {
+                    id: true,
+                    doctor: {
+                        select: {
+                            user: { select: { name: true } },
+                            specialty: { select: { name: true } },
                         },
                     },
                 },
-                select: { id: true },
             });
-            if (existing) {
+            if (patientConflict) {
                 return {
                     status: 409,
-                    message: "El paciente ya tiene una cita con ese doctor en esa horario",
-                    error: "Conflicto",
+                    message: `El paciente ya tiene una cita a esta hora con el Dr. ${patientConflict.doctor.user.name} (${patientConflict.doctor.specialty.name})`,
+                    error: "Conflicto de paciente",
+                };
+            }
+
+            // ── Validar conflicto: mismo doctor + misma hora (con cualquier paciente) ──
+            const doctorConflict = await prisma.appointment.findFirst({
+                where: {
+                    doctorId,
+                    date_time: dateTime,
+                    status: {
+                        name: { not: { equals: "Cancelada" } },
+                    },
+                },
+                select: {
+                    id: true,
+                    patient: { select: { name: true } },
+                },
+            });
+            if (doctorConflict) {
+                return {
+                    status: 409,
+                    message: `El doctor ya tiene una cita a esta hora con el paciente ${doctorConflict.patient.name}`,
+                    error: "Conflicto de doctor",
                 };
             }
 
@@ -503,6 +531,75 @@ export class AppointmentService {
                 ...data,
                 date_time: data.date_time ? this.normalizeDateTime(data.date_time) : undefined,
             };
+
+            // Si se cambia fecha/hora, doctor o paciente, validar conflictos
+            if (normalized.date_time || normalized.doctorId || normalized.patientId) {
+                const current = await prisma.appointment.findUnique({
+                    where: { id },
+                    select: { doctorId: true, patientId: true, date_time: true },
+                });
+                if (!current) {
+                    return { status: 404, message: "Cita no encontrada", error: "Not found" };
+                }
+
+                const newDateTime = normalized.date_time ?? current.date_time;
+                const newDoctorId = normalized.doctorId ?? current.doctorId;
+                const newPatientId = normalized.patientId ?? current.patientId;
+
+                // No validar si no cambió nada relevante
+                const dateChanged = normalized.date_time && new Date(newDateTime).getTime() !== new Date(current.date_time).getTime();
+                const doctorChanged = normalized.doctorId !== undefined && normalized.doctorId !== current.doctorId;
+                const patientChanged = normalized.patientId !== undefined && normalized.patientId !== current.patientId;
+
+                if (dateChanged || doctorChanged || patientChanged) {
+                    // Conflicto: mismo paciente + misma hora (excluyendo esta cita)
+                    const patientConflict = await prisma.appointment.findFirst({
+                        where: {
+                            id: { not: id },
+                            patientId: newPatientId,
+                            date_time: newDateTime,
+                            status: { name: { not: { equals: "Cancelada" } } },
+                        },
+                        select: {
+                            id: true,
+                            doctor: {
+                                select: {
+                                    user: { select: { name: true } },
+                                    specialty: { select: { name: true } },
+                                },
+                            },
+                        },
+                    });
+                    if (patientConflict) {
+                        return {
+                            status: 409,
+                            message: `El paciente ya tiene una cita a esta hora con el Dr. ${patientConflict.doctor.user.name} (${patientConflict.doctor.specialty.name})`,
+                            error: "Conflicto de paciente",
+                        };
+                    }
+
+                    // Conflicto: mismo doctor + misma hora (excluyendo esta cita)
+                    const doctorConflict = await prisma.appointment.findFirst({
+                        where: {
+                            id: { not: id },
+                            doctorId: newDoctorId,
+                            date_time: newDateTime,
+                            status: { name: { not: { equals: "Cancelada" } } },
+                        },
+                        select: {
+                            id: true,
+                            patient: { select: { name: true } },
+                        },
+                    });
+                    if (doctorConflict) {
+                        return {
+                            status: 409,
+                            message: `El doctor ya tiene una cita a esta hora con el paciente ${doctorConflict.patient.name}`,
+                            error: "Conflicto de doctor",
+                        };
+                    }
+                }
+            }
 
             const appointment = await prisma.appointment.update({
                 where: { id },
