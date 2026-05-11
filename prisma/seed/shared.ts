@@ -15,7 +15,7 @@ export function hashPassword(plain: string) {
     return bcrypt.hashSync(plain, saltRounds);
 }
 
-export async function ensureRole(name: string, code: string) {
+export async function ensureRole(name: string, code: string, baseSalary?: number) {
     const normalizedName = name.trim();
     const normalizedCode = code.trim().toUpperCase();
 
@@ -32,7 +32,20 @@ export async function ensureRole(name: string, code: string) {
         ) {
             return prisma.role.update({
                 where: { id: existingByCode.id },
-                data: { name: normalizedName, code: normalizedCode, active: true },
+                data: {
+                    name: normalizedName,
+                    code: normalizedCode,
+                    active: true,
+                    ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+                },
+                select: { id: true },
+            });
+        }
+
+        if (baseSalary !== undefined) {
+            return prisma.role.update({
+                where: { id: existingByCode.id },
+                data: { base_salary: baseSalary },
                 select: { id: true },
             });
         }
@@ -47,26 +60,48 @@ export async function ensureRole(name: string, code: string) {
 
     if (existingByName) {
         if (existingByName.active && existingByName.name === normalizedName && existingByName.code === normalizedCode) {
+            if (baseSalary !== undefined) {
+                return prisma.role.update({
+                    where: { id: existingByName.id },
+                    data: { base_salary: baseSalary },
+                    select: { id: true },
+                });
+            }
+
             return { id: existingByName.id };
         }
 
         try {
             return await prisma.role.update({
                 where: { id: existingByName.id },
-                data: { name: normalizedName, code: normalizedCode, active: true },
+                data: {
+                    name: normalizedName,
+                    code: normalizedCode,
+                    active: true,
+                    ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+                },
                 select: { id: true },
             });
         } catch {
             return prisma.role.update({
                 where: { id: existingByName.id },
-                data: { name: normalizedName, active: true },
+                data: {
+                    name: normalizedName,
+                    active: true,
+                    ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+                },
                 select: { id: true },
             });
         }
     }
 
     return prisma.role.create({
-        data: { name: normalizedName, code: normalizedCode, active: true },
+        data: {
+            name: normalizedName,
+            code: normalizedCode,
+            active: true,
+            ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+        },
         select: { id: true },
     });
 }

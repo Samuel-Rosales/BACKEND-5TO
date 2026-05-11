@@ -1,9 +1,9 @@
 import { ensureRole, ensureUser, prisma } from "./shared";
 
 export async function seedBase() {
-    const roleAdmin = await ensureRole("Admin", "ADMIN");
+    const roleAdmin = await ensureRole("Admin", "ADMIN", 500);
     const roleDoctor = await ensureRole("Doctor", "DOCTOR");
-    const roleReception = await ensureRole("Recepcionista", "RECEPTION");
+    const roleReception = await ensureRole("Recepcionista", "RECEPTION", 300);
     const rolePatient = await ensureRole("Paciente", "PATIENT");
 
     const adminUser = await ensureUser({ ci: "31350493", name: "Samuel Rosales", password: "123456", roleId: roleAdmin.id });
