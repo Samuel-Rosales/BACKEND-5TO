@@ -3,3 +3,8 @@ export * from './expenseLedger/expenseLedger.validator';
 export * from './expenseLedger/expenseLedger.service';
 export * from './expenseLedger/expenseLedger.controller';
 export * from './expenseLedger/expenseLedger.route';
+export * from './incomeSummary/incomeSummary.interface';
+export * from './incomeSummary/incomeSummary.validator';
+export * from './incomeSummary/incomeSummary.service';
+export * from './incomeSummary/incomeSummary.controller';
+export * from './incomeSummary/incomeSummary.route';
