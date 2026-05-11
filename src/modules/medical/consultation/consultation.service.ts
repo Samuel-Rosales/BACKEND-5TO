@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { ensureMonthlyPayrollLine } from "@/modules/finance/payroll/payroll.service";
 import {
     CreateConsultationDto,
     FinishConsultationDto,
@@ -22,6 +23,8 @@ const consultationSelect = {
             patient: {
                 select: {
                     id: true,
+                    ci: true,
+                    name: true,
                     user: {
                         select: {
                             ci: true,
@@ -66,6 +69,8 @@ const oneConsultationSelect = {
             patient: {
                 select: {
                     id: true,
+                    ci: true,
+                    name: true,
                     user: {
                         select: {
                             ci: true,
@@ -100,6 +105,85 @@ const oneConsultationSelect = {
     clinicalExaminations: true,
     prescriptions: true,
     supplies: true,
+} as const;
+
+const patientConsultationSelect = {
+    id: true,
+    date: true,
+    started_at: true,
+    finished_at: true,
+    doctor: {
+        select: {
+            id: true,
+            specialtyId: true,
+            user: {
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                },
+            },
+            specialty: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    },
+    symptomsConsultations: {
+        select: {
+            id: true,
+            severity: true,
+            duration: true,
+            notes: true,
+            symptom: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    },
+    consultationDiagnoses: {
+        select: {
+            id: true,
+            is_primary: true,
+            condition_status: true,
+            onset_date: true,
+            diagnosis: {
+                select: {
+                    id: true,
+                    code: true,
+                    description: true,
+                },
+            },
+        },
+    },
+    clinicalExaminations: {
+        select: {
+            id: true,
+            weight: true,
+            height: true,
+            temperature: true,
+            systolic_bp: true,
+            diastolic_bp: true,
+            heart_rate: true,
+            respiratory_rate: true,
+            oxygen_saturation: true,
+        },
+    },
+    prescriptions: {
+        select: {
+            id: true,
+            medication_name: true,
+            dosage: true,
+            frequency: true,
+            duration: true,
+            instructions: true,
+            active: true,
+        },
+    },
 } as const;
 
 export class ConsultationService {
@@ -296,6 +380,8 @@ export class ConsultationService {
                     });
                 }
 
+                await ensureMonthlyPayrollLine(tx, id, finishedAt);
+
                 return tx.consultation.findUnique({
                     where: { id },
                     select: consultationSelect,
@@ -352,6 +438,83 @@ export class ConsultationService {
             return {
                 status: 500,
                 message: "Error interno al buscar las consultas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
+    async findAllByDoctor(doctorId: number) {
+        try {
+            const consultations = await prisma.consultation.findMany({
+                where: { doctorId: doctorId },
+                orderBy: { date: "desc" },
+                select: consultationSelect,
+            });
+
+            if (!consultations) {
+                throw new Error("Error buscando consultas");
+            }
+
+            if (consultations.length === 0) {
+                return {
+                    status: 200,
+                    message: "Doctor no tiene consultas registradas",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Consultas encontradas éxitosamente",
+                data: consultations,
+            };
+        } catch (error) {
+            console.error("Error buscando consultas:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar las consultas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+
+    }
+
+    async findAllByPatient(patientId: number) {
+        try {
+            const consultations = await prisma.consultation.findMany({
+                where: {
+                    invoice: {
+                        patientId: patientId,
+                    },
+                },
+                orderBy: { date: "desc" },
+                select: patientConsultationSelect,
+            });
+
+            if (!consultations) {
+                throw new Error("Error buscando consultas del paciente");
+            }
+
+            if (consultations.length === 0) {
+                return {
+                    status: 200,
+                    message: "Paciente no tiene consultas registradas",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Consultas encontradas éxitosamente",
+                data: consultations,
+            };
+        } catch (error) {
+            console.error("Error buscando consultas del paciente:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar las consultas del paciente",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }

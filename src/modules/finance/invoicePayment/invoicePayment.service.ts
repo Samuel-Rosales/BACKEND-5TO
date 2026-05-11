@@ -8,10 +8,10 @@ const invoicePaymentSelect = {
     id: true,
     invoiceId: true,
     paymentMethodId: true,
-    currencyId: true,
     amount_paid: true,
     igtf_amount: true,
     exchangeRateId: true,
+    date_at: true,
     paymentMethod: {
         select: { id: true, name: true, type: true, currency: true, is_active: true },
     },
@@ -19,36 +19,36 @@ const invoicePaymentSelect = {
         select: { id: true, rate: true, createdAt: true, is_active: true },
     },
     invoice: {
-        select: { 
-            id: true,
-    patientId: true,
-    receptionistId: true,
-    exchangeRateId: true,
-    total_usd: true,
-    statusId: true,
-    taxId: true,
-    status: {
-        select: { id: true, name: true, color_hex: true },
-    },
-    exchangeRate: {
-        select: { id: true, rate: true, createdAt: true, is_active: true },
-    },
-    tax: {
-        select: { id: true, name: true, rate: true, code: true, isActive: true },
-    },
-    patient: {
         select: {
             id: true,
-            user: { select: { id: true, ci: true, name: true } },
-        },
-    },
-    receptionist: {
-        select: {
-            id: true,
-            ci: true,
-            name: true,
-        },
-    }
+            patientId: true,
+            receptionistId: true,
+            exchangeRateId: true,
+            total_usd: true,
+            statusId: true,
+            taxId: true,
+            status: {
+                select: { id: true, name: true, color_hex: true },
+            },
+            exchangeRate: {
+                select: { id: true, rate: true, createdAt: true, is_active: true },
+            },
+            tax: {
+                select: { id: true, name: true, rate: true, code: true, isActive: true },
+            },
+            patient: {
+                select: {
+                    id: true,
+                    user: { select: { id: true, ci: true, name: true } },
+                },
+            },
+            receptionist: {
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                },
+            }
         }
     }
 } as const;
@@ -82,7 +82,6 @@ export class InvoicePaymentService {
                 data: {
                     invoiceId: data.invoiceId,
                     paymentMethodId: data.paymentMethodId,
-                    currencyId: data.currencyId,
                     amount_paid: amountPaid,
                     igtf_amount: igtfAmount,
                     exchangeRateId: rate.id,

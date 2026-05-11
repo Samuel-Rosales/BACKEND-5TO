@@ -356,4 +356,19 @@ export class ConsultationValidator {
                 }
             }),
     ];
+
+    finAllByDoctorValidator: ValidationChain[] = [
+        param("id")
+            .isInt({ gt: 0 })
+            .withMessage("El ID del doctor debe ser un número entero positivo")
+            .custom(async (value) => {
+                const doctor = await prisma.doctor.findUnique({ where: { id: Number(value) } });
+                if (!doctor) {
+                    return Promise.reject("El doctor no existe");
+                }
+
+            }),
+
+        
+    ];
 }

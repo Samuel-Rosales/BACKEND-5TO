@@ -4,29 +4,37 @@ import { CreateDoctorAvailabilityDto, UpdateDoctorAvailabilityDto } from "./doct
 
 const doctorAvailabilitySelect = {
     id: true,
-    doctorId: true,
+    doctorScheduleId: true,
     day_of_week: true,
     start_time: true,
     end_time: true,
     patient_limit: true,
-    doctor: {
+    doctorSchedule: {
         select: {
             id: true,
-            userId: true,
-            specialtyId: true,
-            active: true,
-            user: {
+            doctorId: true,
+            period_start: true,
+            period_end: true,
+            doctor: {
                 select: {
                     id: true,
-                    ci: true,
-                    name: true,
-                },
-            },
-            specialty: {
-                select: {
-                    id: true,
-                    name: true,
+                    userId: true,
+                    specialtyId: true,
                     active: true,
+                    user: {
+                        select: {
+                            id: true,
+                            ci: true,
+                            name: true,
+                        },
+                    },
+                    specialty: {
+                        select: {
+                            id: true,
+                            name: true,
+                            active: true,
+                        },
+                    },
                 },
             },
         },
@@ -94,6 +102,7 @@ export class DoctorAvailabilityService {
 
     async findAll(filters?: {
         doctorId?: number;
+        doctorScheduleId?: number;
         specialtyId?: number;
         morning?: boolean;
         day_of_week?: number;
@@ -102,7 +111,13 @@ export class DoctorAvailabilityService {
         try {
             const where: Prisma.DoctorAvailabilityWhereInput = {};
 
-            if (filters?.doctorId) where.doctorId = filters.doctorId;
+            if (filters?.doctorScheduleId) {
+                where.doctorScheduleId = filters.doctorScheduleId;
+            }
+
+            if (filters?.doctorId) {
+                where.doctorSchedule = { doctorId: filters.doctorId };
+            }
 
             if (filters?.date) {
                 const dateOnly = this.parseDateOnly(filters.date);
@@ -111,15 +126,39 @@ export class DoctorAvailabilityService {
                 where.day_of_week = filters.day_of_week;
             }
 
+
             if (filters?.specialtyId) {
-                where.doctor = { specialtyId: filters.specialtyId };
+                where.doctorSchedule = {
+                    ...(typeof filters?.doctorId === "number" ? { doctorId: filters.doctorId } : {}),
+                    doctor: { specialtyId: filters.specialtyId },
+                };
             }
 
-            // Overrides solo aplica cuando estamos consultando un doctor específico + fecha
+            // Si consultan por doctorId + date, devolvemos disponibilidades del DoctorSchedule vigente para esa fecha.
             if (filters?.doctorId && filters?.date) {
                 const dayStart = new Date(`${filters.date}T00:00:00.000Z`);
                 const dayEnd = new Date(dayStart);
                 dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+                const schedule = await prisma.doctorSchedule.findFirst({
+                    where: {
+                        doctorId: filters.doctorId,
+                        period_start: { lte: dayStart },
+                        OR: [{ period_end: null }, { period_end: { gt: dayStart } }],
+                    },
+                    orderBy: { period_start: "desc" },
+                    select: { id: true },
+                });
+
+                if (!schedule) {
+                    return {
+                        status: 200,
+                        message: "No se encontraron disponibilidades",
+                        data: [],
+                    };
+                }
+
+                where.doctorScheduleId = schedule.id;
 
                 const override = await prisma.doctorScheduleOverride.findFirst({
                     where: {
@@ -143,7 +182,7 @@ export class DoctorAvailabilityService {
 
                 const availabilities = await prisma.doctorAvailability.findMany({
                     where,
-                    orderBy: [{ doctorId: "asc" }, { day_of_week: "asc" }, { start_time: "asc" }],
+                    orderBy: [{ doctorScheduleId: "asc" }, { day_of_week: "asc" }, { start_time: "asc" }],
                     select: doctorAvailabilitySelect,
                 });
 
@@ -172,7 +211,7 @@ export class DoctorAvailabilityService {
 
             const availabilities = await prisma.doctorAvailability.findMany({
                 where,
-                orderBy: [{ doctorId: "asc" }, { day_of_week: "asc" }, { start_time: "asc" }],
+                orderBy: [{ doctorScheduleId: "asc" }, { day_of_week: "asc" }, { start_time: "asc" }],
                 select: doctorAvailabilitySelect,
             });
 
@@ -216,10 +255,10 @@ export class DoctorAvailabilityService {
         }
     }
 
-    async findOne(doctorId: number) {
+    async findOne(id: number) {
         try {
-            const availability = await prisma.doctorAvailability.findMany({
-                where: { doctorId },
+            const availability = await prisma.doctorAvailability.findUnique({
+                where: { id },
                 select: doctorAvailabilitySelect,
             });
 

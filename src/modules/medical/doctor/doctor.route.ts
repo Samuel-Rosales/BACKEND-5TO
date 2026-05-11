@@ -21,6 +21,14 @@ doctorRouter.get(
 );
 
 doctorRouter.get(
+    "/by-user/:userId",
+    validator.UserIdParamValidator,
+    validator.DoctorExistsByUserIdValidator,
+    handleValidationErrors,
+    controller.findByUserId
+);
+
+doctorRouter.get(
     "/:id",
     validator.IdParamValidator,
     validator.DoctorExistsValidator,

@@ -1,11 +1,12 @@
 import { prisma } from "@/configs";
-import { CreatePatientDto, UpdatePatientDto } from "./patient.interface";
+import { CreatePatientDto, CreatePatientFromReceptionDto, UpdatePatientDto } from "./patient.interface";
+import bcrypt from "bcryptjs";
 
 const patientSelect = {
     id: true,
     userId: true,
-    tipo_sangre: true,
-    medical_history: true,
+    ci: true,
+    name: true,
     active: true,
     user: {
         select: {
@@ -27,10 +28,149 @@ const patientSelect = {
 
 export class PatientService {
 
+    async createFromReception(data: CreatePatientFromReceptionDto) {
+        try {
+            const rolePatient = await prisma.role.findFirst({
+                where: { code: "PATIENT", active: true },
+                select: { id: true },
+            });
+
+            if (!rolePatient) {
+                return {
+                    status: 500,
+                    message: "Rol PATIENT no encontrado",
+                    error: "Configuración",
+                };
+            }
+
+            const ci = String(data.ci).trim();
+            const name = String(data.name).trim();
+
+            const existingUser = await prisma.user.findFirst({
+                where: { ci, active: true },
+                select: { id: true },
+            });
+
+            if (existingUser) {
+                return {
+                    status: 400,
+                    message: "Ya existe un usuario con esa cédula",
+                    error: "Validación",
+                };
+            }
+
+            const existingPatientByCi = await prisma.patient.findFirst({
+                where: { ci, active: true },
+                select: { id: true },
+            });
+
+            if (existingPatientByCi) {
+                return {
+                    status: 400,
+                    message: "Ya existe un paciente activo con esa cédula",
+                    error: "Validación",
+                };
+            }
+
+            const result = await prisma.$transaction(async (tx) => {
+                // Manual create here to keep user+patient atomic in the same transaction.
+                const hashedPassword = await bcrypt.hash(ci, 10);
+
+                const user = await tx.user.create({
+                    data: {
+                        ci,
+                        name,
+                        password: hashedPassword,
+                        roleId: rolePatient.id,
+                        active: true,
+                    },
+                    select: { id: true },
+                });
+
+                const createdPatient = await tx.patient.create({
+                    data: {
+                        userId: user.id,
+                        ci,
+                        name,
+                    },
+                    select: patientSelect,
+                });
+
+                return createdPatient;
+            });
+
+            return {
+                status: 201,
+                message: "Paciente (y usuario) creado éxitosamente",
+                data: result,
+            };
+        } catch (error) {
+            console.error("Error creando paciente desde recepción:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al crear el paciente",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
     async create(data: CreatePatientDto) {
         try {
+            const resolvedUser = await prisma.user.findUnique({
+                where: { id: data.userId },
+                select: {
+                    id: true,
+                    ci: true,
+                    name: true,
+                    active: true,
+                    role: { select: { code: true } },
+                },
+            });
+
+            if (!resolvedUser || !resolvedUser.active) {
+                return {
+                    status: 400,
+                    message: "El usuario no existe o no está activo",
+                    error: "Validación",
+                };
+            }
+
+            // Optional but consistent with Doctor creation rules.
+            if (resolvedUser.role?.code !== "PATIENT") {
+                return {
+                    status: 400,
+                    message: "El usuario debe tener el rol de paciente",
+                    error: "Validación",
+                };
+            }
+
+            const existing = await prisma.patient.findFirst({
+                where: { userId: data.userId, active: true },
+                select: { id: true },
+            });
+
+            if (existing) {
+                return {
+                    status: 400,
+                    message: "Ese usuario ya tiene un paciente asociado",
+                    error: "Validación",
+                };
+            }
+
+            const payload = {
+                ci: data.ci ?? resolvedUser.ci,
+                name: data.name ?? resolvedUser.name,
+            };
+
+            const createData = {
+                user: { connect: { id: data.userId } },
+                ci: payload.ci,
+                name: payload.name,
+            };
+
             const patient = await prisma.patient.create({
-                data,
+                data: createData,
                 select: patientSelect,
             });
 
@@ -90,9 +230,40 @@ export class PatientService {
         }
     }
 
+    async findAllFromUser(userId: number) {
+        try {
+            const patient = await prisma.patient.findFirst({
+                where: { active: true, userId },
+                select: patientSelect,
+            });
+
+            if (!patient) {
+                return {
+                    status: 404,
+                    message: "Paciente no encontrado para este usuario",
+                    data: null,
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Paciente encontrado éxitosamente",
+                data: patient,
+            };
+        } catch (error) {
+            console.error("Error buscando pacientes:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar los pacientes",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
     async findOne(id: number) {
         try {
-            const patient = await prisma.patient.findUnique({
+            const patient = await prisma.patient.findFirst({
                 where: { id, active: true },
                 select: patientSelect,
             });
@@ -119,9 +290,63 @@ export class PatientService {
 
     async update(id: number, data: UpdatePatientDto) {
         try {
-            const patient = await prisma.patient.update({
+            const existing = await prisma.patient.findFirst({
                 where: { id, active: true },
-                data,
+                select: { id: true, userId: true },
+            });
+
+            if (!existing) {
+                return {
+                    status: 404,
+                    message: "El paciente no existe o no está activo",
+                    error: "No encontrado",
+                };
+            }
+
+            const updateData: any = {};
+
+            if (data.ci !== undefined) updateData.ci = data.ci;
+            if (data.name !== undefined) updateData.name = data.name;
+
+            if (data.userId !== undefined) {
+                const newUserId = Number(data.userId);
+                if (!Number.isFinite(newUserId) || newUserId <= 0) {
+                    return {
+                        status: 400,
+                        message: "El userId debe ser un número entero positivo",
+                        error: "Validación",
+                    };
+                }
+
+                if (newUserId !== existing.userId) {
+                    const occupied = await prisma.patient.findFirst({
+                        where: { userId: newUserId, active: true, id: { not: id } },
+                        select: { id: true },
+                    });
+
+                    if (occupied) {
+                        return {
+                            status: 400,
+                            message: "Ese usuario ya tiene un paciente asociado",
+                            error: "Validación",
+                        };
+                    }
+                }
+
+                updateData.user = { connect: { id: newUserId } };
+            }
+
+            if (Object.keys(updateData).length === 0) {
+                return {
+                    status: 400,
+                    message: "No hay campos válidos para actualizar",
+                    error: "Validación",
+                };
+            }
+
+            const patient = await prisma.patient.update({
+                where: { id },
+                data: updateData,
                 select: patientSelect,
             });
 
@@ -147,8 +372,21 @@ export class PatientService {
 
     async delete(id: number) {
         try {
-            const patient = await prisma.patient.update({
+            const existing = await prisma.patient.findFirst({
                 where: { id, active: true },
+                select: { id: true },
+            });
+
+            if (!existing) {
+                return {
+                    status: 404,
+                    message: "El paciente no existe o no está activo",
+                    error: "No encontrado",
+                };
+            }
+
+            const patient = await prisma.patient.update({
+                where: { id },
                 data: { active: false },
                 select: patientSelect,
             });

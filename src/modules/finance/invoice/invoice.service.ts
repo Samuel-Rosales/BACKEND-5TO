@@ -26,6 +26,8 @@ const invoiceSelect = {
     patient: {
         select: {
             id: true,
+            ci: true,
+            name: true,
             user: { select: { id: true, ci: true, name: true } },
         },
     },
@@ -40,7 +42,6 @@ const invoiceSelect = {
         select: {
             id: true,
             paymentMethodId: true,
-            currencyId: true,
             amount_paid: true,
             igtf_amount: true,
             exchangeRateId: true,
@@ -177,13 +178,15 @@ export class InvoiceService {
         // const totalUsd = computeTotals(details);
         // const totalBs = roundMoney(totalUsd * Number(exchangeRate.rate));
 
+        const taxId = data.taxId ?? (await this.resolveDefaultTaxId());
+
         const created = await this.db.invoice.create({
             data: {
                 patientId: data.patientId,
                 receptionistId: data.receptionistId,
                 exchangeRateId: exchangeRate.id,
                 statusId: status.id,
-                taxId: data.taxId,
+                taxId,
 
                 total_usd: data.total_usd ? Number(data.total_usd) : 0,
             },
@@ -215,6 +218,21 @@ export class InvoiceService {
                 const status = await this.resolveStatusId(data.statusId, tx);
 
                 const taxId = data.taxId ?? (await this.resolveDefaultTaxId(tx));
+
+                if (data.payments.length === 0) {
+                    throw new Error("Debe haber al menos un pago");
+                }
+
+                let totalPaymentUsd = 0;
+                for (const payment of data.payments) {
+                    const method = await tx.paymentMethod.findUnique({ where: { id: payment.paymentMethodId } });
+                    if (!method) throw new Error(`El método de pago con ID ${payment.paymentMethodId} no existe`);
+                    
+                    if (method.currency !== "USD") {
+                        totalPaymentUsd += Number(payment.amount_paid) * Number(exchangeRate.rate);
+                    } // esto es temporal, luego se permitirá en otras monedas
+                    totalPaymentUsd += payment.amount_paid;
+                }
 
                 let totalUsd: number | null = null;
                 let computedCommissions: ReturnType<typeof computeCommissions> | null = null;
@@ -259,6 +277,14 @@ export class InvoiceService {
                     throw new Error("total_usd inválido");
                 }
 
+                if (totalPaymentUsd < totalUsd) {
+                    return {
+                        status: 400,
+                        message: `El total pagado en USD (${totalPaymentUsd.toFixed(2)}) es menor al total de la factura (${totalUsd.toFixed(2)})`,
+                        data: null,
+                    };  
+                }
+
                 const created = await tx.invoice.create({
                     data: {
                         patientId: data.patientId,
@@ -271,6 +297,18 @@ export class InvoiceService {
                     },
                     select: invoiceSelect,
                 });
+
+                for (const payment of data.payments) {
+                    await tx.invoicePayment.create({
+                        data: {
+                            invoiceId: created.id,
+                            paymentMethodId: payment.paymentMethodId,
+                            amount_paid: payment.amount_paid,
+                            igtf_amount: payment.igtf_amount,
+                            exchangeRateId: exchangeRate.id,
+                        },
+                    });
+                }
 
                 return { created, commissions: computedCommissions };
             });
@@ -313,6 +351,42 @@ export class InvoiceService {
             return {
                 status: 200,
                 message: invoices.length === 0 ? "No se encontraron facturas" : "Facturas encontradas éxitosamente",
+                data: invoicesProcessed,
+            };
+        } catch (error) {
+            console.error("Error buscando facturas:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar facturas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
+    async findByPatientId(patientId: number) {
+        try {
+            const invoices = await this.db.invoice.findMany({
+                where: { patientId },
+                orderBy: { id: "desc" },
+                select: invoiceSelect,
+            });
+
+            const invoicesProcessed = invoices.map((invoice) => {
+                const exchangeRate = invoice.exchangeRate.rate;
+                
+                let totalBs = new Decimal(Number(invoice.total_usd));
+                 
+                totalBs = totalBs.mul(new Decimal(exchangeRate));
+
+
+                return { ...invoice, total_bs: totalBs.toNumber() };
+                
+            });
+
+            return {
+                status: 200,
+                message: invoices.length === 0 ? "No se encontraron facturas para el paciente" : "Facturas encontradas éxitosamente",
                 data: invoicesProcessed,
             };
         } catch (error) {

@@ -24,10 +24,6 @@ export class InvoicePaymentValidator {
                 }
             }),
 
-        body("currencyId")
-            .isInt({ gt: 0 })
-            .withMessage("currencyId debe ser un entero positivo"),
-
         body("amount_paid")
             .isFloat({ gt: 0 })
             .withMessage("amount_paid debe ser un número mayor a 0"),
@@ -55,11 +51,6 @@ export class InvoicePaymentValidator {
                     return Promise.reject("El método de pago no existe");
                 }
             }),
-
-        body("currencyId")
-            .optional()
-            .isInt({ gt: 0 })
-            .withMessage("currencyId debe ser un entero positivo"),
 
         body("amount_paid")
             .optional()

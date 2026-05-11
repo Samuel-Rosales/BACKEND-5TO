@@ -15,6 +15,7 @@ export class DoctorAvailabilityController {
 
     async findAll(req: Request, res: Response) {
         const doctorId = req.query.doctorId ? Number(req.query.doctorId) : undefined;
+        const doctorScheduleId = req.query.doctorScheduleId ? Number(req.query.doctorScheduleId) : undefined;
         const specialtyId = req.query.specialtyId ? Number(req.query.specialtyId) : undefined;
         const day_of_week = req.query.day_of_week !== undefined ? Number(req.query.day_of_week) : undefined;
         const morning = req.query.morning !== undefined ? String(req.query.morning) === "true" : undefined;
@@ -22,6 +23,7 @@ export class DoctorAvailabilityController {
 
         const { data, status, message, error } = await service.findAll({
             doctorId,
+            doctorScheduleId,
             specialtyId,
             day_of_week,
             morning,
@@ -32,9 +34,9 @@ export class DoctorAvailabilityController {
     }
 
     async findOne(req: Request, res: Response) {
-        const { doctor_id } = req.params;
+        const { id } = req.params;
 
-        const { data, status, message, error } = await service.findOne(Number(doctor_id));
+        const { data, status, message, error } = await service.findOne(Number(id));
 
         return res.status(status).json({ message, data, error });
     }

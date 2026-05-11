@@ -90,4 +90,21 @@ export class DoctorValidator {
                 }
             }),
     ];
+
+    public UserIdParamValidator: ValidationChain[] = [
+        param("userId")
+            .isInt({ gt: 0 })
+            .withMessage("El userId debe ser un número entero positivo"),
+    ];
+
+    public DoctorExistsByUserIdValidator: ValidationChain[] = [
+        param("userId")
+            .custom(async (value) => {
+                const doctor = await prisma.doctor.findUnique({ where: { userId: Number(value) } });
+
+                if (!doctor) {
+                    return Promise.reject("No existe un doctor asociado a este usuario");
+                }
+            }),
+    ];
 }

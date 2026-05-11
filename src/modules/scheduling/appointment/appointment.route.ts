@@ -35,6 +35,13 @@ appointmentRouter.get(
     controller.findManyByDr
 );
 
+appointmentRouter.get(
+    "/patient/:id", //id del paciente
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.findByPatientId
+);
+
 appointmentRouter.put(
     "/:id",
     validator.IdParamValidator,
