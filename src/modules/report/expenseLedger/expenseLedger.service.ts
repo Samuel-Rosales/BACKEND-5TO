@@ -215,8 +215,63 @@ export class ExpenseLedgerService {
 
   private static async getPayroll(from: Date, to: Date, mode: PayrollMode, status?: string): Promise<ExpenseLedgerItem[]> {
     if (mode === PayrollMode.PAID) {
-      // Como indica el requerimiento, hoy no hay tabla de pago de nómina, por lo tanto devuelve vacío o warning
-      return [];
+      const paidPayments = await prisma.payrollPayment.findMany({
+        where: {
+          salaryPayment: {
+            date_at: {
+              gte: from,
+              lte: to,
+            },
+          },
+        },
+        include: {
+          salaryPayment: {
+            include: {
+              payroll: true,
+              user: {
+                include: {
+                  role: true,
+                },
+              },
+            },
+          },
+          payrollLine: {
+            include: {
+              payroll: true,
+              consultation: {
+                include: {
+                  doctor: {
+                    include: {
+                      user: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return paidPayments.map((payment) => {
+        const amountUsd = Number(payment.amount);
+        return {
+          id: `PAYROLLPAY-${payment.id}`,
+          source: 'PAYROLL' as const,
+          sourceId: payment.id,
+          occurredAt: (payment.salaryPayment.date_at || payment.salaryPayment.payroll.period_end || new Date()).toISOString(),
+          description: `Pago de nómina: ${payment.salaryPayment.user.name} - ${payment.payrollLine.consultation.doctor.user.name}`,
+          counterparty: payment.salaryPayment.user.name,
+          category: 'Servicios Médicos',
+          status: payment.salaryPayment.payroll.status,
+          paymentMethod: null,
+          currencyOriginal: 'USD' as const,
+          amountOriginal: amountUsd,
+          exchangeRate: 1,
+          amountUsd,
+          amountVes: amountUsd,
+          notes: `Línea #${payment.payrollLine.id}`,
+        } satisfies ExpenseLedgerItem;
+      });
     }
 
     // ACCRUED

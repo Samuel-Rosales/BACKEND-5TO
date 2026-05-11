@@ -268,6 +268,11 @@ async function ensureConsultationBundle(input: ConsultationBundleInput) {
 }
 
 export async function seedClinical(deps: ClinicalSeedDeps) {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+    const monthSecondDayMorning = new Date(today.getFullYear(), today.getMonth(), 2, 10, 0, 0, 0);
+    const monthSecondDayEnd = new Date(today.getFullYear(), today.getMonth(), 2, 10, 30, 0, 0);
+
     const specialtyGeneral = await ensureMedicalSpecialty({ name: "Medicina General", consultation_price: 20, commission_percentage: 30 });
     const specialtyPediatrics = await ensureMedicalSpecialty({ name: "Pediatría", consultation_price: 25, commission_percentage: 30 });
     const specialtyCardiology = await ensureMedicalSpecialty({ name: "Cardiología", consultation_price: 50, commission_percentage: 25 });
@@ -567,8 +572,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
         invoiceTotalUsd: 20,
-        startedAt: new Date("2026-04-01T14:00:00.000Z"),
-        finishedAt: new Date("2026-04-01T14:25:00.000Z"),
+        startedAt: monthStart,
+        finishedAt: new Date(today.getFullYear(), today.getMonth(), 1, 0, 25, 0, 0),
         symptoms: [
             { symptomId: symptoms[3].id, severity: "Alta", duration: "4 días", notes: "SEED: cefalea recurrente" },
         ],
@@ -607,8 +612,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
         invoiceTotalUsd: 25,
-        startedAt: new Date("2026-04-02T10:00:00.000Z"),
-        finishedAt: new Date("2026-04-02T10:30:00.000Z"),
+        startedAt: monthSecondDayMorning,
+        finishedAt: monthSecondDayEnd,
         symptoms: [
             { symptomId: symptoms[6].id, severity: "Media", duration: "3 días" },
         ],
@@ -644,11 +649,11 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patients: patients.map((patient) => patient.id),
         appointments: appointments.map((appointment) => appointment.id),
         consultations: [
-            { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20 },
-            { id: consultation2.id, invoiceId: consultation2.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25 },
-            { id: consultation3.id, invoiceId: consultation3.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 28, invoiceTotalUsd: 35 },
-            { id: consultation4.id, invoiceId: consultation4.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20 },
-            { id: consultation5.id, invoiceId: consultation5.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25 },
+            { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: new Date("2026-03-22T10:00:00.000Z") },
+            { id: consultation2.id, invoiceId: consultation2.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: new Date("2026-03-23T11:00:00.000Z") },
+            { id: consultation3.id, invoiceId: consultation3.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 28, invoiceTotalUsd: 35, startedAt: new Date("2026-03-24T09:30:00.000Z") },
+            { id: consultation4.id, invoiceId: consultation4.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: monthStart },
+            { id: consultation5.id, invoiceId: consultation5.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: monthSecondDayMorning },
         ],
         symptoms: symptoms.map((symptom) => symptom.id),
         diagnoses: diagnoses.map((diagnosis) => diagnosis.id),
