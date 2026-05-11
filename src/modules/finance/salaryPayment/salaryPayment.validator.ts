@@ -15,9 +15,6 @@ export const updateSalaryPaymentSchema = z.object({
     id: z.string().regex(/^\d+$/),
   }),
   body: z.object({
-    payrollId: z.union([z.number(), z.string()]).optional(),
-    userId: z.union([z.number(), z.string()]).optional(),
-    amount: z.union([z.number(), z.string()]).optional(),
     concept: z.string().optional(),
     date_at: z.union([z.string(), z.date()]).optional(),
   }),
