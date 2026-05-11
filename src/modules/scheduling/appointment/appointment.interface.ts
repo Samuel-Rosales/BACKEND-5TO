@@ -7,6 +7,8 @@ export interface CreateAppointmentDto {
     reson_visit?: string;
     price: string | number;
     date_time: string | Date;
+    payment_method?: string;
+    reference?: string;
 }
 
 export interface UpdateAppointmentDto {

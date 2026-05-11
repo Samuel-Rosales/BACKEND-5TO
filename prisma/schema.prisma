@@ -217,6 +217,8 @@ model Appointment {
   price          Decimal           @db.Decimal(12, 2)
   date_time DateTime
   created_at     DateTime          @default(now())
+  payment_method  String?           @db.VarChar(50) // 'pago_movil', 'transferencia', 'caja'
+  reference       String?           @db.VarChar(100)
 
   doctor         Doctor            @relation(fields: [doctorId], references: [id])
   patient        Patient           @relation(fields: [patientId], references: [id])
