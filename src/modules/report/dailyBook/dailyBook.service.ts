@@ -247,8 +247,29 @@ const sortLines = (lines: DailyBookLine[]) => lines.sort((a, b) => {
   const dayDiff = a.date.localeCompare(b.date);
   if (dayDiff !== 0) return dayDiff;
   if (a.entryId !== b.entryId) return a.entryId.localeCompare(b.entryId);
-  return a.type.localeCompare(b.type);
+  if (a.type !== b.type) return a.type === 'DEBIT' ? -1 : 1;
+  return a.reference.localeCompare(b.reference);
 });
+
+const groupLinesByEntry = (lines: DailyBookLine[]) => {
+  const groups: Array<{ entryId: string; date: string; lines: DailyBookLine[] }> = [];
+  let currentGroup: { entryId: string; date: string; lines: DailyBookLine[] } | null = null;
+
+  for (const line of lines) {
+    if (!currentGroup || currentGroup.entryId !== line.entryId) {
+      currentGroup = {
+        entryId: line.entryId,
+        date: line.date,
+        lines: [],
+      };
+      groups.push(currentGroup);
+    }
+
+    currentGroup.lines.push(line);
+  }
+
+  return groups;
+};
 
 const buildPdf = async (range: DailyBookQueryRange, lines: DailyBookLine[], summary: DailyBookSummary) => {
   const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
@@ -262,9 +283,9 @@ const buildPdf = async (range: DailyBookQueryRange, lines: DailyBookLine[], summ
   const logoPath = resolveLogoPath();
   const logoSvg = logoPath ? fs.readFileSync(logoPath, 'utf8').replace(/currentColor/g, '#0f766e') : null;
 
-  const tableTop = 170;
+  const tableTop = 120;
   const pageWidth = 523;
-  const widths = [55, 70, 165, 70, 70, 73];
+  const widths = [55, 55, 200, 55, 70, 88];
   const headers = ['Fecha', 'Cód.', 'Cuenta', 'Referencia', 'Debe', 'Haber'];
 
   const renderHeader = () => {
@@ -285,13 +306,55 @@ const buildPdf = async (range: DailyBookQueryRange, lines: DailyBookLine[], summ
 
   const renderTableHeader = () => {
     let x = 36;
-    doc.fontSize(9).font('Helvetica-Bold').fillColor('#0f172a');
-    doc.rect(36, tableTop, pageWidth, 20).fill('#dbeafe').stroke('#cbd5e1');
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000');
+    doc.rect(36, tableTop, pageWidth, 20).stroke();
     headers.forEach((header, index) => {
       doc.text(header, x + 4, tableTop + 6, { width: widths[index] - 8, align: index >= 4 ? 'right' : 'left' });
       x += widths[index];
     });
   };
+
+  const renderEntryHeader = (date: string, entryNumber: number, y: number) => {
+    doc.rect(36, y, pageWidth, 18).fillAndStroke('#f8fafc', '#cbd5e1');
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#0f172a');
+    doc.text(date, 40, y + 5, { width: widths[0] - 8, align: 'left' });
+    doc.text(`- ${entryNumber} -`, 36 + widths[0], y + 5, {
+      width: widths[0] + widths[1] + widths[2] + widths[3],
+      align: 'center',
+    });
+    return y + 18;
+  };
+
+const renderEntryLine = (line: DailyBookLine, refLabel: string, y: number) => {
+  let x = 36;
+  const cells = [
+    '',
+    line.accountCode,
+      line.type === 'DEBIT' ? line.accountName : `${line.accountName}${line.detail ? ` - ${line.detail}` : ''}`,
+      refLabel,
+      line.debit ? money(line.debit).toFixed(2) : '',
+      line.credit ? money(line.credit).toFixed(2) : '',
+  ];
+
+  doc.fontSize(8.5).font('Helvetica').fillColor('#334155');
+  const alignments = ['left', 'left', line.type === 'DEBIT' ? 'left' : 'right', 'center', 'right', 'right'] as const;
+  const cellHeights = cells.map((cell, index) => doc.heightOfString(String(cell), {
+    width: widths[index] - 8,
+    align: alignments[index],
+  }));
+  const rowHeight = Math.max(18, ...cellHeights.map((value) => value + 10));
+
+  doc.rect(36, y, pageWidth, rowHeight).strokeColor('#e2e8f0').stroke();
+  cells.forEach((cell, index) => {
+    doc.text(String(cell), x + 4, y + 5, {
+      width: widths[index] - 8,
+      align: alignments[index],
+    });
+    x += widths[index];
+  });
+
+  return y + rowHeight;
+};
 
   const ensureSpace = (y: number) => {
     if (y > 720) {
@@ -307,48 +370,44 @@ const buildPdf = async (range: DailyBookQueryRange, lines: DailyBookLine[], summ
   renderTableHeader();
 
   let y = tableTop + 20;
-  let currentEntry = '';
-  let currentDate = '';
+  const groupedLines = groupLinesByEntry(lines);
 
-  for (const line of lines) {
+  groupedLines.forEach((group, entryIndex) => {
+    const entryNumber = entryIndex + 1;
+    const requiredHeight = 18 + (group.lines.length * 18);
     y = ensureSpace(y);
-    if (line.entryId !== currentEntry) {
-      currentEntry = line.entryId;
-      currentDate = line.date;
-      y += 2;
+    if (y + requiredHeight > 720) {
+      doc.addPage();
+      renderHeader();
+      renderTableHeader();
+      y = tableTop + 20;
     }
 
-    const cells = [
-      line.date === currentDate ? line.date : '',
-      line.accountCode,
-      `${line.accountName}${line.detail ? ` - ${line.detail}` : ''}`,
-      line.reference,
-      line.debit ? money(line.debit).toFixed(2) : '',
-      line.credit ? money(line.credit).toFixed(2) : '',
-    ];
+    y = renderEntryHeader(group.date, entryNumber, y);
 
-    let x = 36;
-    doc.fontSize(8.5).font('Helvetica').fillColor('#334155');
-    const rowHeight = 18;
-    doc.rect(36, y, pageWidth, rowHeight).strokeColor('#e2e8f0').stroke();
-    cells.forEach((cell, index) => {
-      doc.text(String(cell), x + 4, y + 5, {
-        width: widths[index] - 8,
-        align: index >= 4 ? 'right' : 'left',
-        ellipsis: true,
-      });
-      x += widths[index];
+    group.lines.forEach((line) => {
+      y = renderEntryLine(line, line.accountCode, y);
     });
-    y += rowHeight;
-  }
+  });
 
   y += 8;
-  doc.moveTo(36, y).lineTo(559, y).strokeColor('#cbd5e1').stroke();
-  y += 12;
-  doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
-  doc.text(`Totales Debe: ${summary.totalDebit.toFixed(2)} USD`, 36, y);
-  doc.text(`Totales Haber: ${summary.totalCredit.toFixed(2)} USD`, 250, y);
-  doc.text(`Movimientos: ${summary.linesCount}`, 430, y);
+  y = ensureSpace(y);
+  const totalRowHeight = 22;
+  doc.rect(36, y, pageWidth, totalRowHeight).strokeColor('#cbd5e1').stroke();
+  doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f172a');
+  doc.text('Totales', 36 + widths[0] + widths[1] + widths[2] + 4, y + 6, {
+    width: widths[3] - 8,
+    align: 'center',
+  });
+  doc.text(summary.totalDebit.toFixed(2), 36 + widths[0] + widths[1] + widths[2] + widths[3] + 4, y + 6, {
+    width: widths[4] - 8,
+    align: 'right',
+  });
+  doc.text(summary.totalCredit.toFixed(2), 36 + widths[0] + widths[1] + widths[2] + widths[3] + widths[4] + 4, y + 6, {
+    width: widths[5] - 8,
+    align: 'right',
+  });
+  y += totalRowHeight + 4;
 
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i += 1) {
