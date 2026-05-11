@@ -36,6 +36,13 @@ appointmentRouter.get(
 );
 
 appointmentRouter.get(
+    "/doctor/:id/weekly-flow",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.getWeeklyFlowByDoctor
+);
+
+appointmentRouter.get(
     "/patient/:id", //id del paciente
     validator.IdParamValidator,
     handleValidationErrors,

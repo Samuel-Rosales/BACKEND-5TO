@@ -40,6 +40,28 @@ export class AppointmentController {
         return res.status(status).json({ message, data, error });
     }
 
+    async getWeeklyFlowByDoctor(req: Request, res: Response) {
+        const { id } = req.params;
+        const doctorIdHeader = req.header("x-doctor-id") ?? undefined;
+        const range = (req.query.range ?? req.query.rango ?? req.query.filter) !== undefined
+            ? String(req.query.range ?? req.query.rango ?? req.query.filter)
+            : undefined;
+
+        const doctorIdFinal = id ?? doctorIdHeader;
+        const doctorIdNumber = Number(doctorIdFinal);
+        if (!Number.isFinite(doctorIdNumber) || doctorIdNumber <= 0) {
+            return res.status(400).json({
+                message: "doctorId inválido",
+                data: null,
+                error: "Validación",
+            });
+        }
+
+        const { data, status, message, error } = await service.getWeeklyFlowByDoctor(doctorIdNumber, range);
+
+        return res.status(status).json({ message, data, error });
+    }
+
     async findOne(req: Request, res: Response) {
         const { id } = req.params;
 

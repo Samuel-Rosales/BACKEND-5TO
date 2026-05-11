@@ -106,6 +106,10 @@ export class AppointmentService {
         return new Date(Date.UTC(dateTime.getUTCFullYear(), dateTime.getUTCMonth(), dateTime.getUTCDate(), 0, 0, 0, 0));
     }
 
+    private formatDateOnlyUTC(dateTime: Date) {
+        return dateTime.toISOString().slice(0, 10);
+    }
+
     private atDayTimeUTC(dayStart: Date, time: Date) {
         return new Date(
             Date.UTC(
@@ -458,6 +462,79 @@ export class AppointmentService {
             return {
                 status: 500,
                 message: "Error interno al buscar las citas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
+    async getWeeklyFlowByDoctor(doctorId: number, range?: string) {
+        try {
+            const normalizedRange = this.normalizeRange(range) ?? "week";
+            if (range && !this.normalizeRange(range)) {
+                return {
+                    status: 400,
+                    message: "Filtro inválido",
+                    error: "range debe ser: hoy|semana|mes (o today|week|month)",
+                };
+            }
+
+            const { start, end } = this.rangeBoundsUTC(normalizedRange, new Date());
+
+            const appointments = await prisma.appointment.findMany({
+                where: {
+                    doctorId,
+                    date_time: { gte: start, lt: end },
+                    status: {
+                        name: {
+                            not: { equals: "Cancelada" },
+                        },
+                    },
+                },
+                select: { date_time: true },
+                orderBy: { date_time: "asc" },
+            });
+
+            const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+            const days: { day: string; date: string; count: number }[] = [];
+            const indexByDate = new Map<string, number>();
+
+            const cursor = new Date(start);
+            while (cursor < end) {
+                const dateOnly = this.formatDateOnlyUTC(cursor);
+                const label = dayLabels[cursor.getUTCDay()] ?? "";
+                indexByDate.set(dateOnly, days.length);
+                days.push({ day: label, date: dateOnly, count: 0 });
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+            }
+
+            for (const appointment of appointments) {
+                const dayStart = this.dayStartUTC(appointment.date_time);
+                const key = this.formatDateOnlyUTC(dayStart);
+                const index = indexByDate.get(key);
+                if (index !== undefined) {
+                    days[index].count += 1;
+                }
+            }
+
+            const total = days.reduce((sum, day) => sum + day.count, 0);
+
+            return {
+                status: 200,
+                message: "Flujo semanal encontrado éxitosamente",
+                data: {
+                    range: normalizedRange,
+                    start: this.formatDateOnlyUTC(start),
+                    end: this.formatDateOnlyUTC(end),
+                    total,
+                    days,
+                },
+            };
+        } catch (error) {
+            console.error("Error buscando flujo semanal:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar el flujo semanal",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }
