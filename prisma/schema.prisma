@@ -15,6 +15,7 @@ model Role {
   id     Int     @id @default(autoincrement())
   name   String  @unique
   code   String  @unique
+  base_salary Decimal? @db.Decimal(12, 2)
   active Boolean @default(true)
 
   users User[]
@@ -22,18 +23,19 @@ model Role {
 
 model User {
   id       Int     @id @default(autoincrement())
-  ci       String  @unique
+  ci       String  @unique // nuevo campo para cédula de identidad
   name     String
   password String  @db.VarChar(255)
   roleId   Int
-  active   Boolean @default(true)
+  active   Boolean @default(true) 
 
   role           Role            @relation(fields: [roleId], references: [id])
   doctor         Doctor?
-  patient        Patient[]
+  patient        Patient?
   stockMovements StockMovement[]
   purchases      Purchase[]
   invoices       Invoice[]      
+  salaryPayments SalaryPayment[]
 }
 
 // ==========================================
@@ -42,15 +44,45 @@ model User {
 
 model Patient {
   id              Int     @id @default(autoincrement())
-  userId          Int?    @unique
-  user            User?   @relation(fields: [userId], references: [id])
-  tipo_sangre     String? @db.Text
-  medical_history String? @db.Text
+  userId          Int     @unique
+  user            User    @relation(fields: [userId], references: [id])
+  ci              String? @unique // nuevo campo para cédula de identidad
+  name            String?
+  last_name       String?
+  info_completed  Boolean @default(false)
+  // tipo_sangre     String? @db.Text
+  // medical_history String? @db.Text
   last_visit_at   DateTime?
   active          Boolean @default(true)
 
   appointments  Appointment[]
   invoices       Invoice[]
+  info_patient   InfoPatient?
+}
+
+model InfoPatient {
+  id              Int     @id @default(autoincrement())
+  patientId       Int     @unique
+  sex             Sex
+  blood_type      String? @db.Text
+  nacionality      String? @db.Text
+  birth_date      DateTime
+  profession       String? @db.VarChar(100)
+
+  main_phone       String? @db.VarChar(20)
+  secondary_phone String? @db.VarChar(20)
+  email           String? @db.VarChar(255)
+  address         String? @db.Text
+  city            String? @db.VarChar(100)
+
+  allergies      String? @db.Text
+  chronic_diseases String? @db.Text
+  current_medications String? @db.Text 
+  previous_surgeries String? @db.Text
+  
+  active          Boolean @default(true)
+
+  patient         Patient @relation(fields: [patientId], references: [id])
 }
 
 model Doctor {
@@ -61,7 +93,7 @@ model Doctor {
 
   user           User                     @relation(fields: [userId], references: [id])
   specialty      MedicalSpecialty         @relation(fields: [specialtyId], references: [id])
-  availabilities DoctorAvailability[]
+  schedules      DoctorSchedule[]
   overrides      DoctorScheduleOverride[]
   appointments   Appointment[]
   consultations  Consultation[]
@@ -90,9 +122,11 @@ model Consultation {
 
   supplies              SupplyConsultation[]
   prescriptions         Prescription[]
-  symptomsConsultations     SymptomsConsultation[]
+  symptomsConsultations SymptomsConsultation[]
   clinicalExaminations  ClinicalExamination[]
   consultationDiagnoses ConsultationDiagnosis[]
+
+  payrollLine           PayrollLine?
 }
 
 model Prescription {
@@ -205,16 +239,30 @@ model AppointmentType {
 
   appointments Appointment[]
 }
+model DoctorSchedule {
+  id           Int       @id @default(autoincrement())
+  doctorId     Int
+  period_start DateTime  @db.Date
+  period_end   DateTime? @db.Date
+
+  doctor         Doctor             @relation(fields: [doctorId], references: [id])
+  availabilities DoctorAvailability[]
+
+  @@index([doctorId, period_start])
+  @@index([doctorId, period_end])
+}
 
 model DoctorAvailability {
-  id            Int      @id @default(autoincrement())
-  doctorId      Int
-  day_of_week   Int // 0-6
-  start_time    DateTime @db.Time
-  end_time      DateTime @db.Time
-  patient_limit Int // Número máximo de pacientes por franja horaria
+  id               Int      @id @default(autoincrement())
+  doctorScheduleId Int
+  day_of_week      Int // 0-6
+  start_time       DateTime @db.Time
+  end_time         DateTime @db.Time
+  patient_limit    Int // Número máximo de pacientes por franja horaria
 
-  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+  doctorSchedule   DoctorSchedule @relation(fields: [doctorScheduleId], references: [id])
+
+  @@index([doctorScheduleId, day_of_week])
 }
 
 model DoctorScheduleOverride {
@@ -242,8 +290,8 @@ model Invoice {
   taxId          Int
   
   total_usd      Decimal          @db.Decimal(12, 2)
+  date_at        DateTime         @default(now())
 
-  @@index([patientId])
 
   tax            Tax              @relation(fields: [taxId], references: [id])
   patient        Patient          @relation(fields: [patientId], references: [id])
@@ -253,6 +301,8 @@ model Invoice {
 
   payments       InvoicePayment[]
   consultation   Consultation?
+  
+  @@index([patientId])
 }
 
 model StatusInvoice {
@@ -265,13 +315,17 @@ model StatusInvoice {
 model InvoicePayment {
   id              Int           @id @default(autoincrement())
   invoiceId       Int
-  invoice         Invoice       @relation(fields: [invoiceId], references: [id])
   paymentMethodId Int
-  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
-  currencyId      Int
+  exchangeRateId  Int
+
   amount_paid     Decimal       @db.Decimal(12, 2)
   igtf_amount     Decimal       @default(0) @db.Decimal(12, 2)
-  exchangeRateId  Int
+  reference        String?      @db.VarChar(255)
+  date_at        DateTime?      @default(now())
+
+
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id])
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
   exchangeRate    ExchangeRate  @relation(fields: [exchangeRateId], references: [id])
 }
 
@@ -301,13 +355,70 @@ model Tax {
 model PaymentMethod {
   id               Int               @id @default(autoincrement())
   name             String
-  type             String // Cash, Transfer, etc.
-  currency         String // USD, VES
+  type             String           // Cash, Transfer, etc.
+  currency         Currency       @default(USD)// USD, VES d
   is_active        Boolean           @default(true)
 
   invoicePayments  InvoicePayment[]
   expensePayments  ExpensePayment[]
   purchasePayments PurchasePayment[]
+}
+
+model Payroll {
+  id                  Int     @id @default(autoincrement())
+  period_start        DateTime
+  period_end          DateTime
+  
+  status              String  // Paid, Pending, etc.
+  created_at          DateTime @default(now())
+  
+  payrollLines         PayrollLine[]
+  salaryPayments       SalaryPayment[]
+
+  @@unique([period_start, period_end])
+}
+
+model PayrollLine {
+  id                    Int     @id @default(autoincrement())
+  payrollId             Int
+  consultationId        Int     @unique
+
+  base_amount                 Decimal @db.Decimal(12, 2)
+  commission_percentage Decimal @db.Decimal(5, 2) // Ej: 30.00 para la clínica
+
+  payroll       Payroll @relation(fields: [payrollId], references: [id])
+  consultation  Consultation @relation(fields: [consultationId], references: [id])
+  payrollPayments PayrollPayment[]
+}
+
+model SalaryPayment {
+  id          Int       @id @default(autoincrement())
+  payrollId   Int
+  userId      Int
+  amount      Decimal   @db.Decimal(12, 2)
+  concept     String?   @db.VarChar(255)
+  date_at     DateTime  @default(now())
+
+  payroll     Payroll   @relation(fields: [payrollId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  payrollPayments PayrollPayment[]
+
+  @@index([payrollId])
+  @@index([userId])
+}
+
+model PayrollPayment {
+  id              Int      @id @default(autoincrement())
+  salaryPaymentId Int
+  payrollLineId   Int
+  amount          Decimal  @db.Decimal(12, 2)
+
+  salaryPayment   SalaryPayment @relation(fields: [salaryPaymentId], references: [id])
+  payrollLine     PayrollLine   @relation(fields: [payrollLineId], references: [id])
+
+  @@unique([salaryPaymentId, payrollLineId])
+  @@index([salaryPaymentId])
+  @@index([payrollLineId])
 }
 
 // ==========================================
@@ -441,6 +552,7 @@ model ExpensePayment {
   paymentMethodId  Int
   amount           Decimal        @db.Decimal(12, 2) 
   exchangeRateId   Int
+  reference        String?      @db.VarChar(255)
   date_at          DateTime?       @default(now())
 
   paymentMethod    PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
@@ -512,3 +624,14 @@ enum StatusPurchase {
   CANCELLED
   ANULLED
 }
+
+enum Currency {
+  USD
+  VES
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+

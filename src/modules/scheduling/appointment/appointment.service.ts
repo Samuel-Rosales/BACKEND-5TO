@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { Prisma } from "@prisma/client";
 import { CreateAppointmentDto, UpdateAppointmentDto } from "./appointment.interface";
 
 const appointmentSelect = {
@@ -36,6 +37,8 @@ const appointmentSelect = {
         select: {
             id: true,
             userId: true,
+            ci: true,
+            name: true,
             active: true,
             user: {
                 select: {
@@ -62,6 +65,42 @@ const appointmentSelect = {
 } as const;
 
 export class AppointmentService {
+
+    private normalizeRange(value?: string) {
+        if (!value) return undefined;
+        const normalized = value.trim().toLowerCase();
+
+        if (normalized === "today" || normalized === "hoy") return "today" as const;
+        if (normalized === "week" || normalized === "semana") return "week" as const;
+        if (normalized === "month" || normalized === "mes") return "month" as const;
+
+        return undefined;
+    }
+
+    private rangeBoundsUTC(range: "today" | "week" | "month", now: Date) {
+        const todayStart = this.dayStartUTC(now);
+
+        if (range === "today") {
+            const end = new Date(todayStart);
+            end.setUTCDate(end.getUTCDate() + 1);
+            return { start: todayStart, end };
+        }
+
+        if (range === "week") {
+            const dow = todayStart.getUTCDay();
+            const daysSinceMonday = (dow + 6) % 7;
+            const start = new Date(todayStart);
+            start.setUTCDate(start.getUTCDate() - daysSinceMonday);
+            const end = new Date(start);
+            end.setUTCDate(end.getUTCDate() + 7);
+            return { start, end };
+        }
+
+        // month
+        const start = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1, 0, 0, 0, 0));
+        const end = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+        return { start, end };
+    }
 
     private dayStartUTC(dateTime: Date) {
         return new Date(Date.UTC(dateTime.getUTCFullYear(), dateTime.getUTCMonth(), dateTime.getUTCDate(), 0, 0, 0, 0));
@@ -123,9 +162,23 @@ export class AppointmentService {
             return { ok: false as const, reason: "El doctor no trabaja en esa fecha" };
         }
 
-        const availabilities = await prisma.doctorAvailability.findMany({
+        const schedule = await prisma.doctorSchedule.findFirst({
             where: {
                 doctorId,
+                period_start: { lte: dayStart },
+                OR: [{ period_end: null }, { period_end: { gt: dayStart } }],
+            },
+            orderBy: { period_start: "desc" },
+            select: { id: true },
+        });
+
+        if (!schedule) {
+            return { ok: false as const, reason: "No hay un horario (DoctorSchedule) vigente para esa fecha" };
+        }
+
+        const availabilities = await prisma.doctorAvailability.findMany({
+            where: {
+                doctorScheduleId: schedule.id,
                 day_of_week: dayOfWeek,
             },
             select: { start_time: true, end_time: true, patient_limit: true },
@@ -240,24 +293,52 @@ export class AppointmentService {
                 }
             }
 
-            const existing = await prisma.appointment.findFirst({
+            // ── Validar conflicto: mismo paciente + misma hora (con cualquier doctor) ──
+            const patientConflict = await prisma.appointment.findFirst({
                 where: {
-                    doctorId,
                     patientId: data.patientId,
                     date_time: dateTime,
                     status: {
-                        name: {
-                            not: { equals: "Cancelada" },
+                        name: { not: { equals: "Cancelada" } },
+                    },
+                },
+                select: {
+                    id: true,
+                    doctor: {
+                        select: {
+                            user: { select: { name: true } },
+                            specialty: { select: { name: true } },
                         },
                     },
                 },
-                select: { id: true },
             });
-            if (existing) {
+            if (patientConflict) {
                 return {
                     status: 409,
-                    message: "El paciente ya tiene una cita con ese doctor en esa horario",
-                    error: "Conflicto",
+                    message: `El paciente ya tiene una cita a esta hora con el Dr. ${patientConflict.doctor.user.name} (${patientConflict.doctor.specialty.name})`,
+                    error: "Conflicto de paciente",
+                };
+            }
+
+            // ── Validar conflicto: mismo doctor + misma hora (con cualquier paciente) ──
+            const doctorConflict = await prisma.appointment.findFirst({
+                where: {
+                    doctorId,
+                    date_time: dateTime,
+                    status: {
+                        name: { not: { equals: "Cancelada" } },
+                    },
+                },
+                select: {
+                    id: true,
+                    patient: { select: { name: true } },
+                },
+            });
+            if (doctorConflict) {
+                return {
+                    status: 409,
+                    message: `El doctor ya tiene una cita a esta hora con el paciente ${doctorConflict.patient.name}`,
+                    error: "Conflicto de doctor",
                 };
             }
 
@@ -294,9 +375,26 @@ export class AppointmentService {
         }
     }
 
-    async findAll() {
+    async findAll(filters?: { range?: string, statusId?: number }) {
         try {
+            const range = this.normalizeRange(filters?.range);
+            if (filters?.range && !range) {
+                return {
+                    status: 400,
+                    message: "Filtro inválido",
+                    error: "range debe ser: hoy|semana|mes (o today|week|month)",
+                };
+            }
+
+            const where: Prisma.AppointmentWhereInput = {};
+            if (range) {
+                const { start, end } = this.rangeBoundsUTC(range, new Date());
+                where.date_time = { gte: start, lt: end };
+            }
+            if(filters?.statusId) where.statusId = filters.statusId;
+
             const appointments = await prisma.appointment.findMany({
+                where,
                 orderBy: { date_time: "desc" },
                 select: appointmentSelect,
             });
@@ -364,6 +462,42 @@ export class AppointmentService {
             };
         }
     }
+
+    async findByPatientId(patientId: number) {
+        try {
+            const appointments = await prisma.appointment.findMany({
+                where: { patientId },
+                orderBy: { date_time: "desc" },
+                select: appointmentSelect,
+            });
+
+            if (!appointments) {
+                throw new Error("Error buscando citas");
+            }
+
+            if (appointments.length === 0) {
+                return {
+                    status: 200,
+                    message: "No se encontraron citas para el paciente",
+                    data: [],
+                };
+            }
+
+            return {
+                status: 200,
+                message: "Citas encontradas éxitosamente",
+                data: appointments,
+            };
+        } catch (error) {
+            console.error("Error buscando citas:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar las citas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
     async findOne(id: number) {
         try {
             const appointment = await prisma.appointment.findUnique({
@@ -397,6 +531,75 @@ export class AppointmentService {
                 ...data,
                 date_time: data.date_time ? this.normalizeDateTime(data.date_time) : undefined,
             };
+
+            // Si se cambia fecha/hora, doctor o paciente, validar conflictos
+            if (normalized.date_time || normalized.doctorId || normalized.patientId) {
+                const current = await prisma.appointment.findUnique({
+                    where: { id },
+                    select: { doctorId: true, patientId: true, date_time: true },
+                });
+                if (!current) {
+                    return { status: 404, message: "Cita no encontrada", error: "Not found" };
+                }
+
+                const newDateTime = normalized.date_time ?? current.date_time;
+                const newDoctorId = normalized.doctorId ?? current.doctorId;
+                const newPatientId = normalized.patientId ?? current.patientId;
+
+                // No validar si no cambió nada relevante
+                const dateChanged = normalized.date_time && new Date(newDateTime).getTime() !== new Date(current.date_time).getTime();
+                const doctorChanged = normalized.doctorId !== undefined && normalized.doctorId !== current.doctorId;
+                const patientChanged = normalized.patientId !== undefined && normalized.patientId !== current.patientId;
+
+                if (dateChanged || doctorChanged || patientChanged) {
+                    // Conflicto: mismo paciente + misma hora (excluyendo esta cita)
+                    const patientConflict = await prisma.appointment.findFirst({
+                        where: {
+                            id: { not: id },
+                            patientId: newPatientId,
+                            date_time: newDateTime,
+                            status: { name: { not: { equals: "Cancelada" } } },
+                        },
+                        select: {
+                            id: true,
+                            doctor: {
+                                select: {
+                                    user: { select: { name: true } },
+                                    specialty: { select: { name: true } },
+                                },
+                            },
+                        },
+                    });
+                    if (patientConflict) {
+                        return {
+                            status: 409,
+                            message: `El paciente ya tiene una cita a esta hora con el Dr. ${patientConflict.doctor.user.name} (${patientConflict.doctor.specialty.name})`,
+                            error: "Conflicto de paciente",
+                        };
+                    }
+
+                    // Conflicto: mismo doctor + misma hora (excluyendo esta cita)
+                    const doctorConflict = await prisma.appointment.findFirst({
+                        where: {
+                            id: { not: id },
+                            doctorId: newDoctorId,
+                            date_time: newDateTime,
+                            status: { name: { not: { equals: "Cancelada" } } },
+                        },
+                        select: {
+                            id: true,
+                            patient: { select: { name: true } },
+                        },
+                    });
+                    if (doctorConflict) {
+                        return {
+                            status: 409,
+                            message: `El doctor ya tiene una cita a esta hora con el paciente ${doctorConflict.patient.name}`,
+                            error: "Conflicto de doctor",
+                        };
+                    }
+                }
+            }
 
             const appointment = await prisma.appointment.update({
                 where: { id },

@@ -19,6 +19,11 @@ export class DoctorAvailabilityValidator {
             .isInt({ gt: 0 })
             .withMessage("doctorId debe ser un número entero positivo"),
 
+        query("doctorScheduleId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("doctorScheduleId debe ser un número entero positivo"),
+
         query("specialtyId")
             .optional()
             .isInt({ gt: 0 })
@@ -43,14 +48,14 @@ export class DoctorAvailabilityValidator {
     ];
 
     public createDoctorAvailabilityValidator: ValidationChain[] = [
-        body("doctorId")
+        body("doctorScheduleId")
             .isInt({ gt: 0 })
-            .withMessage("El doctorId debe ser un número entero positivo")
+            .withMessage("El doctorScheduleId debe ser un número entero positivo")
             .custom(async (value) => {
-                const doctor = await prisma.doctor.findUnique({ where: { id: Number(value) } });
+                const schedule = await prisma.doctorSchedule.findUnique({ where: { id: Number(value) } });
 
-                if (!doctor || !doctor.active) {
-                    return Promise.reject("El doctor no existe o no está activo");
+                if (!schedule) {
+                    return Promise.reject("El DoctorSchedule no existe");
                 }
             }),
 
@@ -91,15 +96,15 @@ export class DoctorAvailabilityValidator {
     ];
 
     public updateDoctorAvailabilityValidator: ValidationChain[] = [
-        body("doctorId")
+        body("doctorScheduleId")
             .optional()
             .isInt({ gt: 0 })
-            .withMessage("El doctorId debe ser un número entero positivo")
+            .withMessage("El doctorScheduleId debe ser un número entero positivo")
             .custom(async (value) => {
-                const doctor = await prisma.doctor.findUnique({ where: { id: Number(value) } });
+                const schedule = await prisma.doctorSchedule.findUnique({ where: { id: Number(value) } });
 
-                if (!doctor || !doctor.active) {
-                    return Promise.reject("El doctor no existe o no está activo");
+                if (!schedule) {
+                    return Promise.reject("El DoctorSchedule no existe");
                 }
             }),
 
@@ -146,13 +151,13 @@ export class DoctorAvailabilityValidator {
     ];
 
     public IdParamValidator: ValidationChain[] = [
-        param("doctor_id")
+        param("id")
             .isInt({ gt: 0 })
             .withMessage(`El ID de la disponibilidad debe ser un número entero positivo`),
     ];
 
     public DoctorAvailabilityExistsValidator: ValidationChain[] = [
-        param("doctor_id")
+        param("id")
             .custom(async (value) => {
                 const availability = await prisma.doctorAvailability.findUnique({ where: { id: Number(value) } });
 

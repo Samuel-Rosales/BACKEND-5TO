@@ -13,8 +13,24 @@ export class PatientController {
         return res.status(status).json({ message, data: created, error });
     }
 
+    async createFromReception(req: Request, res: Response) {
+        const data = req.body;
+
+        const { data: created, status, message, error } = await service.createFromReception(data);
+
+        return res.status(status).json({ message, data: created, error });
+    }
+
     async findAll(req: Request, res: Response) {
         const { data, status, message, error } = await service.findAll();
+
+        return res.status(status).json({ message, data, error });
+    }
+
+    async findAllFromUser(req: Request, res: Response) {
+        const { id } = req.params; //userId
+
+        const { data, status, message, error } = await service.findAllFromUser(Number(id));
 
         return res.status(status).json({ message, data, error });
     }

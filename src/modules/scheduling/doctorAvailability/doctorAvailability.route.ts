@@ -23,7 +23,7 @@ doctorAvailabilityRouter.get(
 );
 
 doctorAvailabilityRouter.get(
-    "/:doctor_id",
+    "/:id",
     validator.IdParamValidator,
     //validator.DoctorAvailabilityExistsValidator,
     handleValidationErrors,

@@ -35,6 +35,19 @@ export class DoctorService {
 
     async create(data: CreateDoctorDto) {
         try {
+
+            const user = await prisma.user.findUnique({
+                where: { id: data.userId },
+                include: { role: true },
+            });
+
+            if (user?.role.code !== "DOCTOR") {
+                return {
+                    status: 400,
+                    message: "El usuario debe tener el rol de doctor",
+                };
+            }
+
             const doctor = await prisma.doctor.create({
                 data,
                 select: doctorSelect,
@@ -90,6 +103,33 @@ export class DoctorService {
             return {
                 status: 500,
                 message: "Error interno al buscar los doctores",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
+    async findByUserId(userId: number) {
+        try {
+            const doctor = await prisma.doctor.findUnique({
+                where: { userId },
+                select: doctorSelect,
+            });
+
+            if (!doctor) {
+                throw new Error("Doctor no encontrado para este usuario");
+            }
+
+            return {
+                status: 200,
+                message: "Doctor encontrado",
+                data: doctor,
+            };
+        } catch (error) {
+            console.error("Error buscando doctor por userId:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar el doctor",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }

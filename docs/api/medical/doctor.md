@@ -13,7 +13,8 @@ Relaciones:
 
 - `Doctor (1) -> (N) Appointment`
 - `Doctor (1) -> (N) Consultation`
-- `Doctor (1) -> (N) DoctorAvailability`
+- `Doctor (1) -> (N) DoctorSchedule`
+- `DoctorSchedule (1) -> (N) DoctorAvailability`
 - `Doctor (1) -> (N) DoctorScheduleOverride`
 
 Notas:

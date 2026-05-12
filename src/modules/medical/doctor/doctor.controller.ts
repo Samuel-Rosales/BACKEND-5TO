@@ -19,6 +19,14 @@ export class DoctorController {
         return res.status(status).json({ message, data, error });
     }
 
+    async findByUserId(req: Request, res: Response) {
+        const { userId } = req.params;
+
+        const { data, status, message, error } = await service.findByUserId(Number(userId));
+
+        return res.status(status).json({ message, data, error });
+    }
+
     async findOne(req: Request, res: Response) {
         const { id } = req.params;
 

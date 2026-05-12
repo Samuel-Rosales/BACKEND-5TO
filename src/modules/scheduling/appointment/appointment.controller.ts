@@ -14,7 +14,12 @@ export class AppointmentController {
     }
 
     async findAll(req: Request, res: Response) {
-        const { data, status, message, error } = await service.findAll();
+        const range = (req.query.range ?? req.query.rango ?? req.query.filter) !== undefined
+            ? String(req.query.range ?? req.query.rango ?? req.query.filter)
+            : undefined;
+        const statusId = req.query?.statusId ? Number(req.query.statusId) : undefined;
+
+        const { data, status, message, error } = await service.findAll({ range, statusId });
 
         return res.status(status).json({ message, data, error });
     }
@@ -23,6 +28,14 @@ export class AppointmentController {
         const { id } = req.params;
 
         const { data, status, message, error } = await service.findManyByDr(Number(id));
+
+        return res.status(status).json({ message, data, error });
+    }
+
+    async findByPatientId(req: Request, res: Response) {
+        const { id } = req.params;
+
+        const { data, status, message, error } = await service.findByPatientId(Number(id));
 
         return res.status(status).json({ message, data, error });
     }

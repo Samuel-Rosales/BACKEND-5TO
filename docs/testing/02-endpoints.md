@@ -22,6 +22,7 @@ Estos paths están montados en el server:
 - `/scheduling/status-appointment`
 - `/scheduling/appointment-type`
 - `/scheduling/appointment`
+- `/scheduling/doctor-schedule`
 - `/scheduling/doctor-availability`
 - `/scheduling/doctor-schedule-override`
 
