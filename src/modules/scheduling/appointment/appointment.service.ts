@@ -82,32 +82,35 @@ export class AppointmentService {
 
         if (range === "today") {
             const end = new Date(todayStart);
-            end.setUTCDate(end.getUTCDate() + 1);
+            end.setDate(end.getDate() + 1);
             return { start: todayStart, end };
         }
 
         if (range === "week") {
-            const dow = todayStart.getUTCDay();
+            const dow = todayStart.getDay();
             const daysSinceMonday = (dow + 6) % 7;
             const start = new Date(todayStart);
-            start.setUTCDate(start.getUTCDate() - daysSinceMonday);
+            start.setDate(start.getDate() - daysSinceMonday);
             const end = new Date(start);
-            end.setUTCDate(end.getUTCDate() + 7);
+            end.setDate(end.getDate() + 7);
             return { start, end };
         }
 
         // month
-        const start = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1, 0, 0, 0, 0));
-        const end = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+        const start = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1, 0, 0, 0, 0);
+        const end = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1, 0, 0, 0, 0);
         return { start, end };
     }
 
     private dayStartUTC(dateTime: Date) {
-        return new Date(Date.UTC(dateTime.getUTCFullYear(), dateTime.getUTCMonth(), dateTime.getUTCDate(), 0, 0, 0, 0));
+        return new Date(dateTime.getFullYear(), dateTime.getMonth(), dateTime.getDate(), 0, 0, 0, 0);
     }
 
     private formatDateOnlyUTC(dateTime: Date) {
-        return dateTime.toISOString().slice(0, 10);
+        const year = dateTime.getFullYear();
+        const month = String(dateTime.getMonth() + 1).padStart(2, "0");
+        const day = String(dateTime.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
     }
 
     private atDayTimeUTC(dayStart: Date, time: Date) {
