@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { ConsultationStatus } from "@prisma/client";
 import { CreateInvoiceDto, CreateInvoiceDetailDto, UpdateInvoiceDto } from "./invoice.interface";
 import { Decimal } from "@prisma/client/runtime/client";
 import { resolveExchangeRate } from "@/utils/exchange-rate.util";
@@ -306,6 +307,26 @@ export class InvoiceService {
                             amount_paid: payment.amount_paid,
                             igtf_amount: payment.igtf_amount,
                             exchangeRateId: exchangeRate.id,
+                        },
+                    });
+                }
+
+                if (data.appointmentId) {
+                    const appointment = await tx.appointment.findUnique({
+                        where: { id: data.appointmentId },
+                        select: { doctorId: true },
+                    });
+
+                    if (!appointment) {
+                        throw new Error("La cita no existe");
+                    }
+
+                    await tx.consultation.create({
+                        data: {
+                            invoiceId: created.id,
+                            doctorId: appointment.doctorId,
+                            date: new Date(),
+                            status: ConsultationStatus.PENDING,
                         },
                     });
                 }

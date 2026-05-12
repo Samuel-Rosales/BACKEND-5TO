@@ -114,8 +114,9 @@ model Consultation {
   invoiceId             Int                     @unique
   doctorId              Int
   date                  DateTime                @default(now()) @db.Date
-  started_at            DateTime                @default(now())
+  started_at            DateTime?
   finished_at           DateTime?
+  status                ConsultationStatus      @default(PENDING)
 
   doctor                Doctor                  @relation(fields: [doctorId], references: [id])
   invoice               Invoice                 @relation(fields: [invoiceId], references: [id])
@@ -127,6 +128,13 @@ model Consultation {
   consultationDiagnoses ConsultationDiagnosis[]
 
   payrollLine           PayrollLine?
+}
+
+enum ConsultationStatus {
+  PENDING
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
 }
 
 model Prescription {

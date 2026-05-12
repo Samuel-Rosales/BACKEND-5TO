@@ -31,6 +31,13 @@ consultationRouter.get(
 );
 
 consultationRouter.get(
+    "/doctor/:id/weekly-flow",
+    validator.finAllByDoctorValidator,
+    handleValidationErrors,
+    controller.getWeeklyFlowByDoctor
+);
+
+consultationRouter.get(
     "/patient/:id",
     controller.findAllByPatient
 );
@@ -62,6 +69,15 @@ consultationRouter.put(
     validator.finishConsultationValidator,
     handleValidationErrors,
     controller.finish
+);
+
+consultationRouter.put(
+    "/:id/start",
+    validator.IdParamValidator,
+    validator.ConsultationExistsValidator,
+    validator.startConsultationValidator,
+    handleValidationErrors,
+    controller.start
 );
 
 consultationRouter.use(

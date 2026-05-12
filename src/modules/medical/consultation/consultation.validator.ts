@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { ConsultationStatus } from "@prisma/client";
 import { body, param, ValidationChain } from "express-validator";
 
 const isValidDateString = (value: unknown) => {
@@ -114,6 +115,11 @@ export class ConsultationValidator {
 
                 return true;
             }),
+
+        body("status")
+            .optional()
+            .isIn(["PENDING", "IN_PROGRESS", "FINISHED", "CANCELLED"])
+            .withMessage("status inválido"),
 
         body("symptoms")
             .optional()
@@ -337,6 +343,24 @@ export class ConsultationValidator {
                     throw new Error("consultationDiagnoses.*.onset_date debe ser una fecha válida (ISO)");
                 }
                 return true;
+            }),
+    ];
+
+    public startConsultationValidator: ValidationChain[] = [
+        param("id")
+            .custom(async (value) => {
+                const consultation = await prisma.consultation.findUnique({
+                    where: { id: Number(value) },
+                    select: { status: true },
+                });
+
+                if (!consultation) {
+                    return Promise.reject("La consulta no existe");
+                }
+
+                if (consultation.status !== ConsultationStatus.PENDING) {
+                    return Promise.reject("La consulta no está pendiente");
+                }
             }),
     ];
 

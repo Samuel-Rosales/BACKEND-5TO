@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { ConsultationStatus } from "@prisma/client";
 import { ensureMonthlyPayrollLine } from "@/modules/finance/payroll/payroll.service";
 import {
     CreateConsultationDto,
@@ -15,6 +16,7 @@ const consultationSelect = {
     date: true,
     started_at: true,
     finished_at: true,
+    status: true,
     invoice: {
         select: {
             id: true,
@@ -62,6 +64,7 @@ const oneConsultationSelect = {
     date: true,
     started_at: true,
     finished_at: true,
+    status: true,
     invoice: {
         select: {
             id: true,
@@ -112,6 +115,7 @@ const patientConsultationSelect = {
     date: true,
     started_at: true,
     finished_at: true,
+    status: true,
     doctor: {
         select: {
             id: true,
@@ -188,10 +192,59 @@ const patientConsultationSelect = {
 
 export class ConsultationService {
 
+    private normalizeRange(value?: string) {
+        if (!value) return undefined;
+        const normalized = value.trim().toLowerCase();
+
+        if (normalized === "today" || normalized === "hoy") return "today" as const;
+        if (normalized === "week" || normalized === "semana") return "week" as const;
+        if (normalized === "month" || normalized === "mes") return "month" as const;
+
+        return undefined;
+    }
+
+    private rangeBoundsUTC(range: "today" | "week" | "month", now: Date) {
+        const todayStart = this.dayStartUTC(now);
+
+        if (range === "today") {
+            const end = new Date(todayStart);
+            end.setDate(end.getDate() + 1);
+            return { start: todayStart, end };
+        }
+
+        if (range === "week") {
+            const dow = todayStart.getDay();
+            const daysSinceMonday = (dow + 6) % 7;
+            const start = new Date(todayStart);
+            start.setDate(start.getDate() - daysSinceMonday);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 7);
+            return { start, end };
+        }
+
+        const start = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1, 0, 0, 0, 0);
+        const end = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1, 0, 0, 0, 0);
+        return { start, end };
+    }
+
+    private dayStartUTC(dateTime: Date) {
+        return new Date(dateTime.getFullYear(), dateTime.getMonth(), dateTime.getDate(), 0, 0, 0, 0);
+    }
+
+    private formatDateOnlyUTC(dateTime: Date) {
+        const year = dateTime.getFullYear();
+        const month = String(dateTime.getMonth() + 1).padStart(2, "0");
+        const day = String(dateTime.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
     async create(data: CreateConsultationDto) {
         try {
             const consultation = await prisma.consultation.create({
-                data,
+                data: {
+                    ...data,
+                    status: ConsultationStatus.PENDING,
+                },
                 select: consultationSelect,
             });
 
@@ -254,7 +307,10 @@ export class ConsultationService {
 
                 await tx.consultation.update({
                     where: { id },
-                    data: { finished_at: finishedAt },
+                    data: {
+                        finished_at: finishedAt,
+                        status: ConsultationStatus.FINISHED,
+                    },
                 });
 
                 await tx.supplyConsultation.deleteMany({ where: { consultationId: id } });
@@ -408,6 +464,58 @@ export class ConsultationService {
         }
     }
 
+    async start(id: number) {
+        try {
+            const consultation = await prisma.$transaction(async (tx) => {
+                const existing = await tx.consultation.findUnique({
+                    where: { id },
+                    select: { id: true, status: true, started_at: true },
+                });
+
+                if (!existing) {
+                    throw new Error("La consulta no existe");
+                }
+
+                if (existing.status !== ConsultationStatus.PENDING) {
+                    throw new Error("La consulta no está pendiente");
+                }
+
+                const startedAt = existing.started_at ?? new Date();
+
+                await tx.consultation.update({
+                    where: { id },
+                    data: {
+                        started_at: startedAt,
+                        status: ConsultationStatus.IN_PROGRESS,
+                    },
+                });
+
+                return tx.consultation.findUnique({
+                    where: { id },
+                    select: consultationSelect,
+                });
+            });
+
+            if (!consultation) {
+                throw new Error("Error iniciando la consulta");
+            }
+
+            return {
+                status: 200,
+                message: "Consulta iniciada éxitosamente",
+                data: consultation,
+            };
+        } catch (error) {
+            console.error("Error iniciando la consulta:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al iniciar la consulta",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
     async findAll() {
         try {
             const consultations = await prisma.consultation.findMany({
@@ -478,6 +586,99 @@ export class ConsultationService {
             };
         }
 
+    }
+
+    async getWeeklyFlowByDoctor(doctorId: number, range?: string) {
+        try {
+            const normalizedRange = this.normalizeRange(range) ?? "week";
+            if (range && !this.normalizeRange(range)) {
+                return {
+                    status: 400,
+                    message: "Filtro inválido",
+                    error: "range debe ser: hoy|semana|mes (o today|week|month)",
+                };
+            }
+
+            const { start, end } = this.rangeBoundsUTC(normalizedRange, new Date());
+
+            const consultations = await prisma.consultation.findMany({
+                where: {
+                    doctorId,
+                    date: { gte: start, lt: end },
+                    status: { not: ConsultationStatus.CANCELLED },
+                },
+                select: {
+                    date: true,
+                    status: true,
+                },
+                orderBy: { date: "asc" },
+            });
+
+            const statusColors: Record<ConsultationStatus, string> = {
+                [ConsultationStatus.PENDING]: "#f59e0b",
+                [ConsultationStatus.IN_PROGRESS]: "#3b82f6",
+                [ConsultationStatus.FINISHED]: "#10b981",
+                [ConsultationStatus.CANCELLED]: "#94a3b8",
+            };
+
+            const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+            const days: {
+                day: string;
+                date: string;
+                count: number;
+                statuses: { name: string; color: string; count: number }[];
+            }[] = [];
+            const indexByDate = new Map<string, number>();
+
+            const cursor = new Date(start);
+            while (cursor < end) {
+                const dateOnly = this.formatDateOnlyUTC(cursor);
+                const label = dayLabels[cursor.getUTCDay()] ?? "";
+                indexByDate.set(dateOnly, days.length);
+                days.push({ day: label, date: dateOnly, count: 0, statuses: [] });
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+            }
+
+            for (const consultation of consultations) {
+                const dayStart = this.dayStartUTC(consultation.date);
+                const key = this.formatDateOnlyUTC(dayStart);
+                const index = indexByDate.get(key);
+                if (index !== undefined) {
+                    days[index].count += 1;
+                    const statusName = consultation.status ?? ConsultationStatus.PENDING;
+                    const statusColor = statusColors[statusName] ?? "#94a3b8";
+                    const currentStatuses = days[index].statuses;
+                    const existing = currentStatuses.find((status) => status.name === statusName);
+                    if (existing) {
+                        existing.count += 1;
+                    } else {
+                        currentStatuses.push({ name: statusName, color: statusColor, count: 1 });
+                    }
+                }
+            }
+
+            const total = days.reduce((sum, day) => sum + day.count, 0);
+
+            return {
+                status: 200,
+                message: "Flujo semanal encontrado éxitosamente",
+                data: {
+                    range: normalizedRange,
+                    start: this.formatDateOnlyUTC(start),
+                    end: this.formatDateOnlyUTC(end),
+                    total,
+                    days,
+                },
+            };
+        } catch (error) {
+            console.error("Error buscando flujo semanal:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar el flujo semanal",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
     }
 
     async findAllByPatient(patientId: number) {
