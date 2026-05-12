@@ -431,10 +431,26 @@ export class AppointmentService {
         }
     }
 
-    async findManyByDr(doctorId: number) {
+    async findManyByDr(doctorId: number, filters?: { range?: string, statusId?: number }) {
         try {
+            const range = this.normalizeRange(filters?.range);
+            if (filters?.range && !range) {
+                return {
+                    status: 400,
+                    message: "Filtro inválido",
+                    error: "range debe ser:  today|week|month",
+                };
+            }
+
+            const where: Prisma.AppointmentWhereInput = { doctorId };
+            if (range) {
+                const { start, end } = this.rangeBoundsUTC(range, new Date());
+                where.date_time = { gte: start, lt: end };
+            }
+            if (filters?.statusId) where.statusId = filters.statusId;
+
             const appointments = await prisma.appointment.findMany({
-                where: { doctorId },
+                where,
                 orderBy: { date_time: "desc" },
                 select: appointmentSelect,
             });
@@ -490,12 +506,25 @@ export class AppointmentService {
                         },
                     },
                 },
-                select: { date_time: true },
+                select: {
+                    date_time: true,
+                    status: {
+                        select: {
+                            name: true,
+                            color_hex: true,
+                        },
+                    },
+                },
                 orderBy: { date_time: "asc" },
             });
 
             const dayLabels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-            const days: { day: string; date: string; count: number }[] = [];
+            const days: {
+                day: string;
+                date: string;
+                count: number;
+                statuses: { name: string; color: string; count: number }[];
+            }[] = [];
             const indexByDate = new Map<string, number>();
 
             const cursor = new Date(start);
@@ -503,7 +532,7 @@ export class AppointmentService {
                 const dateOnly = this.formatDateOnlyUTC(cursor);
                 const label = dayLabels[cursor.getUTCDay()] ?? "";
                 indexByDate.set(dateOnly, days.length);
-                days.push({ day: label, date: dateOnly, count: 0 });
+                days.push({ day: label, date: dateOnly, count: 0, statuses: [] });
                 cursor.setUTCDate(cursor.getUTCDate() + 1);
             }
 
@@ -513,6 +542,15 @@ export class AppointmentService {
                 const index = indexByDate.get(key);
                 if (index !== undefined) {
                     days[index].count += 1;
+                    const statusName = appointment.status?.name ?? "Sin estado";
+                    const statusColor = appointment.status?.color_hex ?? "#94a3b8";
+                    const currentStatuses = days[index].statuses;
+                    const existing = currentStatuses.find((status) => status.name === statusName);
+                    if (existing) {
+                        existing.count += 1;
+                    } else {
+                        currentStatuses.push({ name: statusName, color: statusColor, count: 1 });
+                    }
                 }
             }
 
@@ -535,6 +573,49 @@ export class AppointmentService {
             return {
                 status: 500,
                 message: "Error interno al buscar el flujo semanal",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
+    async getDoctorStats(doctorId: number) {
+        try {
+            const { start: todayStart, end: todayEnd } = this.rangeBoundsUTC("today", new Date());
+
+            const todayAppointments = await prisma.appointment.findMany({
+                where: {
+                    doctorId,
+                    date_time: { gte: todayStart, lt: todayEnd },
+                },
+                select: {
+                    id: true,
+                    status: {
+                        select: { name: true },
+                    },
+                },
+            });
+
+            const citasHoy = todayAppointments.length;
+
+            const pacientesAtendidos = todayAppointments.filter((apt) => {
+                const statusName = apt.status?.name?.toLowerCase() ?? "";
+                return statusName.includes("complet") || statusName.includes("finaliz");
+            }).length;
+
+            return {
+                status: 200,
+                message: "Estadísticas obtenidas exitosamente",
+                data: {
+                    citasHoy,
+                    pacientesAtendidos,
+                },
+            };
+        } catch (error) {
+            console.error("Error obteniendo estadísticas del doctor:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al obtener las estadísticas",
                 error: error instanceof Error ? error.message : "Error desconocido",
             };
         }

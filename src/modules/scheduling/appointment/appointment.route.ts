@@ -43,6 +43,13 @@ appointmentRouter.get(
 );
 
 appointmentRouter.get(
+    "/doctor/:id/stats",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.getDoctorStats
+);
+
+appointmentRouter.get(
     "/patient/:id", //id del paciente
     validator.IdParamValidator,
     handleValidationErrors,

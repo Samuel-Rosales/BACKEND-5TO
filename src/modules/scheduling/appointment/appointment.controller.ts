@@ -26,8 +26,20 @@ export class AppointmentController {
 
     async findManyByDr(req: Request, res: Response) {
         const { id } = req.params;
+        const range = (req.query.range ?? req.query.rango ?? req.query.filter) !== undefined
+            ? String(req.query.range ?? req.query.rango ?? req.query.filter)
+            : undefined;
+        const statusId = req.query?.statusId ? Number(req.query.statusId) : undefined;
 
-        const { data, status, message, error } = await service.findManyByDr(Number(id));
+        const { data, status, message, error } = await service.findManyByDr(Number(id), { range, statusId });
+
+        return res.status(status).json({ message, data, error });
+    }
+
+    async getDoctorStats(req: Request, res: Response) {
+        const { id } = req.params;
+
+        const { data, status, message, error } = await service.getDoctorStats(Number(id));
 
         return res.status(status).json({ message, data, error });
     }
