@@ -386,7 +386,12 @@ export class ConsultationValidator {
             .isInt({ gt: 0 })
             .withMessage("El ID del doctor debe ser un número entero positivo")
             .custom(async (value) => {
-                const doctor = await prisma.doctor.findUnique({ where: { id: Number(value) } });
+                const idValue = Number(value);
+                const doctor = await prisma.doctor.findFirst({
+                    where: {
+                        OR: [{ userId: idValue }, { id: idValue }],
+                    },
+                });
                 if (!doctor) {
                     return Promise.reject("El doctor no existe");
                 }

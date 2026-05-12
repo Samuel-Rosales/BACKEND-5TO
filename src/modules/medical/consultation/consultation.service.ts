@@ -192,6 +192,28 @@ const patientConsultationSelect = {
 
 export class ConsultationService {
 
+    private async resolveDoctorId(userIdOrDoctorId: number) {
+        const doctorByUser = await prisma.doctor.findUnique({
+            where: { userId: userIdOrDoctorId },
+            select: { id: true },
+        });
+
+        if (doctorByUser) {
+            return doctorByUser.id;
+        }
+
+        const doctorById = await prisma.doctor.findUnique({
+            where: { id: userIdOrDoctorId },
+            select: { id: true },
+        });
+
+        if (!doctorById) {
+            throw new Error("El doctor no existe");
+        }
+
+        return doctorById.id;
+    }
+
     private normalizeRange(value?: string) {
         if (!value) return undefined;
         const normalized = value.trim().toLowerCase();
@@ -553,8 +575,9 @@ export class ConsultationService {
 
     async findAllByDoctor(doctorId: number) {
         try {
+            const resolvedDoctorId = await this.resolveDoctorId(doctorId);
             const consultations = await prisma.consultation.findMany({
-                where: { doctorId: doctorId },
+                where: { doctorId: resolvedDoctorId },
                 orderBy: { date: "desc" },
                 select: consultationSelect,
             });
@@ -590,6 +613,7 @@ export class ConsultationService {
 
     async getWeeklyFlowByDoctor(doctorId: number, range?: string) {
         try {
+            const resolvedDoctorId = await this.resolveDoctorId(doctorId);
             const normalizedRange = this.normalizeRange(range) ?? "week";
             if (range && !this.normalizeRange(range)) {
                 return {
@@ -603,7 +627,7 @@ export class ConsultationService {
 
             const consultations = await prisma.consultation.findMany({
                 where: {
-                    doctorId,
+                    doctorId: resolvedDoctorId,
                     date: { gte: start, lt: end },
                     status: { not: ConsultationStatus.CANCELLED },
                 },
