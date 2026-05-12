@@ -113,7 +113,7 @@ model Consultation {
   id                    Int                     @id @default(autoincrement())
   invoiceId             Int                     @unique
   doctorId              Int
-  date                  DateTime                @default(now()) @db.Date
+  date                  DateTime                @default(now())
   started_at            DateTime?
   finished_at           DateTime?
   status                ConsultationStatus      @default(PENDING)

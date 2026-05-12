@@ -314,7 +314,7 @@ export class InvoiceService {
                 if (data.appointmentId) {
                     const appointment = await tx.appointment.findUnique({
                         where: { id: data.appointmentId },
-                        select: { doctorId: true },
+                        select: { doctorId: true, date_time: true },
                     });
 
                     if (!appointment) {
@@ -325,7 +325,7 @@ export class InvoiceService {
                         data: {
                             invoiceId: created.id,
                             doctorId: appointment.doctorId,
-                            date: new Date(),
+                            date: appointment.date_time,
                             status: ConsultationStatus.PENDING,
                         },
                     });
