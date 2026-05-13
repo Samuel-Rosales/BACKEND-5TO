@@ -29,8 +29,7 @@ appointmentRouter.get(
 );
 
 appointmentRouter.get(
-    "/doctor/:id", //id del doctor
-    validator.IdParamValidator,
+    "/doctor/:id", //id del usuario 
     handleValidationErrors,
     controller.findManyByDr
 );
