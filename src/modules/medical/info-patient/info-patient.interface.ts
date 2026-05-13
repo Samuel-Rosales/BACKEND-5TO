@@ -29,7 +29,6 @@ export interface CreateInfoPatientDto {
 export interface UpdateInfoPatientDto {
     patientId?: number;
 
-    ci?: string;
     name?: string;
     last_name?: string;
     sex?: Sex;
