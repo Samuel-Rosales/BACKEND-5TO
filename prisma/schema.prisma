@@ -601,6 +601,7 @@ model PurchaseItem {
 
   purchase        Purchase  @relation(fields: [purchaseId], references: [id])
   supply         Supply   @relation(fields: [supplyId], references: [id])
+  
 }
 
 model PurchasePayment {
@@ -609,7 +610,7 @@ model PurchasePayment {
   paymentMethodId Int
   amount          Decimal       @db.Decimal(12, 2)
   currency        String?
-  reference       String?
+  reference       String? 
   payment_date    DateTime?
 
   purchase        Purchase      @relation(fields: [purchaseId], references: [id])
