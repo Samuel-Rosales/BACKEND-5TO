@@ -1,13 +1,14 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcryptjs";
 
-if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL no está definido en el entorno");
-}
+// Cargar variables de entorno explícitamente
+config({ path: '.env' });
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/backend_5to?schema=public';
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
 export const prisma = new PrismaClient({ adapter });
 
 export function hashPassword(plain: string) {
