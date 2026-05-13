@@ -9,6 +9,7 @@ const supplySelect = {
     cost_price: true,
     min_stock: true,
     active: true,
+    type: true,
     categoryId: true,
     unitId: true,
     category: {
@@ -67,6 +68,7 @@ export class SupplyService {
                     description: true,
                     cost_price: true,
                     min_stock: true,
+                    type: true,
                     category: {
                         select: {
                             name: true,
@@ -101,11 +103,12 @@ export class SupplyService {
             }
 
             const formattedSupplies = supplies.map(supply => {
-
                 const sumStock = supply.stockLots.reduce((sum, lot) => sum + lot.quantity, 0);
+                const inferredType = supply.type ?? (supply.sku?.toUpperCase().startsWith("MED-") ? "Medicamento" : "Material");
 
                 return {
                     ...supply,
+                    type: inferredType,
                     stock: sumStock,
                 };
             });
@@ -137,6 +140,7 @@ export class SupplyService {
                     description: true,
                     cost_price: true,
                     min_stock: true,
+                    type: true,
                     category: {
                         select: {
                             name: true,
@@ -163,11 +167,12 @@ export class SupplyService {
             }
 
             const sumStock = supply.stockLots.reduce((sum, lot) => sum + lot.quantity, 0);
+            const inferredType = supply.type ?? (supply.sku?.toUpperCase().startsWith("MED-") ? "Medicamento" : "Material");
 
             return {
                 status: 200,
                 message: "Insumo encontrado éxitosamente",
-                data: { ...supply, stock: sumStock },
+                data: { ...supply, type: inferredType, stock: sumStock },
             };
         } catch (error) {
             console.error("Error buscando el insumo:", error);
