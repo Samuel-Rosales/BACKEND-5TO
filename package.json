@@ -24,7 +24,9 @@
     "prisma:studio": "npx prisma studio",
     "prisma:seed": "npx prisma db seed",
     "prisma:migrate": "npx prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "db:push": "npx prisma db push",
+    "predev": "npm run db:push"
   },
   "prisma": {
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
