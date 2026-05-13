@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "ConsultationStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'FINISHED', 'CANCELLED');
+
+-- CreateEnum
 CREATE TYPE "StatusPurchase" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED', 'ANULLED');
 
 -- CreateEnum
@@ -26,6 +29,7 @@ CREATE TABLE "User" (
     "password" VARCHAR(255) NOT NULL,
     "roleId" INTEGER NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -40,6 +44,7 @@ CREATE TABLE "Patient" (
     "info_completed" BOOLEAN NOT NULL DEFAULT false,
     "last_visit_at" TIMESTAMP(3),
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Patient_pkey" PRIMARY KEY ("id")
 );
@@ -93,9 +98,10 @@ CREATE TABLE "Consultation" (
     "id" SERIAL NOT NULL,
     "invoiceId" INTEGER NOT NULL,
     "doctorId" INTEGER NOT NULL,
-    "date" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "started_at" TIMESTAMP(3),
     "finished_at" TIMESTAMP(3),
+    "status" "ConsultationStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Consultation_pkey" PRIMARY KEY ("id")
 );
@@ -274,6 +280,7 @@ CREATE TABLE "InvoicePayment" (
     "exchangeRateId" INTEGER NOT NULL,
     "amount_paid" DECIMAL(12,2) NOT NULL,
     "igtf_amount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "reference" VARCHAR(255),
     "date_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "InvoicePayment_pkey" PRIMARY KEY ("id")
@@ -468,6 +475,7 @@ CREATE TABLE "ExpensePayment" (
     "paymentMethodId" INTEGER NOT NULL,
     "amount" DECIMAL(12,2) NOT NULL,
     "exchangeRateId" INTEGER NOT NULL,
+    "reference" VARCHAR(255),
     "date_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ExpensePayment_pkey" PRIMARY KEY ("id")

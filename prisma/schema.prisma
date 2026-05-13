@@ -28,6 +28,7 @@ model User {
   password String  @db.VarChar(255)
   roleId   Int
   active   Boolean @default(true) 
+  createdAt DateTime @default(now())
 
   role           Role            @relation(fields: [roleId], references: [id])
   doctor         Doctor?
@@ -54,6 +55,7 @@ model Patient {
   // medical_history String? @db.Text
   last_visit_at   DateTime?
   active          Boolean @default(true)
+  createdAt       DateTime @default(now())
 
   appointments  Appointment[]
   invoices       Invoice[]
