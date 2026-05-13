@@ -288,32 +288,38 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const periodStart = new Date("2026-01-01");
     const periodEnd = new Date("2026-12-31");
+    const timeUTC = (hours: number, minutes: number) => new Date(Date.UTC(1970, 0, 1, hours, minutes, 0));
 
     const schedule1 = await ensureDoctorSchedule({ doctorId: doctor1.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 2, 3, 4, 5]) {
+    await prisma.doctorSchedule.updateMany({
+        where: { doctorId: doctor1.id, period_end: null, id: { not: schedule1.id } },
+        data: { period_end: today },
+    });
+    await prisma.doctorSchedule.update({ where: { id: schedule1.id }, data: { period_end: null } });
+    await prisma.doctorAvailability.deleteMany({ where: { doctorScheduleId: schedule1.id } });
+    for (const day of [0, 1, 2, 3, 4, 5, 6]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule1.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T08:00:00"),
-            end_time: new Date("2026-01-01T12:00:00"),
-            patient_limit: 10,
-        });
-        await ensureDoctorAvailability({
-            doctorScheduleId: schedule1.id,
-            day_of_week: day,
-            start_time: new Date("2026-01-01T14:00:00"),
-            end_time: new Date("2026-01-01T17:00:00"),
+            start_time: timeUTC(0, 0),
+            end_time: timeUTC(23, 59),
             patient_limit: 10,
         });
     }
 
     const schedule2 = await ensureDoctorSchedule({ doctorId: doctor2.id, period_start: periodStart, period_end: periodEnd });
+    await prisma.doctorSchedule.updateMany({
+        where: { doctorId: doctor2.id, period_end: null, id: { not: schedule2.id } },
+        data: { period_end: today },
+    });
+    await prisma.doctorSchedule.update({ where: { id: schedule2.id }, data: { period_end: null } });
+    await prisma.doctorAvailability.deleteMany({ where: { doctorScheduleId: schedule2.id } });
     for (const day of [1, 3, 5]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule2.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T09:00:00"),
-            end_time: new Date("2026-01-01T13:00:00"),
+            start_time: timeUTC(9, 0),
+            end_time: timeUTC(13, 0),
             patient_limit: 8,
         });
     }
@@ -321,40 +327,46 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule2.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T09:00:00"),
-            end_time: new Date("2026-01-01T13:00:00"),
+            start_time: timeUTC(9, 0),
+            end_time: timeUTC(13, 0),
             patient_limit: 8,
         });
         await ensureDoctorAvailability({
             doctorScheduleId: schedule2.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T15:00:00"),
-            end_time: new Date("2026-01-01T19:00:00"),
+            start_time: timeUTC(15, 0),
+            end_time: timeUTC(19, 0),
             patient_limit: 8,
         });
     }
 
     const schedule3 = await ensureDoctorSchedule({ doctorId: doctor3.id, period_start: periodStart, period_end: periodEnd });
+    await prisma.doctorSchedule.updateMany({
+        where: { doctorId: doctor3.id, period_end: null, id: { not: schedule3.id } },
+        data: { period_end: today },
+    });
+    await prisma.doctorSchedule.update({ where: { id: schedule3.id }, data: { period_end: null } });
+    await prisma.doctorAvailability.deleteMany({ where: { doctorScheduleId: schedule3.id } });
     for (const day of [2, 4]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule3.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T08:00:00"),
-            end_time: new Date("2026-01-01T14:00:00"),
+            start_time: timeUTC(8, 0),
+            end_time: timeUTC(14, 0),
             patient_limit: 6,
         });
     }
     await ensureDoctorAvailability({
         doctorScheduleId: schedule3.id,
         day_of_week: 6,
-        start_time: new Date("2026-01-01T08:00:00"),
-        end_time: new Date("2026-01-01T12:00:00"),
+        start_time: timeUTC(8, 0),
+        end_time: timeUTC(12, 0),
         patient_limit: 6,
     });
 
     const nextMonday = new Date(today);
     nextMonday.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7));
-    await ensureDoctorScheduleOverride({
+    const override1 = await ensureDoctorScheduleOverride({
         doctorId: doctor1.id,
         specific_date: nextMonday,
         is_working: false,
@@ -363,18 +375,18 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const nextWednesday = new Date(today);
     nextWednesday.setDate(today.getDate() + ((3 - today.getDay() + 7) % 7));
-    await ensureDoctorScheduleOverride({
+    const override2 = await ensureDoctorScheduleOverride({
         doctorId: doctor2.id,
         specific_date: nextWednesday,
         is_working: true,
-        start_time: new Date("2026-01-01T09:00:00"),
-        end_time: new Date("2026-01-01T21:00:00"),
+        start_time: timeUTC(9, 0),
+        end_time: timeUTC(21, 0),
         reason: "SEED: jornada especial",
     });
 
     const nextFriday = new Date(today);
     nextFriday.setDate(today.getDate() + ((5 - today.getDay() + 7) % 7));
-    await ensureDoctorScheduleOverride({
+    const override3 = await ensureDoctorScheduleOverride({
         doctorId: doctor3.id,
         specific_date: nextFriday,
         is_working: false,
@@ -879,6 +891,12 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
             doctor3: doctor3.id,
         },
         patients: patients.map((patient) => patient.id),
+        schedules: {
+            doctor1: schedule1.id,
+            doctor2: schedule2.id,
+            doctor3: schedule3.id,
+        },
+        overrides: [override1.id, override2.id, override3.id],
         appointments: appointments.map((appointment) => appointment.id),
         consultations: [
             { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: new Date("2026-03-22T10:00:00.000Z") },
