@@ -5,10 +5,6 @@ import { body, param, ValidationChain } from "express-validator";
 export class InfoPatientValidator {
 
     public createInfoPatientValidator: ValidationChain[] = [
-        body("ci")
-            .trim()
-            .isLength({ min: 3, max: 30 })
-            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres"),
 
         body("name")
             .trim()
@@ -116,12 +112,6 @@ export class InfoPatientValidator {
                     return Promise.reject("El paciente no existe o no está activo");
                 }
             }),
-
-        body("ci")
-            .optional()
-            .trim()
-            .isLength({ min: 3, max: 30 })
-            .withMessage("La cédula del paciente debe tener entre 3 y 30 caracteres"),
 
         body("name")
             .optional()
