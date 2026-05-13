@@ -1,0 +1,79 @@
+{
+  "name": "backend-5to",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/Samuel-Rosales/BACKEND-5TO#readme",
+  "bugs": {
+    "url": "https://github.com/Samuel-Rosales/BACKEND-5TO/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samuel-Rosales/BACKEND-5TO.git"
+  },
+  "license": "ISC",
+  "author": "Samuel Rosales",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/app.ts",
+    "build": "npx prisma generate && tsc && tsc-alias",
+    "start": "npx prisma migrate deploy && node dist/app.js",
+    "prisma:generate": "prisma generate",
+    "prisma:format": "npx prisma format",
+    "prisma:push": "npx prisma db push",
+    "prisma:studio": "npx prisma studio",
+    "prisma:seed": "npx prisma db seed",
+    "prisma:migrate": "npx prisma migrate dev",
+    "db:reset": "prisma migrate reset"
+  },
+  "prisma": {
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.11",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "axios": "^1.13.4",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "pdfkit": "^0.18.0",
+    "pg": "^8.16.3",
+    "svg-to-pdfkit": "^0.1.8",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.12.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.5.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/pdfkit": "^0.17.6",
+    "@types/pg": "8.11.11",
+    "dotenv": "^17.3.1",
+    "nodemon": "^3.1.11",
+    "pdf-parse": "^1.1.1",
+    "prisma": "^7.5.0",
+    "prisma-erd-generator": "^2.4.2",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@types/pg": "8.11.11"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": []
+}
