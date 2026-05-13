@@ -243,7 +243,6 @@ export class InvoiceService {
                         select: { doctorId: true, patientId: true },
                     });
                     if (!appointment) throw new Error("La cita no existe");
-                    if (appointment.patientId !== data.patientId) throw new Error("La cita no pertenece al paciente");
 
                     const doctor = await tx.doctor.findUnique({
                         where: { id: appointment.doctorId },
