@@ -3,7 +3,6 @@ import { Sex } from "@prisma/client";
 export interface CreateInfoPatientDto {
     patientId?: number;
 
-    ci: string;
     name: string;
     last_name: string;
     sex: Sex;
