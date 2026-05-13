@@ -857,3 +857,119 @@ export async function ensureSeedPurchase(params: {
         return { id: purchase.id };
     });
 }
+
+export async function ensureDoctorScheduleOverride(params: {
+    doctorId: number;
+    specific_date: Date;
+    is_working?: boolean;
+    start_time?: Date;
+    end_time?: Date;
+    reason?: string;
+}) {
+    const existing = await prisma.doctorScheduleOverride.findFirst({
+        where: {
+            doctorId: params.doctorId,
+            specific_date: params.specific_date,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.doctorScheduleOverride.create({
+        data: {
+            doctorId: params.doctorId,
+            specific_date: params.specific_date,
+            is_working: params.is_working ?? true,
+            start_time: params.start_time,
+            end_time: params.end_time,
+            reason: params.reason,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensureSupplyPresentation(params: {
+    supplyId: number;
+    name: string;
+    factor: number;
+    barCode?: string;
+    price: number;
+}) {
+    const existing = await prisma.supplyPresentation.findFirst({
+        where: {
+            supplyId: params.supplyId,
+            name: { equals: params.name, mode: "insensitive" },
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.supplyPresentation.create({
+        data: {
+            supplyId: params.supplyId,
+            name: params.name,
+            factor: params.factor,
+            barCode: params.barCode,
+            price: params.price,
+            isActive: true,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensureSalaryPayment(params: {
+    payrollId: number;
+    userId: number;
+    amount: number;
+    concept?: string;
+    date_at?: Date;
+}) {
+    const existing = await prisma.salaryPayment.findFirst({
+        where: {
+            payrollId: params.payrollId,
+            userId: params.userId,
+            amount: params.amount,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.salaryPayment.create({
+        data: {
+            payrollId: params.payrollId,
+            userId: params.userId,
+            amount: params.amount,
+            concept: params.concept,
+            date_at: params.date_at,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensurePayrollPayment(params: {
+    salaryPaymentId: number;
+    payrollLineId: number;
+    amount: number;
+}) {
+    const existing = await prisma.payrollPayment.findFirst({
+        where: {
+            salaryPaymentId: params.salaryPaymentId,
+            payrollLineId: params.payrollLineId,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.payrollPayment.create({
+        data: {
+            salaryPaymentId: params.salaryPaymentId,
+            payrollLineId: params.payrollLineId,
+            amount: params.amount,
+        },
+        select: { id: true },
+    });
+}
