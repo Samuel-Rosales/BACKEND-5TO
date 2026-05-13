@@ -3,14 +3,14 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { stream, connectDB } from '@/configs';
 import { RoleRoute, UserRoute, RegisterRoute } from '@/modules/auth';
-import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute, InfoPatientRoute } from '@/modules/medical';
+import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute, InfoPatientRoute, SymptomsRoute, DiagnosisRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, DoctorScheduleRoute, StatusAppointmentRoute } from '@/modules/scheduling';
 import { ExpenseCategoryRoute, ExpensePaymentRoute, InvoiceExpenseRoute } from '@/modules/expenses';
 import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockMovementRoute, SupplyConsultationRoute, SupplyPresentationRoute } from '@/modules/inventory';
-import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
+import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, SalaryPaymentRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
-import { expenseLedgerRouter } from '@/modules/report';
+import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter, monthlyRevenueRouter, specialtyDemandRouter } from '@/modules/report';
 
 export class Server {
 
@@ -37,6 +37,8 @@ export class Server {
             doctors: `${this.prefix}/medical/doctor`,
             consultations: `${this.prefix}/medical/consultation`,
             prescriptions: `${this.prefix}/medical/prescription`,
+            symptoms: `${this.prefix}/medical/symptoms`,
+            diagnosis: `${this.prefix}/medical/diagnosis`,
 
             appointmentStatuses: `${this.prefix}/scheduling/status-appointment`,
             appointmentTypes: `${this.prefix}/scheduling/appointment-type`,
@@ -65,12 +67,18 @@ export class Server {
             invoicePayments: `${this.prefix}/finance/invoice-payment`,
             payrolls: `${this.prefix}/finance/payroll`,
             payrollLines: `${this.prefix}/finance/payroll-line`,
+            salaryPayments: `${this.prefix}/finance/salary-payment`,
 
             suppliers: `${this.prefix}/procurement/supplier`,
             purchases: `${this.prefix}/procurement/purchase`,
             purchasePayments: `${this.prefix}/procurement/purchase-payment`,
 
             expenseLedger: `${this.prefix}/report/expense-ledger`,
+            expenseSummary: `${this.prefix}/report/expense-summary`,
+            incomeSummary: `${this.prefix}/report/income-summary`,
+            monthlyRevenue: `${this.prefix}/report/monthly-revenue`,
+            specialtyDemand: `${this.prefix}/report/specialty-demand`,
+            dailyBook: `${this.prefix}/report/daily-book`,
         };
 
         this.dbConnection();
@@ -119,6 +127,8 @@ export class Server {
         this.app.use(this.paths.doctors, DoctorRoute);
         this.app.use(this.paths.consultations, ConsultationRoute);
         this.app.use(this.paths.prescriptions, PrescriptionRoute);
+        this.app.use(this.paths.symptoms, SymptomsRoute);
+        this.app.use(this.paths.diagnosis, DiagnosisRoute);
 
         this.app.use(this.paths.appointmentStatuses, StatusAppointmentRoute);
         this.app.use(this.paths.appointmentTypes, AppointmentTypeRoute);
@@ -140,12 +150,18 @@ export class Server {
 
         this.app.use(this.paths.payrolls, PayrollRoute);
         this.app.use(this.paths.payrollLines, PayrollLineRoute);
+        this.app.use(this.paths.salaryPayments, SalaryPaymentRoute);
 
         this.app.use(this.paths.suppliers, SupplierRoute);
         this.app.use(this.paths.purchases, PurchaseRoute);
         this.app.use(this.paths.purchasePayments, PurchasePaymentRoute);
 
         this.app.use(this.paths.expenseLedger, expenseLedgerRouter);
+        this.app.use(this.paths.expenseSummary, expenseSummaryRouter);
+        this.app.use(this.paths.incomeSummary, incomeSummaryRouter);
+        this.app.use(this.paths.monthlyRevenue, monthlyRevenueRouter);
+        this.app.use(this.paths.specialtyDemand, specialtyDemandRouter);
+        this.app.use(this.paths.dailyBook, dailyBookRouter);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);

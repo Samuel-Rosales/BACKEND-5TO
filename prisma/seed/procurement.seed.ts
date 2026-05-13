@@ -1,4 +1,4 @@
-import { ensurePurchasePayment, ensureSeedPurchase, ensureSupplier } from "./shared";
+import { ensurePurchasePayment, ensureSeedPurchase, ensureSupplier, prisma } from "./shared";
 
 type ProcurementSeedDeps = {
     base: {
@@ -29,6 +29,12 @@ type ProcurementSeedDeps = {
             ibuprofeno: number;
             amoxicilina: number;
             lapiz: number;
+            suturas: number;
+            gasas: number;
+            vendas: number;
+            cloro: number;
+            jabon: number;
+            papel: number;
         };
     };
 };
@@ -105,12 +111,52 @@ export async function seedProcurement(deps: ProcurementSeedDeps) {
         payment_date: new Date("2026-03-20T15:00:00.000Z"),
     });
 
+    // PENDING purchase — ordered but not yet paid
+    const purchase4 = await prisma.purchase.create({
+        data: {
+            supplierId: supplier1.id,
+            userId: deps.base.users.admin,
+            status: "PENDING",
+            exchangeRateId: deps.finance.exchangeRates.active,
+            reference: "SEED-PUR-004",
+            observation: "SEED: compra pendiente de pago",
+            date: new Date("2026-04-05T12:00:00.000Z"),
+            items: {
+                create: [
+                    { supplyId: deps.inventory.products.suturas, quantity: 50, unit_cost: 2.3, expiration_date: new Date("2028-06-30") },
+                    { supplyId: deps.inventory.products.gasas, quantity: 200, unit_cost: 0.3 },
+                ],
+            },
+        },
+        select: { id: true },
+    });
+
+    // CANCELLED purchase
+    const purchase5 = await prisma.purchase.create({
+        data: {
+            supplierId: supplier2.id,
+            userId: deps.base.users.admin,
+            status: "CANCELLED",
+            exchangeRateId: deps.finance.exchangeRates.active,
+            reference: "SEED-PUR-005",
+            observation: "SEED: compra cancelada por proveedor",
+            date: new Date("2026-04-01T12:00:00.000Z"),
+            items: {
+                create: [
+                    { supplyId: deps.inventory.products.cloro, quantity: 30, unit_cost: 2.0 },
+                    { supplyId: deps.inventory.products.jabon, quantity: 15, unit_cost: 3.2 },
+                ],
+            },
+        },
+        select: { id: true },
+    });
+
     return {
         suppliers: {
             supplier1: supplier1.id,
             supplier2: supplier2.id,
             supplier3: supplier3.id,
         },
-        purchases: [purchase1.id, purchase2.id, purchase3.id],
+        purchases: [purchase1.id, purchase2.id, purchase3.id, purchase4.id, purchase5.id],
     };
 }

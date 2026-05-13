@@ -1,13 +1,14 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcryptjs";
 
-if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL no está definido en el entorno");
-}
+// Cargar variables de entorno explícitamente
+config({ path: '.env' });
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/backend_5to?schema=public';
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
 export const prisma = new PrismaClient({ adapter });
 
 export function hashPassword(plain: string) {
@@ -15,7 +16,7 @@ export function hashPassword(plain: string) {
     return bcrypt.hashSync(plain, saltRounds);
 }
 
-export async function ensureRole(name: string, code: string) {
+export async function ensureRole(name: string, code: string, baseSalary?: number) {
     const normalizedName = name.trim();
     const normalizedCode = code.trim().toUpperCase();
 
@@ -32,7 +33,20 @@ export async function ensureRole(name: string, code: string) {
         ) {
             return prisma.role.update({
                 where: { id: existingByCode.id },
-                data: { name: normalizedName, code: normalizedCode, active: true },
+                data: {
+                    name: normalizedName,
+                    code: normalizedCode,
+                    active: true,
+                    ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+                },
+                select: { id: true },
+            });
+        }
+
+        if (baseSalary !== undefined) {
+            return prisma.role.update({
+                where: { id: existingByCode.id },
+                data: { base_salary: baseSalary },
                 select: { id: true },
             });
         }
@@ -47,26 +61,48 @@ export async function ensureRole(name: string, code: string) {
 
     if (existingByName) {
         if (existingByName.active && existingByName.name === normalizedName && existingByName.code === normalizedCode) {
+            if (baseSalary !== undefined) {
+                return prisma.role.update({
+                    where: { id: existingByName.id },
+                    data: { base_salary: baseSalary },
+                    select: { id: true },
+                });
+            }
+
             return { id: existingByName.id };
         }
 
         try {
             return await prisma.role.update({
                 where: { id: existingByName.id },
-                data: { name: normalizedName, code: normalizedCode, active: true },
+                data: {
+                    name: normalizedName,
+                    code: normalizedCode,
+                    active: true,
+                    ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+                },
                 select: { id: true },
             });
         } catch {
             return prisma.role.update({
                 where: { id: existingByName.id },
-                data: { name: normalizedName, active: true },
+                data: {
+                    name: normalizedName,
+                    active: true,
+                    ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+                },
                 select: { id: true },
             });
         }
     }
 
     return prisma.role.create({
-        data: { name: normalizedName, code: normalizedCode, active: true },
+        data: {
+            name: normalizedName,
+            code: normalizedCode,
+            active: true,
+            ...(baseSalary !== undefined ? { base_salary: baseSalary } : {}),
+        },
         select: { id: true },
     });
 }
@@ -120,7 +156,7 @@ export async function ensureDoctor(params: { userId: number; specialtyId: number
     });
 }
 
-export async function ensurePatient(params: { userId?: number; ci?: string; name?: string }) {
+export async function ensurePatient(params: { userId: number; ci?: string; name?: string }) {
     if (params.ci) {
         const existingByCi = await prisma.patient.findFirst({
             where: { ci: params.ci, active: true },
@@ -130,12 +166,7 @@ export async function ensurePatient(params: { userId?: number; ci?: string; name
     }
 
     const existing = await prisma.patient.findFirst({
-        where: {
-            userId: params.userId ?? null,
-            ci: params.ci ?? null,
-            name: params.name ?? null,
-            active: true,
-        },
+        where: { userId: params.userId, active: true },
         select: { id: true },
     });
 
@@ -147,6 +178,12 @@ export async function ensurePatient(params: { userId?: number; ci?: string; name
             select: { id: true },
         });
         if (inactiveByCi) {
+            const occupied = await prisma.patient.findFirst({
+                where: { userId: params.userId, active: true },
+                select: { id: true },
+            });
+            if (occupied) return occupied;
+
             return prisma.patient.update({
                 where: { id: inactiveByCi.id },
                 data: {
@@ -172,9 +209,6 @@ export async function ensurePatient(params: { userId?: number; ci?: string; name
 
 export async function ensureInfoPatient(params: {
     patientId: number;
-    ci: string;
-    name: string;
-    last_name: string;
     sex: "MALE" | "FEMALE" | string;
     birth_date: Date;
     blood_type?: string;
@@ -195,14 +229,18 @@ export async function ensureInfoPatient(params: {
         select: { id: true },
     });
 
-    if (existing) return existing;
+    if (existing) {
+        await prisma.patient.update({
+            where: { id: params.patientId },
+            data: { info_completed: true },
+            select: { id: true },
+        });
+        return existing;
+    }
 
     return prisma.infoPatient.create({
         data: {
             patientId: params.patientId,
-            ci: params.ci,
-            name: params.name,
-            last_name: params.last_name,
             sex: params.sex as any,
             birth_date: params.birth_date,
             blood_type: params.blood_type,
@@ -220,6 +258,13 @@ export async function ensureInfoPatient(params: {
             active: true,
         },
         select: { id: true },
+    }).then(async (created) => {
+        await prisma.patient.update({
+            where: { id: params.patientId },
+            data: { info_completed: true },
+            select: { id: true },
+        });
+        return created;
     });
 }
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { ConsultationStatus } from "@prisma/client";
 import { CreateInvoiceDto, CreateInvoiceDetailDto, UpdateInvoiceDto } from "./invoice.interface";
 import { Decimal } from "@prisma/client/runtime/client";
 import { resolveExchangeRate } from "@/utils/exchange-rate.util";
@@ -309,6 +310,26 @@ export class InvoiceService {
                     });
                 }
 
+                if (data.appointmentId) {
+                    const appointment = await tx.appointment.findUnique({
+                        where: { id: data.appointmentId },
+                        select: { doctorId: true, date_time: true },
+                    });
+
+                    if (!appointment) {
+                        throw new Error("La cita no existe");
+                    }
+
+                    await tx.consultation.create({
+                        data: {
+                            invoiceId: created.id,
+                            doctorId: appointment.doctorId,
+                            date: appointment.date_time,
+                            status: ConsultationStatus.PENDING,
+                        },
+                    });
+                }
+
                 return { created, commissions: computedCommissions };
             });
 
@@ -350,6 +371,42 @@ export class InvoiceService {
             return {
                 status: 200,
                 message: invoices.length === 0 ? "No se encontraron facturas" : "Facturas encontradas éxitosamente",
+                data: invoicesProcessed,
+            };
+        } catch (error) {
+            console.error("Error buscando facturas:", error);
+
+            return {
+                status: 500,
+                message: "Error interno al buscar facturas",
+                error: error instanceof Error ? error.message : "Error desconocido",
+            };
+        }
+    }
+
+    async findByPatientId(patientId: number) {
+        try {
+            const invoices = await this.db.invoice.findMany({
+                where: { patientId },
+                orderBy: { id: "desc" },
+                select: invoiceSelect,
+            });
+
+            const invoicesProcessed = invoices.map((invoice) => {
+                const exchangeRate = invoice.exchangeRate.rate;
+                
+                let totalBs = new Decimal(Number(invoice.total_usd));
+                 
+                totalBs = totalBs.mul(new Decimal(exchangeRate));
+
+
+                return { ...invoice, total_bs: totalBs.toNumber() };
+                
+            });
+
+            return {
+                status: 200,
+                message: invoices.length === 0 ? "No se encontraron facturas para el paciente" : "Facturas encontradas éxitosamente",
                 data: invoicesProcessed,
             };
         } catch (error) {

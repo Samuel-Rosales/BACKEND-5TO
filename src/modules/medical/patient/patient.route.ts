@@ -26,6 +26,14 @@ patientRouter.get(
     controller.findAllFromUser
 );
 
+// Reception flow: creates the User (ci/password=ci, role PATIENT) + Patient 1:1
+patientRouter.post(
+    "/reception",
+    validator.createPatientReceptionValidator,
+    handleValidationErrors,
+    controller.createFromReception
+);
+
 patientRouter.get(
     "/:id",
     validator.IdParamValidator,

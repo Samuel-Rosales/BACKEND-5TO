@@ -8,45 +8,42 @@ type PayrollSeedDeps = {
             doctorId: number;
             specialtyCommissionPercentage: number;
             invoiceTotalUsd: number;
+            startedAt?: Date;
+            date?: Date;
         }>;
     };
 };
 
 export async function seedPayroll(deps: PayrollSeedDeps) {
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+    const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+    const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0);
+    const previousMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+
     const payrollCurrent = await ensurePayroll({
-        period_start: new Date("2026-04-01T00:00:00.000Z"),
-        period_end: new Date("2026-04-30T23:59:59.000Z"),
+        period_start: currentMonthStart,
+        period_end: currentMonthEnd,
         status: "Pending",
     });
 
     const payrollPrevious = await ensurePayroll({
-        period_start: new Date("2026-03-01T00:00:00.000Z"),
-        period_end: new Date("2026-03-31T23:59:59.000Z"),
+        period_start: previousMonthStart,
+        period_end: previousMonthEnd,
         status: "Paid",
     });
 
-    const [consultation1, consultation2, consultation3] = deps.clinical.consultations;
+    for (const consultation of deps.clinical.consultations) {
+        const consultationDate = new Date(consultation.startedAt ?? consultation.date ?? today);
+        const targetPayroll = consultationDate >= currentMonthStart && consultationDate <= currentMonthEnd ? payrollCurrent : payrollPrevious;
 
-    await ensurePayrollLine({
-        payrollId: payrollCurrent.id,
-        consultationId: consultation1.id,
-        base_amount: consultation1.invoiceTotalUsd,
-        commission_percentage: consultation1.specialtyCommissionPercentage,
-    });
-
-    await ensurePayrollLine({
-        payrollId: payrollCurrent.id,
-        consultationId: consultation2.id,
-        base_amount: consultation2.invoiceTotalUsd,
-        commission_percentage: consultation2.specialtyCommissionPercentage,
-    });
-
-    await ensurePayrollLine({
-        payrollId: payrollPrevious.id,
-        consultationId: consultation3.id,
-        base_amount: consultation3.invoiceTotalUsd,
-        commission_percentage: consultation3.specialtyCommissionPercentage,
-    });
+        await ensurePayrollLine({
+            payrollId: targetPayroll.id,
+            consultationId: consultation.id,
+            base_amount: consultation.invoiceTotalUsd,
+            commission_percentage: consultation.specialtyCommissionPercentage,
+        });
+    }
 
     return {
         payrolls: [payrollCurrent.id, payrollPrevious.id],

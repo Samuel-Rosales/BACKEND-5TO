@@ -20,6 +20,8 @@ type ClinicalSeedDeps = {
         doctor3: number;
         reception: number;
         patient: number;
+        patient2: number;
+        patient3: number;
     };
     finance: {
         invoiceStatuses: {
@@ -46,6 +48,12 @@ type ClinicalSeedDeps = {
             ibuprofeno: number;
             amoxicilina: number;
             lapiz: number;
+            suturas: number;
+            gasas: number;
+            vendas: number;
+            cloro: number;
+            jabon: number;
+            papel: number;
         };
     };
 };
@@ -260,6 +268,11 @@ async function ensureConsultationBundle(input: ConsultationBundleInput) {
 }
 
 export async function seedClinical(deps: ClinicalSeedDeps) {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+    const monthSecondDayMorning = new Date(today.getFullYear(), today.getMonth(), 2, 10, 0, 0, 0);
+    const monthSecondDayEnd = new Date(today.getFullYear(), today.getMonth(), 2, 10, 30, 0, 0);
+
     const specialtyGeneral = await ensureMedicalSpecialty({ name: "Medicina General", consultation_price: 20, commission_percentage: 30 });
     const specialtyPediatrics = await ensureMedicalSpecialty({ name: "Pediatría", consultation_price: 25, commission_percentage: 30 });
     const specialtyCardiology = await ensureMedicalSpecialty({ name: "Cardiología", consultation_price: 50, commission_percentage: 25 });
@@ -267,16 +280,13 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const doctor1 = await ensureDoctor({ userId: deps.users.doctor1, specialtyId: specialtyGeneral.id });
     const doctor2 = await ensureDoctor({ userId: deps.users.doctor2, specialtyId: specialtyPediatrics.id });
-    const doctor3 = await ensureDoctor({ userId: deps.users.doctor3, specialtyId: specialtyCardiology.id });
-    void specialtyTrauma;
+    const doctor3 = await ensureDoctor({ userId: deps.users.doctor3, specialtyId: specialtyTrauma.id });
 
-    // Crear horarios para cada doctor
     const periodStart = new Date("2026-01-01");
     const periodEnd = new Date("2026-12-31");
 
-    // Doctor 1: Medicina General - Lunes a Viernes 8am-5pm
     const schedule1 = await ensureDoctorSchedule({ doctorId: doctor1.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 2, 3, 4, 5]) { // Lun-Vie
+    for (const day of [1, 2, 3, 4, 5]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule1.id,
             day_of_week: day,
@@ -286,9 +296,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         });
     }
 
-    // Doctor 2: Pediatría - Lunes a Viernes 8am-5pm
     const schedule2 = await ensureDoctorSchedule({ doctorId: doctor2.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 2, 3, 4, 5]) { // Lun-Vie
+    for (const day of [1, 2, 3, 4, 5]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule2.id,
             day_of_week: day,
@@ -298,9 +307,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         });
     }
 
-    // Doctor 3: Cardiología - Lunes, Miércoles, Viernes 8am-2pm
     const schedule3 = await ensureDoctorSchedule({ doctorId: doctor3.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 3, 5]) { // Lun, Mie, Vie
+    for (const day of [1, 3, 5]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule3.id,
             day_of_week: day,
@@ -310,99 +318,56 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         });
     }
 
-    const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "70000001", name: "Paciente Demo" });
-    const patient2 = await ensurePatient({ userId: deps.users.patient, ci: "70000002", name: "Paciente Demo 2" });
-    const patient3 = await ensurePatient({ userId: deps.users.patient, ci: "70000003", name: "Paciente Demo 3" });
-    const patient4 = await ensurePatient({ userId: deps.users.patient, ci: "70000004", name: "Paciente Demo 4" });
-    const patient5 = await ensurePatient({ userId: deps.users.patient, ci: "70000005", name: "Paciente Demo 5" });
-    const patient6 = await ensurePatient({ userId: deps.users.patient, ci: "70000006", name: "Paciente Demo 6" });
+    const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "27617584", name: "Juan Sun" });
+    const patient2 = await ensurePatient({ userId: deps.users.patient2, ci: "25896321", name: "Maria Lopez" });
+    const patient3 = await ensurePatient({ userId: deps.users.patient3, ci: "30147852", name: "Carlos Perez" });
 
-    const patients = [patient1, patient2, patient3, patient4, patient5, patient6];
+    const patients = [patient1, patient2, patient3];
 
-    const patientProfiles = [
-        {
-            patientId: patient1.id,
-            ci: "70000001",
-            name: "Paciente",
-            last_name: "Demo",
-            sex: "FEMALE" as const,
-            birth_date: new Date("1995-01-10"),
-            blood_type: "O+",
-            nacionality: "Venezolana",
-            profession: "Docente",
-            main_phone: "0414-0000001",
-            email: "paciente.demo@example.com",
-            address: "Av. Siempre Viva 123",
-            city: "Caracas",
-            allergies: "SEED: sin alergias conocidas",
-        },
-        {
-            patientId: patient2.id,
-            ci: "70000002",
-            name: "Paciente",
-            last_name: "Demo 2",
-            sex: "MALE" as const,
-            birth_date: new Date("1992-06-05"),
-            blood_type: "A+",
-            nacionality: "Venezolano",
-            profession: "Ingeniero",
-            main_phone: "0414-0000002",
-            allergies: "SEED: asma leve",
-        },
-        {
-            patientId: patient3.id,
-            ci: "70000003",
-            name: "Paciente",
-            last_name: "Demo 3",
-            sex: "MALE" as const,
-            birth_date: new Date("1988-11-20"),
-            blood_type: "B-",
-            nacionality: "Venezolano",
-            profession: "Comerciante",
-            main_phone: "0414-0000003",
-            chronic_diseases: "SEED: hipertensión",
-        },
-        {
-            patientId: patient4.id,
-            ci: "70000004",
-            name: "Paciente",
-            last_name: "Demo 4",
-            sex: "FEMALE" as const,
-            birth_date: new Date("1991-03-15"),
-            blood_type: "AB+",
-            nacionality: "Venezolana",
-            profession: "Diseñadora",
-            main_phone: "0414-0000004",
-        },
-        {
-            patientId: patient5.id,
-            ci: "70000005",
-            name: "Paciente",
-            last_name: "Demo 5",
-            sex: "MALE" as const,
-            birth_date: new Date("1985-09-30"),
-            blood_type: "O-",
-            nacionality: "Venezolano",
-            profession: "Chofer",
-            main_phone: "0414-0000005",
-        },
-        {
-            patientId: patient6.id,
-            ci: "70000006",
-            name: "Paciente",
-            last_name: "Demo 6",
-            sex: "FEMALE" as const,
-            birth_date: new Date("1979-12-11"),
-            blood_type: "A-",
-            nacionality: "Venezolana",
-            profession: "Administrativa",
-            main_phone: "0414-0000006",
-        },
-    ];
+    await ensureInfoPatient({
+        patientId: patient1.id,
+        sex: "MALE",
+        birth_date: new Date("1995-01-10"),
+        blood_type: "O+",
+        nacionality: "Venezolano",
+        profession: "Docente",
+        main_phone: "0414-0000001",
+        email: "juan.sun@example.com",
+        address: "Av. Siempre Viva 123",
+        city: "Caracas",
+        allergies: "SEED: sin alergias conocidas",
+    });
 
-    for (const profile of patientProfiles) {
-        await ensureInfoPatient(profile);
-    }
+    await ensureInfoPatient({
+        patientId: patient2.id,
+        sex: "FEMALE",
+        birth_date: new Date("1988-05-22"),
+        blood_type: "A+",
+        nacionality: "Venezolana",
+        profession: "Ingeniera",
+        main_phone: "0414-0000002",
+        email: "maria.lopez@example.com",
+        address: "Calle 5, Urb. El Paraíso",
+        city: "Valencia",
+        allergies: "SEED: alérgica a penicilina",
+        chronic_diseases: "SEED: asma leve",
+    });
+
+    await ensureInfoPatient({
+        patientId: patient3.id,
+        sex: "MALE",
+        birth_date: new Date("1978-11-03"),
+        blood_type: "B-",
+        nacionality: "Venezolano",
+        profession: "Abogado",
+        main_phone: "0424-0000003",
+        email: "carlos.perez@example.com",
+        address: "Av. Libertador, Edif. Torre Norte",
+        city: "Maracaibo",
+        allergies: "SEED: sin alergias conocidas",
+        chronic_diseases: "SEED: hipertensión controlada",
+        current_medications: "SEED: Losartán 50mg diario",
+    });
 
     const symptomsSeed = ["Fiebre", "Dolor", "Tos", "Cefalea", "Náuseas", "Vómitos", "Mareos", "Fatiga"];
     const symptoms = await Promise.all(symptomsSeed.map((name) => ensureSymptom(name)));
@@ -427,15 +392,16 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
     const appointmentControl = await ensureAppointmentType("Control");
 
     const appointmentBase = new Date("2026-03-22T08:00:00.000Z");
-    const appointmentPatients = [patient1, patient2, patient3, patient4, patient5, patient6];
 
     const appointments = [] as Array<{ id: number }>;
-    for (let index = 0; index < appointmentPatients.length; index += 1) {
+
+    const allPatients = [patient1, patient2, patient3, patient1, patient2, patient3];
+    for (let index = 0; index < allPatients.length; index += 1) {
         const scheduledAt = new Date(appointmentBase.getTime() + index * 60 * 60 * 1000);
         appointments.push(
             await ensureAppointment({
                 doctorId: doctor1.id,
-                patientId: appointmentPatients[index].id,
+                patientId: allPatients[index].id,
                 statusId: index % 2 === 0 ? statusPending.id : statusConfirmed.id,
                 typeId: appointmentConsult.id,
                 price: 20,
@@ -445,12 +411,13 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         );
     }
 
-    for (let index = 0; index < appointmentPatients.length; index += 1) {
+    const pedsPatients = [patient2, patient3, patient1, patient2];
+    for (let index = 0; index < pedsPatients.length; index += 1) {
         const scheduledAt = new Date(appointmentBase.getTime() + (index + 1) * 60 * 60 * 1000);
         appointments.push(
             await ensureAppointment({
                 doctorId: doctor2.id,
-                patientId: appointmentPatients[index].id,
+                patientId: pedsPatients[index].id,
                 statusId: index % 2 === 0 ? statusConfirmed.id : statusPending.id,
                 typeId: appointmentControl.id,
                 price: 25,
@@ -462,12 +429,12 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     await ensureAppointment({
         doctorId: doctor3.id,
-        patientId: patient1.id,
+        patientId: patient3.id,
         statusId: statusCancelled.id,
         typeId: appointmentConsult.id,
-        price: 50,
+        price: 35,
         date_time: new Date("2026-03-24T13:00:00.000Z"),
-        reson_visit: "SEED: cita cardiología cancelada",
+        reson_visit: "SEED: cita traumatología cancelada",
     });
 
     const consultation1 = await ensureConsultationBundle({
@@ -540,13 +507,13 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
             },
         ],
         exam: {
-            weight: 28.5,
-            height: 1.15,
+            weight: 58.3,
+            height: 1.62,
             temperature: 37.1,
-            systolic_bp: 100,
-            diastolic_bp: 66,
-            heart_rate: 90,
-            respiratory_rate: 22,
+            systolic_bp: 110,
+            diastolic_bp: 70,
+            heart_rate: 82,
+            respiratory_rate: 18,
             oxygen_saturation: 99,
         },
         igtfAmount: 0.75,
@@ -560,18 +527,60 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.zelleUsd,
-        invoiceTotalUsd: 50,
+        invoiceTotalUsd: 35,
         startedAt: new Date("2026-03-24T09:30:00.000Z"),
         finishedAt: new Date("2026-03-24T10:05:00.000Z"),
         symptoms: [
-            { symptomId: symptoms[3].id, severity: "Alta", duration: "1 día", notes: "SEED: cefalea pulsátil" },
-            { symptomId: symptoms[6].id, severity: "Media", duration: "2 días" },
+            { symptomId: symptoms[5].id, severity: "Alta", duration: "5 días", notes: "SEED: dolor lumbar crónico" },
+            { symptomId: symptoms[7].id, severity: "Media", duration: "2 semanas" },
         ],
         diagnoses: [
-            { diagnosisId: diagnoses[2].id, isPrimary: true, conditionStatus: "Controlado", onsetDate: new Date("2026-03-20") },
-            { diagnosisId: diagnoses[5].id, isPrimary: false, conditionStatus: "En estudio" },
+            { diagnosisId: diagnoses[5].id, isPrimary: true, conditionStatus: "Crónico", onsetDate: new Date("2026-03-10") },
         ],
-        supplyConsumptions: [{ supplyId: deps.inventory.products.jeringa, quantity: 1 }],
+        supplyConsumptions: [
+            { supplyId: deps.inventory.products.gasas, quantity: 5 },
+            { supplyId: deps.inventory.products.suturas, quantity: 2 },
+        ],
+        prescriptions: [
+            {
+                supplyId: deps.inventory.products.ibuprofeno,
+                medication_name: "Ibuprofeno 600mg",
+                dosage: "1 tableta",
+                frequency: "Cada 8 horas",
+                duration: "10 días",
+                instructions: "SEED: tomar después de comer",
+            },
+        ],
+        exam: {
+            weight: 82.5,
+            height: 1.78,
+            temperature: 36.6,
+            systolic_bp: 135,
+            diastolic_bp: 88,
+            heart_rate: 72,
+            respiratory_rate: 16,
+            oxygen_saturation: 98,
+        },
+    });
+
+    const consultation4 = await ensureConsultationBundle({
+        doctorId: doctor1.id,
+        patientId: patient2.id,
+        receptionistId: deps.users.reception,
+        statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        taxId: deps.finance.taxId,
+        exchangeRateId: deps.finance.exchangeRates.active,
+        paymentMethodId: deps.finance.paymentMethods.cashUsd,
+        invoiceTotalUsd: 20,
+        startedAt: monthStart,
+        finishedAt: new Date(today.getFullYear(), today.getMonth(), 1, 0, 25, 0, 0),
+        symptoms: [
+            { symptomId: symptoms[3].id, severity: "Alta", duration: "4 días", notes: "SEED: cefalea recurrente" },
+        ],
+        diagnoses: [
+            { diagnosisId: diagnoses[3].id, isPrimary: true, conditionStatus: "Agudo", onsetDate: new Date("2026-03-28") },
+        ],
+        supplyConsumptions: [{ supplyId: deps.inventory.products.vendas, quantity: 1 }],
         prescriptions: [
             {
                 supplyId: deps.inventory.products.amoxicilina,
@@ -579,18 +588,49 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
                 dosage: "1 cápsula",
                 frequency: "Cada 8 horas",
                 duration: "7 días",
-                instructions: "SEED: completar el tratamiento",
+                instructions: "SEED: completar tratamiento",
             },
         ],
         exam: {
-            weight: 74.1,
-            height: 1.73,
-            temperature: 36.8,
-            systolic_bp: 132,
-            diastolic_bp: 84,
-            heart_rate: 76,
-            respiratory_rate: 18,
+            weight: 58.3,
+            height: 1.62,
+            temperature: 37.8,
+            systolic_bp: 115,
+            diastolic_bp: 72,
+            heart_rate: 85,
+            respiratory_rate: 19,
             oxygen_saturation: 98,
+        },
+    });
+
+    const consultation5 = await ensureConsultationBundle({
+        doctorId: doctor2.id,
+        patientId: patient3.id,
+        receptionistId: deps.users.reception,
+        statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        taxId: deps.finance.taxId,
+        exchangeRateId: deps.finance.exchangeRates.active,
+        paymentMethodId: deps.finance.paymentMethods.transferBs,
+        invoiceTotalUsd: 25,
+        startedAt: monthSecondDayMorning,
+        finishedAt: monthSecondDayEnd,
+        symptoms: [
+            { symptomId: symptoms[6].id, severity: "Media", duration: "3 días" },
+        ],
+        diagnoses: [
+            { diagnosisId: diagnoses[4].id, isPrimary: true, conditionStatus: "Agudo", onsetDate: new Date("2026-03-30") },
+        ],
+        supplyConsumptions: [{ supplyId: deps.inventory.products.alcohol, quantity: 1 }],
+        prescriptions: [],
+        exam: {
+            weight: 82.5,
+            height: 1.78,
+            temperature: 38.5,
+            systolic_bp: 130,
+            diastolic_bp: 85,
+            heart_rate: 95,
+            respiratory_rate: 22,
+            oxygen_saturation: 96,
         },
     });
 
@@ -609,9 +649,11 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patients: patients.map((patient) => patient.id),
         appointments: appointments.map((appointment) => appointment.id),
         consultations: [
-            { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20 },
-            { id: consultation2.id, invoiceId: consultation2.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25 },
-            { id: consultation3.id, invoiceId: consultation3.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 25, invoiceTotalUsd: 50 },
+            { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: new Date("2026-03-22T10:00:00.000Z") },
+            { id: consultation2.id, invoiceId: consultation2.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: new Date("2026-03-23T11:00:00.000Z") },
+            { id: consultation3.id, invoiceId: consultation3.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 28, invoiceTotalUsd: 35, startedAt: new Date("2026-03-24T09:30:00.000Z") },
+            { id: consultation4.id, invoiceId: consultation4.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: monthStart },
+            { id: consultation5.id, invoiceId: consultation5.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: monthSecondDayMorning },
         ],
         symptoms: symptoms.map((symptom) => symptom.id),
         diagnoses: diagnoses.map((diagnosis) => diagnosis.id),

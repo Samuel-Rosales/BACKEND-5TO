@@ -20,6 +20,13 @@ invoiceRouter.get(
     controller.findAll
 );
 
+invoiceRouter.get(
+    "/patient/:id",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.findByPatientId
+);
+
 // invoiceRouter.get(
 //     "/:id",
 //     validator.IdParamValidator,

@@ -21,6 +21,13 @@ prescriptionRouter.get(
 );
 
 prescriptionRouter.get(
+    "/patient/:id",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.findByPatientId
+);
+
+prescriptionRouter.get(
     "/:id",
     validator.IdParamValidator,
     validator.PrescriptionExistsValidator,

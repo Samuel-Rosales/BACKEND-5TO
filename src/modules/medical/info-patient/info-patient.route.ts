@@ -25,7 +25,6 @@ infoPatientRouter.get(
 infoPatientRouter.get(
     "/patient/:patientId",
     validator.IdParamValidator,
-    validator.PatientExistsValidator,
     handleValidationErrors,
     controller.findByPatientId
 );
@@ -33,7 +32,7 @@ infoPatientRouter.get(
 infoPatientRouter.put(
     "/patient/:patientId",
     validator.IdParamValidator,
-    validator.PatientExistsValidator,
+    handleValidationErrors,
     validator.updateInfoPatientValidator,
     handleValidationErrors,
     controller.updateByPatientId

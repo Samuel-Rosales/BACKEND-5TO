@@ -29,10 +29,30 @@ appointmentRouter.get(
 );
 
 appointmentRouter.get(
-    "/doctor/:id", //id del doctor
-    validator.IdParamValidator,
+    "/doctor/:id", //id del usuario 
     handleValidationErrors,
     controller.findManyByDr
+);
+
+appointmentRouter.get(
+    "/doctor/:id/weekly-flow",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.getWeeklyFlowByDoctor
+);
+
+appointmentRouter.get(
+    "/doctor/:id/stats",
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.getDoctorStats
+);
+
+appointmentRouter.get(
+    "/patient/:id", //id del paciente
+    validator.IdParamValidator,
+    handleValidationErrors,
+    controller.findByPatientId
 );
 
 appointmentRouter.put(
