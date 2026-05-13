@@ -5,17 +5,6 @@ import { body, param, ValidationChain } from "express-validator";
 export class InfoPatientValidator {
 
     public createInfoPatientValidator: ValidationChain[] = [
-
-        body("name")
-            .trim()
-            .isLength({ min: 2, max: 120 })
-            .withMessage("El nombre del paciente debe tener entre 2 y 120 caracteres"),
-
-        body("last_name")
-            .trim()
-            .isLength({ min: 2, max: 120 })
-            .withMessage("El apellido del paciente debe tener entre 2 y 120 caracteres"),
-
         body("sex")
             .isIn(Object.values(Sex))
             .withMessage("El sexo del paciente es inválido"),
@@ -112,18 +101,6 @@ export class InfoPatientValidator {
                     return Promise.reject("El paciente no existe o no está activo");
                 }
             }),
-
-        body("name")
-            .optional()
-            .trim()
-            .isLength({ min: 2, max: 120 })
-            .withMessage("El nombre del paciente debe tener entre 2 y 120 caracteres"),
-
-        body("last_name")
-            .optional()
-            .trim()
-            .isLength({ min: 2, max: 120 })
-            .withMessage("El apellido del paciente debe tener entre 2 y 120 caracteres"),
 
         body("sex")
             .optional()
