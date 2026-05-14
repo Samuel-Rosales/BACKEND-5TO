@@ -12,6 +12,7 @@ const invoicePaymentSelect = {
     igtf_amount: true,
     exchangeRateId: true,
     date_at: true,
+    reference: true,
     paymentMethod: {
         select: { id: true, name: true, type: true, currency: true, is_active: true },
     },
