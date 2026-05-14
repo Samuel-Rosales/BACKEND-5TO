@@ -218,8 +218,8 @@ CREATE TABLE "AppointmentType" (
 CREATE TABLE "DoctorSchedule" (
     "id" SERIAL NOT NULL,
     "doctorId" INTEGER NOT NULL,
-    "period_start" DATE NOT NULL,
-    "period_end" DATE,
+    "period_start" TIME NOT NULL,
+    "period_end" TIME,
 
     CONSTRAINT "DoctorSchedule_pkey" PRIMARY KEY ("id")
 );

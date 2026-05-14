@@ -252,8 +252,8 @@ model AppointmentType {
 model DoctorSchedule {
   id           Int       @id @default(autoincrement())
   doctorId     Int
-  period_start DateTime  @db.Date
-  period_end   DateTime? @db.Date
+  period_start DateTime  @db.Timestamp
+  period_end   DateTime? @db.Timestamp
 
   doctor         Doctor             @relation(fields: [doctorId], references: [id])
   availabilities DoctorAvailability[]
