@@ -573,12 +573,37 @@ export class ConsultationService {
         }
     }
 
-    async findAllByDoctor(doctorId: number) {
+    async findAllByDoctor(
+        doctorId: number,
+        filters?: { date?: string; limit?: number; status?: string }
+    ) {
         try {
             const resolvedDoctorId = await this.resolveDoctorId(doctorId);
+            const parsedRange = filters?.date ? this.parseDateFilter(filters.date) : undefined;
+            if (filters?.date && !parsedRange) {
+                return {
+                    status: 400,
+                    message: "Filtro de fecha inválido",
+                    error: "date debe tener formato YYYY-MM-DD",
+                };
+            }
+            const filterRange = parsedRange;
+            const status = filters?.status;
+            if (status && !Object.values(ConsultationStatus).includes(status as ConsultationStatus)) {
+                return {
+                    status: 400,
+                    message: "Filtro de estado inválido",
+                    error: "status inválido",
+                };
+            }
             const consultations = await prisma.consultation.findMany({
-                where: { doctorId: resolvedDoctorId },
+                where: {
+                    doctorId: resolvedDoctorId,
+                    ...(filterRange ? { date: filterRange } : {}),
+                    ...(status ? { status: status as ConsultationStatus } : {}),
+                },
                 orderBy: { date: "desc" },
+                ...(filters?.limit ? { take: filters.limit } : {}),
                 select: consultationSelect,
             });
 
@@ -609,6 +634,20 @@ export class ConsultationService {
             };
         }
 
+    }
+
+    private parseDateFilter(date: string) {
+        const parts = date.split("-");
+        if (parts.length !== 3) return undefined;
+        const year = Number(parts[0]);
+        const month = Number(parts[1]);
+        const day = Number(parts[2]);
+        if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return undefined;
+        const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        if (Number.isNaN(start.getTime())) return undefined;
+        const end = new Date(start);
+        end.setUTCDate(end.getUTCDate() + 1);
+        return { gte: start, lt: end } as const;
     }
 
     async getWeeklyFlowByDoctor(doctorId: number, range?: string) {
