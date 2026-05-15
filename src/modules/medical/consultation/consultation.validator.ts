@@ -1,6 +1,6 @@
 import { prisma } from "@/configs";
 import { ConsultationStatus } from "@prisma/client";
-import { body, param, ValidationChain } from "express-validator";
+import { body, param, query, ValidationChain } from "express-validator";
 
 const isValidDateString = (value: unknown) => {
     if (typeof value !== "string") {
@@ -397,7 +397,22 @@ export class ConsultationValidator {
                 }
 
             }),
+        query("date")
+            .optional()
+            .custom((value) => {
+                if (!isValidDateString(value)) {
+                    throw new Error("date debe ser una fecha válida (YYYY-MM-DD)");
+                }
+                return true;
+            }),
+        query("limit")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("limit debe ser un entero positivo"),
+        query("status")
+            .optional()
+            .isIn(["PENDING", "IN_PROGRESS", "FINISHED", "CANCELLED"])
+            .withMessage("status inválido"),
 
-        
     ];
 }

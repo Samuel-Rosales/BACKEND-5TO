@@ -22,6 +22,9 @@ export class ConsultationController {
     async findAllByDoctor(req: Request, res: Response) {
         const { id } = req.params;
         const doctorIdHeader = req.header("x-doctor-id") ?? undefined;
+        const date = typeof req.query.date === "string" ? req.query.date : undefined;
+        const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
+        const statusFilter = typeof req.query.status === "string" ? req.query.status : undefined;
 
         const doctorIdFinal = id ?? doctorIdHeader;
 
@@ -34,7 +37,11 @@ export class ConsultationController {
             });
         }
 
-        const { data, status, message, error } = await service.findAllByDoctor(doctorIdNumber);
+        const { data, status, message, error } = await service.findAllByDoctor(doctorIdNumber, {
+            date,
+            limit,
+            status: statusFilter,
+        });
 
         return res.status(status).json({ message, data, error });
     }
