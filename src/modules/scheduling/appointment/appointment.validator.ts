@@ -18,7 +18,7 @@ export class AppointmentValidator {
             const hasDoctorId = req.body.doctorId !== undefined && req.body.doctorId !== null;
             const hasSpecialtyId = req.body.specialtyId !== undefined && req.body.specialtyId !== null;
 
-            if (hasDoctorId === hasSpecialtyId) {
+            if (!hasDoctorId && !hasSpecialtyId) {
                 throw new Error("Debe enviar exactamente uno: doctorId o specialtyId");
             }
 
