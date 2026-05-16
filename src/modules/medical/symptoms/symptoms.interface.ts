@@ -1,4 +1,7 @@
-export interface Symptom {
-    id: number;
+export interface CreateSymptomDto {
     name: string;
+}
+
+export interface UpdateSymptomDto {
+    name?: string;
 }

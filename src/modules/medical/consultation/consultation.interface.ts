@@ -8,6 +8,7 @@ export interface UpdateConsultationDto {
     date?: string | Date;
     started_at?: string | Date;
     finished_at?: string | Date;
+    status?: "PENDING" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
     symptoms?: string;
     diagnosis?: string;
     physical_exam?: string;

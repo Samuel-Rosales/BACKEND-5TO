@@ -1,10 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import { config } from 'dotenv';
+
+// Cargar variables de entorno explícitamente
+config({ path: '.env' });
 
 // 1. Configuración robusta del Pool
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/backend_5to?schema=public';
+console.log('DATABASE_URL:', databaseUrl);
 const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+  connectionString: databaseUrl,
   max: 20,                  // Límite de conexiones simultáneas
   idleTimeoutMillis: 30000, // Tiempo antes de cerrar conexiones inactivas
   connectionTimeoutMillis: 2000, 

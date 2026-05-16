@@ -1,4 +1,4 @@
-import { ensureCategory, ensureMeasurementUnit, ensureProduct, prisma } from "./shared";
+import { ensureCategory, ensureMeasurementUnit, ensureProduct, ensureSupplyPresentation, prisma } from "./shared";
 
 export async function seedInventory() {
     const catInsumos = await ensureCategory("Insumos");
@@ -30,6 +30,13 @@ export async function seedInventory() {
     // Inactive product — was discontinued
     const oldSupply = await ensureProduct({ name: "Mascarilla básica (descontinuada)", sku: "INS-MASC-OLD", cost_price: 0.15, categoryId: catInsumos.id, unitId: unitUnidad.id, min_stock: 0 });
     await prisma.supply.update({ where: { id: oldSupply.id }, data: { active: false } });
+
+    await ensureSupplyPresentation({ supplyId: paracetamol.id, name: "Caja x24", factor: 24, price: 2.4, barCode: "PARA-CAJA-24" });
+    await ensureSupplyPresentation({ supplyId: paracetamol.id, name: "Blister x10", factor: 10, price: 1.0, barCode: "PARA-BLIS-10" });
+    await ensureSupplyPresentation({ supplyId: ibuprofeno.id, name: "Caja x20", factor: 20, price: 2.4, barCode: "IBU-CAJA-20" });
+    await ensureSupplyPresentation({ supplyId: amoxicilina.id, name: "Caja x30", factor: 30, price: 5.4, barCode: "AMOX-CAJA-30" });
+    await ensureSupplyPresentation({ supplyId: guantes.id, name: "Caja x100", factor: 100, price: 125.0, barCode: "GUANTES-CAJA-100" });
+    await ensureSupplyPresentation({ supplyId: gasas.id, name: "Paquete x50", factor: 50, price: 17.5, barCode: "GASAS-PACK-50" });
 
     return {
         categories: {

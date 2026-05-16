@@ -29,3 +29,4 @@ export * from './specialtyDemand/specialtyDemand.service';
 export * from './specialtyDemand/specialtyDemand.controller';
 export * from './specialtyDemand/specialtyDemand.route';
 export { default as specialtyDemandRouter } from './specialtyDemand/specialtyDemand.route';
+export * from './receptionistOverview';

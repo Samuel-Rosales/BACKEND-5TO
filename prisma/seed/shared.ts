@@ -1,13 +1,14 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcryptjs";
 
-if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL no está definido en el entorno");
-}
+// Cargar variables de entorno explícitamente
+config({ path: '.env' });
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/backend_5to?schema=public';
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
 export const prisma = new PrismaClient({ adapter });
 
 export function hashPassword(plain: string) {
@@ -854,5 +855,121 @@ export async function ensureSeedPurchase(params: {
         }
 
         return { id: purchase.id };
+    });
+}
+
+export async function ensureDoctorScheduleOverride(params: {
+    doctorId: number;
+    specific_date: Date;
+    is_working?: boolean;
+    start_time?: Date;
+    end_time?: Date;
+    reason?: string;
+}) {
+    const existing = await prisma.doctorScheduleOverride.findFirst({
+        where: {
+            doctorId: params.doctorId,
+            specific_date: params.specific_date,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.doctorScheduleOverride.create({
+        data: {
+            doctorId: params.doctorId,
+            specific_date: params.specific_date,
+            is_working: params.is_working ?? true,
+            start_time: params.start_time,
+            end_time: params.end_time,
+            reason: params.reason,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensureSupplyPresentation(params: {
+    supplyId: number;
+    name: string;
+    factor: number;
+    barCode?: string;
+    price: number;
+}) {
+    const existing = await prisma.supplyPresentation.findFirst({
+        where: {
+            supplyId: params.supplyId,
+            name: { equals: params.name, mode: "insensitive" },
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.supplyPresentation.create({
+        data: {
+            supplyId: params.supplyId,
+            name: params.name,
+            factor: params.factor,
+            barCode: params.barCode,
+            price: params.price,
+            isActive: true,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensureSalaryPayment(params: {
+    payrollId: number;
+    userId: number;
+    amount: number;
+    concept?: string;
+    date_at?: Date;
+}) {
+    const existing = await prisma.salaryPayment.findFirst({
+        where: {
+            payrollId: params.payrollId,
+            userId: params.userId,
+            amount: params.amount,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.salaryPayment.create({
+        data: {
+            payrollId: params.payrollId,
+            userId: params.userId,
+            amount: params.amount,
+            concept: params.concept,
+            date_at: params.date_at,
+        },
+        select: { id: true },
+    });
+}
+
+export async function ensurePayrollPayment(params: {
+    salaryPaymentId: number;
+    payrollLineId: number;
+    amount: number;
+}) {
+    const existing = await prisma.payrollPayment.findFirst({
+        where: {
+            salaryPaymentId: params.salaryPaymentId,
+            payrollLineId: params.payrollLineId,
+        },
+        select: { id: true },
+    });
+
+    if (existing) return existing;
+
+    return prisma.payrollPayment.create({
+        data: {
+            salaryPaymentId: params.salaryPaymentId,
+            payrollLineId: params.payrollLineId,
+            amount: params.amount,
+        },
+        select: { id: true },
     });
 }

@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { ConsultationStatus } from "@prisma/client";
 import { CreateInvoiceDto, CreateInvoiceDetailDto, UpdateInvoiceDto } from "./invoice.interface";
 import { Decimal } from "@prisma/client/runtime/client";
 import { resolveExchangeRate } from "@/utils/exchange-rate.util";
@@ -243,7 +244,6 @@ export class InvoiceService {
                         select: { doctorId: true, patientId: true },
                     });
                     if (!appointment) throw new Error("La cita no existe");
-                    if (appointment.patientId !== data.patientId) throw new Error("La cita no pertenece al paciente");
 
                     const doctor = await tx.doctor.findUnique({
                         where: { id: appointment.doctorId },
@@ -306,6 +306,26 @@ export class InvoiceService {
                             amount_paid: payment.amount_paid,
                             igtf_amount: payment.igtf_amount,
                             exchangeRateId: exchangeRate.id,
+                        },
+                    });
+                }
+
+                if (data.appointmentId) {
+                    const appointment = await tx.appointment.findUnique({
+                        where: { id: data.appointmentId },
+                        select: { doctorId: true, date_time: true },
+                    });
+
+                    if (!appointment) {
+                        throw new Error("La cita no existe");
+                    }
+
+                    await tx.consultation.create({
+                        data: {
+                            invoiceId: created.id,
+                            doctorId: appointment.doctorId,
+                            date: appointment.date_time,
+                            status: ConsultationStatus.PENDING,
                         },
                     });
                 }
