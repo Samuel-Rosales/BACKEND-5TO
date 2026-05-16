@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "ConsultationStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'FINISHED', 'CANCELLED');
+
+-- CreateEnum
 CREATE TYPE "StatusPurchase" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED', 'ANULLED');
 
 -- CreateEnum
@@ -12,6 +15,7 @@ CREATE TABLE "Role" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
+    "base_salary" DECIMAL(12,2),
     "active" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
@@ -25,6 +29,7 @@ CREATE TABLE "User" (
     "password" VARCHAR(255) NOT NULL,
     "roleId" INTEGER NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -32,11 +37,14 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "Patient" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER,
+    "userId" INTEGER NOT NULL,
     "ci" TEXT,
     "name" TEXT,
+    "last_name" TEXT,
+    "info_completed" BOOLEAN NOT NULL DEFAULT false,
     "last_visit_at" TIMESTAMP(3),
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Patient_pkey" PRIMARY KEY ("id")
 );
@@ -45,9 +53,6 @@ CREATE TABLE "Patient" (
 CREATE TABLE "InfoPatient" (
     "id" SERIAL NOT NULL,
     "patientId" INTEGER NOT NULL,
-    "ci" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "last_name" TEXT NOT NULL,
     "sex" "Sex" NOT NULL,
     "blood_type" TEXT,
     "nacionality" TEXT,
@@ -93,9 +98,10 @@ CREATE TABLE "Consultation" (
     "id" SERIAL NOT NULL,
     "invoiceId" INTEGER NOT NULL,
     "doctorId" INTEGER NOT NULL,
-    "date" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "started_at" TIMESTAMP(3),
     "finished_at" TIMESTAMP(3),
+    "status" "ConsultationStatus" NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Consultation_pkey" PRIMARY KEY ("id")
 );
@@ -212,8 +218,8 @@ CREATE TABLE "AppointmentType" (
 CREATE TABLE "DoctorSchedule" (
     "id" SERIAL NOT NULL,
     "doctorId" INTEGER NOT NULL,
-    "period_start" DATE NOT NULL,
-    "period_end" DATE,
+    "period_start" TIME NOT NULL,
+    "period_end" TIME,
 
     CONSTRAINT "DoctorSchedule_pkey" PRIMARY KEY ("id")
 );
@@ -274,6 +280,7 @@ CREATE TABLE "InvoicePayment" (
     "exchangeRateId" INTEGER NOT NULL,
     "amount_paid" DECIMAL(12,2) NOT NULL,
     "igtf_amount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+    "reference" VARCHAR(255),
     "date_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "InvoicePayment_pkey" PRIMARY KEY ("id")
@@ -331,6 +338,28 @@ CREATE TABLE "PayrollLine" (
     "commission_percentage" DECIMAL(5,2) NOT NULL,
 
     CONSTRAINT "PayrollLine_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SalaryPayment" (
+    "id" SERIAL NOT NULL,
+    "payrollId" INTEGER NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "amount" DECIMAL(12,2) NOT NULL,
+    "concept" VARCHAR(255),
+    "date_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SalaryPayment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PayrollPayment" (
+    "id" SERIAL NOT NULL,
+    "salaryPaymentId" INTEGER NOT NULL,
+    "payrollLineId" INTEGER NOT NULL,
+    "amount" DECIMAL(12,2) NOT NULL,
+
+    CONSTRAINT "PayrollPayment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -446,6 +475,7 @@ CREATE TABLE "ExpensePayment" (
     "paymentMethodId" INTEGER NOT NULL,
     "amount" DECIMAL(12,2) NOT NULL,
     "exchangeRateId" INTEGER NOT NULL,
+    "reference" VARCHAR(255),
     "date_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ExpensePayment_pkey" PRIMARY KEY ("id")
@@ -510,10 +540,13 @@ CREATE UNIQUE INDEX "Role_code_key" ON "Role"("code");
 CREATE UNIQUE INDEX "User_ci_key" ON "User"("ci");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "InfoPatient_patientId_key" ON "InfoPatient"("patientId");
+CREATE UNIQUE INDEX "Patient_userId_key" ON "Patient"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "InfoPatient_ci_key" ON "InfoPatient"("ci");
+CREATE UNIQUE INDEX "Patient_ci_key" ON "Patient"("ci");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InfoPatient_patientId_key" ON "InfoPatient"("patientId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Doctor_userId_key" ON "Doctor"("userId");
@@ -543,13 +576,28 @@ CREATE UNIQUE INDEX "Payroll_period_start_period_end_key" ON "Payroll"("period_s
 CREATE UNIQUE INDEX "PayrollLine_consultationId_key" ON "PayrollLine"("consultationId");
 
 -- CreateIndex
+CREATE INDEX "SalaryPayment_payrollId_idx" ON "SalaryPayment"("payrollId");
+
+-- CreateIndex
+CREATE INDEX "SalaryPayment_userId_idx" ON "SalaryPayment"("userId");
+
+-- CreateIndex
+CREATE INDEX "PayrollPayment_salaryPaymentId_idx" ON "PayrollPayment"("salaryPaymentId");
+
+-- CreateIndex
+CREATE INDEX "PayrollPayment_payrollLineId_idx" ON "PayrollPayment"("payrollLineId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PayrollPayment_salaryPaymentId_payrollLineId_key" ON "PayrollPayment"("salaryPaymentId", "payrollLineId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Supply_sku_key" ON "Supply"("sku");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Patient" ADD CONSTRAINT "Patient_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Patient" ADD CONSTRAINT "Patient_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "InfoPatient" ADD CONSTRAINT "InfoPatient_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -637,6 +685,18 @@ ALTER TABLE "PayrollLine" ADD CONSTRAINT "PayrollLine_payrollId_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "PayrollLine" ADD CONSTRAINT "PayrollLine_consultationId_fkey" FOREIGN KEY ("consultationId") REFERENCES "Consultation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SalaryPayment" ADD CONSTRAINT "SalaryPayment_payrollId_fkey" FOREIGN KEY ("payrollId") REFERENCES "Payroll"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SalaryPayment" ADD CONSTRAINT "SalaryPayment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PayrollPayment" ADD CONSTRAINT "PayrollPayment_salaryPaymentId_fkey" FOREIGN KEY ("salaryPaymentId") REFERENCES "SalaryPayment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PayrollPayment" ADD CONSTRAINT "PayrollPayment_payrollLineId_fkey" FOREIGN KEY ("payrollLineId") REFERENCES "PayrollLine"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Supply" ADD CONSTRAINT "Supply_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

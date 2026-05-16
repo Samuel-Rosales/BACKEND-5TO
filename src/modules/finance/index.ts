@@ -6,3 +6,4 @@ export * from "./invoice";
 export * from "./invoicePayment";
 export * from "./payroll";
 export * from "./payrollLine";
+export * from "./salaryPayment";

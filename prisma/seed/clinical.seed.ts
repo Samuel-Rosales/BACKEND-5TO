@@ -5,6 +5,7 @@ import {
     ensureDoctor,
     ensureDoctorAvailability,
     ensureDoctorSchedule,
+    ensureDoctorScheduleOverride,
     ensureInfoPatient,
     ensureMedicalSpecialty,
     ensurePatient,
@@ -22,6 +23,9 @@ type ClinicalSeedDeps = {
         patient: number;
         patient2: number;
         patient3: number;
+        patient4: number;
+        patient5: number;
+        patient6: number;
     };
     finance: {
         invoiceStatuses: {
@@ -268,6 +272,11 @@ async function ensureConsultationBundle(input: ConsultationBundleInput) {
 }
 
 export async function seedClinical(deps: ClinicalSeedDeps) {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+    const monthSecondDayMorning = new Date(today.getFullYear(), today.getMonth(), 2, 10, 0, 0, 0);
+    const monthSecondDayEnd = new Date(today.getFullYear(), today.getMonth(), 2, 10, 30, 0, 0);
+
     const specialtyGeneral = await ensureMedicalSpecialty({ name: "Medicina General", consultation_price: 20, commission_percentage: 30 });
     const specialtyPediatrics = await ensureMedicalSpecialty({ name: "Pediatría", consultation_price: 25, commission_percentage: 30 });
     const specialtyCardiology = await ensureMedicalSpecialty({ name: "Cardiología", consultation_price: 50, commission_percentage: 25 });
@@ -279,45 +288,119 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const periodStart = new Date("2026-01-01");
     const periodEnd = new Date("2026-12-31");
+    const timeUTC = (hours: number, minutes: number) => new Date(Date.UTC(1970, 0, 1, hours, minutes, 0));
 
     const schedule1 = await ensureDoctorSchedule({ doctorId: doctor1.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 2, 3, 4, 5]) {
+    await prisma.doctorSchedule.updateMany({
+        where: { doctorId: doctor1.id, period_end: null, id: { not: schedule1.id } },
+        data: { period_end: today },
+    });
+    await prisma.doctorSchedule.update({ where: { id: schedule1.id }, data: { period_end: null } });
+    await prisma.doctorAvailability.deleteMany({ where: { doctorScheduleId: schedule1.id } });
+    for (const day of [0, 1, 2, 3, 4, 5, 6]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule1.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T08:00:00"),
-            end_time: new Date("2026-01-01T17:00:00"),
+            start_time: timeUTC(0, 0),
+            end_time: timeUTC(23, 59),
             patient_limit: 10,
         });
     }
 
     const schedule2 = await ensureDoctorSchedule({ doctorId: doctor2.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 2, 3, 4, 5]) {
+    await prisma.doctorSchedule.updateMany({
+        where: { doctorId: doctor2.id, period_end: null, id: { not: schedule2.id } },
+        data: { period_end: today },
+    });
+    await prisma.doctorSchedule.update({ where: { id: schedule2.id }, data: { period_end: null } });
+    await prisma.doctorAvailability.deleteMany({ where: { doctorScheduleId: schedule2.id } });
+    for (const day of [1, 3, 5]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule2.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T08:00:00"),
-            end_time: new Date("2026-01-01T17:00:00"),
+            start_time: timeUTC(9, 0),
+            end_time: timeUTC(13, 0),
+            patient_limit: 8,
+        });
+    }
+    for (const day of [2, 4]) {
+        await ensureDoctorAvailability({
+            doctorScheduleId: schedule2.id,
+            day_of_week: day,
+            start_time: timeUTC(9, 0),
+            end_time: timeUTC(13, 0),
+            patient_limit: 8,
+        });
+        await ensureDoctorAvailability({
+            doctorScheduleId: schedule2.id,
+            day_of_week: day,
+            start_time: timeUTC(15, 0),
+            end_time: timeUTC(19, 0),
             patient_limit: 8,
         });
     }
 
     const schedule3 = await ensureDoctorSchedule({ doctorId: doctor3.id, period_start: periodStart, period_end: periodEnd });
-    for (const day of [1, 3, 5]) {
+    await prisma.doctorSchedule.updateMany({
+        where: { doctorId: doctor3.id, period_end: null, id: { not: schedule3.id } },
+        data: { period_end: today },
+    });
+    await prisma.doctorSchedule.update({ where: { id: schedule3.id }, data: { period_end: null } });
+    await prisma.doctorAvailability.deleteMany({ where: { doctorScheduleId: schedule3.id } });
+    for (const day of [2, 4]) {
         await ensureDoctorAvailability({
             doctorScheduleId: schedule3.id,
             day_of_week: day,
-            start_time: new Date("2026-01-01T08:00:00"),
-            end_time: new Date("2026-01-01T14:00:00"),
+            start_time: timeUTC(8, 0),
+            end_time: timeUTC(14, 0),
             patient_limit: 6,
         });
     }
+    await ensureDoctorAvailability({
+        doctorScheduleId: schedule3.id,
+        day_of_week: 6,
+        start_time: timeUTC(8, 0),
+        end_time: timeUTC(12, 0),
+        patient_limit: 6,
+    });
+
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7));
+    const override1 = await ensureDoctorScheduleOverride({
+        doctorId: doctor1.id,
+        specific_date: nextMonday,
+        is_working: false,
+        reason: "SEED: asistencia a congreso",
+    });
+
+    const nextWednesday = new Date(today);
+    nextWednesday.setDate(today.getDate() + ((3 - today.getDay() + 7) % 7));
+    const override2 = await ensureDoctorScheduleOverride({
+        doctorId: doctor2.id,
+        specific_date: nextWednesday,
+        is_working: true,
+        start_time: timeUTC(9, 0),
+        end_time: timeUTC(21, 0),
+        reason: "SEED: jornada especial",
+    });
+
+    const nextFriday = new Date(today);
+    nextFriday.setDate(today.getDate() + ((5 - today.getDay() + 7) % 7));
+    const override3 = await ensureDoctorScheduleOverride({
+        doctorId: doctor3.id,
+        specific_date: nextFriday,
+        is_working: false,
+        reason: "SEED: capacitación",
+    });
 
     const patient1 = await ensurePatient({ userId: deps.users.patient, ci: "27617584", name: "Juan Sun" });
     const patient2 = await ensurePatient({ userId: deps.users.patient2, ci: "25896321", name: "Maria Lopez" });
     const patient3 = await ensurePatient({ userId: deps.users.patient3, ci: "30147852", name: "Carlos Perez" });
+    const patient4 = await ensurePatient({ userId: deps.users.patient4, ci: "28456789", name: "Ana Torres" });
+    const patient5 = await ensurePatient({ userId: deps.users.patient5, ci: "30123456", name: "Luis Mendez" });
+    const patient6 = await ensurePatient({ userId: deps.users.patient6, ci: "26987453", name: "Carmen Plaza" });
 
-    const patients = [patient1, patient2, patient3];
+    const patients = [patient1, patient2, patient3, patient4, patient5, patient6];
 
     await ensureInfoPatient({
         patientId: patient1.id,
@@ -364,7 +447,50 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         current_medications: "SEED: Losartán 50mg diario",
     });
 
-    const symptomsSeed = ["Fiebre", "Dolor", "Tos", "Cefalea", "Náuseas", "Vómitos", "Mareos", "Fatiga"];
+    await ensureInfoPatient({
+        patientId: patient4.id,
+        sex: "FEMALE",
+        birth_date: new Date("1992-07-15"),
+        blood_type: "O-",
+        nacionality: "Venezolana",
+        profession: "Contadora",
+        main_phone: "0414-0000004",
+        email: "ana.torres@example.com",
+        address: "Av. Universidad 45",
+        city: "Barquisimeto",
+        allergies: "SEED: alergia estacional",
+    });
+
+    await ensureInfoPatient({
+        patientId: patient5.id,
+        sex: "MALE",
+        birth_date: new Date("1985-02-08"),
+        blood_type: "AB+",
+        nacionality: "Venezolano",
+        profession: "Ingeniero",
+        main_phone: "0414-0000005",
+        email: "luis.mendez@example.com",
+        address: "Calle 8, Urb. Los Pinos",
+        city: "Maracay",
+        chronic_diseases: "SEED: diabetes tipo 2",
+        current_medications: "SEED: Metformina 850mg",
+    });
+
+    await ensureInfoPatient({
+        patientId: patient6.id,
+        sex: "FEMALE",
+        birth_date: new Date("2001-11-28"),
+        blood_type: "A-",
+        nacionality: "Venezolana",
+        profession: "Estudiante",
+        main_phone: "0414-0000006",
+        email: "carmen.plaza@example.com",
+        address: "Urbanización Centro, Torre A",
+        city: "Puerto La Cruz",
+        previous_surgeries: "SEED: apendicectomía 2018",
+    });
+
+    const symptomsSeed = ["Fiebre", "Dolor", "Tos", "Cefalea", "Náuseas", "Vómitos", "Mareos", "Fatiga", "Dolor de garganta", "Congestión nasal"];
     const symptoms = await Promise.all(symptomsSeed.map((name) => ensureSymptom(name)));
 
     const diagnosesSeed = [
@@ -374,6 +500,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         { code: "R50", description: "Fiebre de origen desconocido", category: "Síntomas" },
         { code: "A09", description: "Gastroenteritis y colitis de origen infeccioso", category: "Infecciosas" },
         { code: "M54", description: "Dorsalgia", category: "Musculoesqueléticas" },
+        { code: "J02", description: "Faringitis aguda", category: "Respiratorias" },
+        { code: "E11", description: "Diabetes mellitus tipo 2", category: "Endocrinas" },
     ] as const;
     const diagnoses = await Promise.all(diagnosesSeed.map((item) => ensureDiagnosis(item)));
 
@@ -390,7 +518,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
 
     const appointments = [] as Array<{ id: number }>;
 
-    const allPatients = [patient1, patient2, patient3, patient1, patient2, patient3];
+    const allPatients = [patient1, patient2, patient3, patient4, patient5, patient6, patient1, patient2];
     for (let index = 0; index < allPatients.length; index += 1) {
         const scheduledAt = new Date(appointmentBase.getTime() + index * 60 * 60 * 1000);
         appointments.push(
@@ -406,7 +534,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         );
     }
 
-    const pedsPatients = [patient2, patient3, patient1, patient2];
+    const pedsPatients = [patient2, patient3, patient1, patient4, patient5];
     for (let index = 0; index < pedsPatients.length; index += 1) {
         const scheduledAt = new Date(appointmentBase.getTime() + (index + 1) * 60 * 60 * 1000);
         appointments.push(
@@ -567,8 +695,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
         invoiceTotalUsd: 20,
-        startedAt: new Date("2026-04-01T14:00:00.000Z"),
-        finishedAt: new Date("2026-04-01T14:25:00.000Z"),
+        startedAt: monthStart,
+        finishedAt: new Date(today.getFullYear(), today.getMonth(), 1, 0, 25, 0, 0),
         symptoms: [
             { symptomId: symptoms[3].id, severity: "Alta", duration: "4 días", notes: "SEED: cefalea recurrente" },
         ],
@@ -607,8 +735,8 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
         invoiceTotalUsd: 25,
-        startedAt: new Date("2026-04-02T10:00:00.000Z"),
-        finishedAt: new Date("2026-04-02T10:30:00.000Z"),
+        startedAt: monthSecondDayMorning,
+        finishedAt: monthSecondDayEnd,
         symptoms: [
             { symptomId: symptoms[6].id, severity: "Media", duration: "3 días" },
         ],
@@ -629,6 +757,127 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         },
     });
 
+    const consultation6 = await ensureConsultationBundle({
+        doctorId: doctor1.id,
+        patientId: patient4.id,
+        receptionistId: deps.users.reception,
+        statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        taxId: deps.finance.taxId,
+        exchangeRateId: deps.finance.exchangeRates.active,
+        paymentMethodId: deps.finance.paymentMethods.cashUsd,
+        invoiceTotalUsd: 20,
+        startedAt: new Date("2026-03-25T09:00:00.000Z"),
+        finishedAt: new Date("2026-03-25T09:40:00.000Z"),
+        symptoms: [
+            { symptomId: symptoms[8].id, severity: "Media", duration: "2 días", notes: "SEED: garganta irritada" },
+            { symptomId: symptoms[9].id, severity: "Baja", duration: "3 días" },
+        ],
+        diagnoses: [
+            { diagnosisId: diagnoses[6].id, isPrimary: true, conditionStatus: "Agudo", onsetDate: new Date("2026-03-24") },
+        ],
+        supplyConsumptions: [{ supplyId: deps.inventory.products.gasas, quantity: 2 }],
+        prescriptions: [
+            {
+                supplyId: deps.inventory.products.paracetamol,
+                medication_name: "Paracetamol 500mg",
+                dosage: "1 tableta",
+                frequency: "Cada 8 horas",
+                duration: "3 días",
+                instructions: "SEED: hidratarse bien",
+            },
+        ],
+        exam: {
+            weight: 64.2,
+            height: 1.66,
+            temperature: 37.9,
+            systolic_bp: 116,
+            diastolic_bp: 74,
+            heart_rate: 86,
+            respiratory_rate: 19,
+            oxygen_saturation: 97,
+        },
+    });
+
+    const consultation7 = await ensureConsultationBundle({
+        doctorId: doctor2.id,
+        patientId: patient5.id,
+        receptionistId: deps.users.reception,
+        statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        taxId: deps.finance.taxId,
+        exchangeRateId: deps.finance.exchangeRates.active,
+        paymentMethodId: deps.finance.paymentMethods.transferBs,
+        invoiceTotalUsd: 25,
+        startedAt: new Date("2026-03-26T15:30:00.000Z"),
+        finishedAt: new Date("2026-03-26T16:00:00.000Z"),
+        symptoms: [
+            { symptomId: symptoms[7].id, severity: "Media", duration: "1 semana", notes: "SEED: fatiga persistente" },
+        ],
+        diagnoses: [
+            { diagnosisId: diagnoses[7].id, isPrimary: true, conditionStatus: "Crónico", onsetDate: new Date("2026-01-15") },
+        ],
+        supplyConsumptions: [{ supplyId: deps.inventory.products.algodon, quantity: 1 }],
+        prescriptions: [
+            {
+                medication_name: "Metformina 850mg",
+                dosage: "1 tableta",
+                frequency: "Cada 12 horas",
+                duration: "30 días",
+                instructions: "SEED: controlar glucosa",
+            },
+        ],
+        exam: {
+            weight: 88.1,
+            height: 1.72,
+            temperature: 36.8,
+            systolic_bp: 140,
+            diastolic_bp: 90,
+            heart_rate: 84,
+            respiratory_rate: 18,
+            oxygen_saturation: 98,
+        },
+        igtfAmount: 0.75,
+    });
+
+    const consultation8 = await ensureConsultationBundle({
+        doctorId: doctor3.id,
+        patientId: patient6.id,
+        receptionistId: deps.users.reception,
+        statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        taxId: deps.finance.taxId,
+        exchangeRateId: deps.finance.exchangeRates.active,
+        paymentMethodId: deps.finance.paymentMethods.zelleUsd,
+        invoiceTotalUsd: 35,
+        startedAt: new Date("2026-03-27T11:00:00.000Z"),
+        finishedAt: new Date("2026-03-27T11:30:00.000Z"),
+        symptoms: [
+            { symptomId: symptoms[1].id, severity: "Alta", duration: "4 días", notes: "SEED: dolor lumbar" },
+        ],
+        diagnoses: [
+            { diagnosisId: diagnoses[5].id, isPrimary: true, conditionStatus: "Agudo", onsetDate: new Date("2026-03-25") },
+        ],
+        supplyConsumptions: [{ supplyId: deps.inventory.products.vendas, quantity: 2 }],
+        prescriptions: [
+            {
+                supplyId: deps.inventory.products.ibuprofeno,
+                medication_name: "Ibuprofeno 400mg",
+                dosage: "1 tableta",
+                frequency: "Cada 8 horas",
+                duration: "5 días",
+                instructions: "SEED: reposo",
+            },
+        ],
+        exam: {
+            weight: 54.6,
+            height: 1.61,
+            temperature: 37.0,
+            systolic_bp: 112,
+            diastolic_bp: 70,
+            heart_rate: 78,
+            respiratory_rate: 17,
+            oxygen_saturation: 99,
+        },
+    });
+
     return {
         specialties: {
             general: specialtyGeneral.id,
@@ -642,13 +891,22 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
             doctor3: doctor3.id,
         },
         patients: patients.map((patient) => patient.id),
+        schedules: {
+            doctor1: schedule1.id,
+            doctor2: schedule2.id,
+            doctor3: schedule3.id,
+        },
+        overrides: [override1.id, override2.id, override3.id],
         appointments: appointments.map((appointment) => appointment.id),
         consultations: [
-            { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20 },
-            { id: consultation2.id, invoiceId: consultation2.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25 },
-            { id: consultation3.id, invoiceId: consultation3.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 28, invoiceTotalUsd: 35 },
-            { id: consultation4.id, invoiceId: consultation4.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20 },
-            { id: consultation5.id, invoiceId: consultation5.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25 },
+            { id: consultation1.id, invoiceId: consultation1.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: new Date("2026-03-22T10:00:00.000Z") },
+            { id: consultation2.id, invoiceId: consultation2.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: new Date("2026-03-23T11:00:00.000Z") },
+            { id: consultation3.id, invoiceId: consultation3.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 28, invoiceTotalUsd: 35, startedAt: new Date("2026-03-24T09:30:00.000Z") },
+            { id: consultation4.id, invoiceId: consultation4.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: monthStart },
+            { id: consultation5.id, invoiceId: consultation5.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: monthSecondDayMorning },
+            { id: consultation6.id, invoiceId: consultation6.invoiceId, doctorId: doctor1.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 20, startedAt: new Date("2026-03-25T09:00:00.000Z") },
+            { id: consultation7.id, invoiceId: consultation7.invoiceId, doctorId: doctor2.id, specialtyCommissionPercentage: 30, invoiceTotalUsd: 25, startedAt: new Date("2026-03-26T15:30:00.000Z") },
+            { id: consultation8.id, invoiceId: consultation8.invoiceId, doctorId: doctor3.id, specialtyCommissionPercentage: 28, invoiceTotalUsd: 35, startedAt: new Date("2026-03-27T11:00:00.000Z") },
         ],
         symptoms: symptoms.map((symptom) => symptom.id),
         diagnoses: diagnoses.map((diagnosis) => diagnosis.id),

@@ -71,11 +71,13 @@ const doctorSelect: Prisma.DoctorScheduleSelect = {
 export class DoctorScheduleService {
 
     private normalizeDate(value: string | Date) {
+        console.log("Normalizando fecha:", value);  
         if (value instanceof Date) return value;
         const parsed = new Date(value);
         if (Number.isNaN(parsed.getTime())) {
             throw new Error("Fecha inválida: se esperaba fecha ISO válida");
         }
+        console.log("Fecha normalizada:", parsed);
         return parsed;
     }
     private parseDate(dateStr: string): Date {

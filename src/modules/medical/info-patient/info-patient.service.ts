@@ -31,7 +31,7 @@ export class InfoPatientService {
                 data: infoPatient,
             };
         } catch (error) {
-
+            console.error(error);
             return {
                 status: 500,
                 message: "Error creating info patient",

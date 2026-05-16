@@ -1,5 +1,6 @@
 import { prisma } from "@/configs";
-import { body, param, ValidationChain } from "express-validator";
+import { ConsultationStatus } from "@prisma/client";
+import { body, param, query, ValidationChain } from "express-validator";
 
 const isValidDateString = (value: unknown) => {
     if (typeof value !== "string") {
@@ -114,6 +115,11 @@ export class ConsultationValidator {
 
                 return true;
             }),
+
+        body("status")
+            .optional()
+            .isIn(["PENDING", "IN_PROGRESS", "FINISHED", "CANCELLED"])
+            .withMessage("status inválido"),
 
         body("symptoms")
             .optional()
@@ -340,6 +346,24 @@ export class ConsultationValidator {
             }),
     ];
 
+    public startConsultationValidator: ValidationChain[] = [
+        param("id")
+            .custom(async (value) => {
+                const consultation = await prisma.consultation.findUnique({
+                    where: { id: Number(value) },
+                    select: { status: true },
+                });
+
+                if (!consultation) {
+                    return Promise.reject("La consulta no existe");
+                }
+
+                if (consultation.status !== ConsultationStatus.PENDING) {
+                    return Promise.reject("La consulta no está pendiente");
+                }
+            }),
+    ];
+
     public IdParamValidator: ValidationChain[] = [
         param("id")
             .isInt({ gt: 0 })
@@ -362,13 +386,33 @@ export class ConsultationValidator {
             .isInt({ gt: 0 })
             .withMessage("El ID del doctor debe ser un número entero positivo")
             .custom(async (value) => {
-                const doctor = await prisma.doctor.findUnique({ where: { id: Number(value) } });
+                const idValue = Number(value);
+                const doctor = await prisma.doctor.findFirst({
+                    where: {
+                        OR: [{ userId: idValue }, { id: idValue }],
+                    },
+                });
                 if (!doctor) {
                     return Promise.reject("El doctor no existe");
                 }
 
             }),
+        query("date")
+            .optional()
+            .custom((value) => {
+                if (!isValidDateString(value)) {
+                    throw new Error("date debe ser una fecha válida (YYYY-MM-DD)");
+                }
+                return true;
+            }),
+        query("limit")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("limit debe ser un entero positivo"),
+        query("status")
+            .optional()
+            .isIn(["PENDING", "IN_PROGRESS", "FINISHED", "CANCELLED"])
+            .withMessage("status inválido"),
 
-        
     ];
 }

@@ -15,6 +15,7 @@ model Role {
   id     Int     @id @default(autoincrement())
   name   String  @unique
   code   String  @unique
+  base_salary Decimal? @db.Decimal(12, 2)
   active Boolean @default(true)
 
   users User[]
@@ -27,6 +28,7 @@ model User {
   password String  @db.VarChar(255)
   roleId   Int
   active   Boolean @default(true) 
+  createdAt DateTime @default(now())
 
   role           Role            @relation(fields: [roleId], references: [id])
   doctor         Doctor?
@@ -34,6 +36,7 @@ model User {
   stockMovements StockMovement[]
   purchases      Purchase[]
   invoices       Invoice[]      
+  salaryPayments SalaryPayment[]
 }
 
 // ==========================================
@@ -52,6 +55,7 @@ model Patient {
   // medical_history String? @db.Text
   last_visit_at   DateTime?
   active          Boolean @default(true)
+  createdAt       DateTime @default(now())
 
   appointments  Appointment[]
   invoices       Invoice[]
@@ -111,9 +115,10 @@ model Consultation {
   id                    Int                     @id @default(autoincrement())
   invoiceId             Int                     @unique
   doctorId              Int
-  date                  DateTime                @default(now()) @db.Date
-  started_at            DateTime                @default(now())
+  date                  DateTime                @default(now())
+  started_at            DateTime?
   finished_at           DateTime?
+  status                ConsultationStatus      @default(PENDING)
 
   doctor                Doctor                  @relation(fields: [doctorId], references: [id])
   invoice               Invoice                 @relation(fields: [invoiceId], references: [id])
@@ -125,6 +130,13 @@ model Consultation {
   consultationDiagnoses ConsultationDiagnosis[]
 
   payrollLine           PayrollLine?
+}
+
+enum ConsultationStatus {
+  PENDING
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
 }
 
 model Prescription {
@@ -240,8 +252,8 @@ model AppointmentType {
 model DoctorSchedule {
   id           Int       @id @default(autoincrement())
   doctorId     Int
-  period_start DateTime  @db.Date
-  period_end   DateTime? @db.Date
+  period_start DateTime  @db.Timestamp
+  period_end   DateTime? @db.Timestamp
 
   doctor         Doctor             @relation(fields: [doctorId], references: [id])
   availabilities DoctorAvailability[]
@@ -318,6 +330,7 @@ model InvoicePayment {
 
   amount_paid     Decimal       @db.Decimal(12, 2)
   igtf_amount     Decimal       @default(0) @db.Decimal(12, 2)
+  reference        String?      @db.VarChar(255)
   date_at        DateTime?      @default(now())
 
 
@@ -370,6 +383,7 @@ model Payroll {
   created_at          DateTime @default(now())
   
   payrollLines         PayrollLine[]
+  salaryPayments       SalaryPayment[]
 
   @@unique([period_start, period_end])
 }
@@ -384,6 +398,37 @@ model PayrollLine {
 
   payroll       Payroll @relation(fields: [payrollId], references: [id])
   consultation  Consultation @relation(fields: [consultationId], references: [id])
+  payrollPayments PayrollPayment[]
+}
+
+model SalaryPayment {
+  id          Int       @id @default(autoincrement())
+  payrollId   Int
+  userId      Int
+  amount      Decimal   @db.Decimal(12, 2)
+  concept     String?   @db.VarChar(255)
+  date_at     DateTime  @default(now())
+
+  payroll     Payroll   @relation(fields: [payrollId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  payrollPayments PayrollPayment[]
+
+  @@index([payrollId])
+  @@index([userId])
+}
+
+model PayrollPayment {
+  id              Int      @id @default(autoincrement())
+  salaryPaymentId Int
+  payrollLineId   Int
+  amount          Decimal  @db.Decimal(12, 2)
+
+  salaryPayment   SalaryPayment @relation(fields: [salaryPaymentId], references: [id])
+  payrollLine     PayrollLine   @relation(fields: [payrollLineId], references: [id])
+
+  @@unique([salaryPaymentId, payrollLineId])
+  @@index([salaryPaymentId])
+  @@index([payrollLineId])
 }
 
 // ==========================================
@@ -517,6 +562,7 @@ model ExpensePayment {
   paymentMethodId  Int
   amount           Decimal        @db.Decimal(12, 2) 
   exchangeRateId   Int
+  reference        String?      @db.VarChar(255)
   date_at          DateTime?       @default(now())
 
   paymentMethod    PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
@@ -557,6 +603,7 @@ model PurchaseItem {
 
   purchase        Purchase  @relation(fields: [purchaseId], references: [id])
   supply         Supply   @relation(fields: [supplyId], references: [id])
+  
 }
 
 model PurchasePayment {
@@ -565,7 +612,7 @@ model PurchasePayment {
   paymentMethodId Int
   amount          Decimal       @db.Decimal(12, 2)
   currency        String?
-  reference       String?
+  reference       String? 
   payment_date    DateTime?
 
   purchase        Purchase      @relation(fields: [purchaseId], references: [id])
