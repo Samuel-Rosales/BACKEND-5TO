@@ -1,4 +1,6 @@
 import { prisma } from '@/configs';
+import React from 'react';
+import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import {
   IncomeSummaryAlert,
   IncomeSummaryBreakdownItem,
@@ -50,6 +52,55 @@ const pctChange = (current: number, previous: number): number => {
   if (!previous) return current > 0 ? 100 : 0;
   return roundMoney(((current - previous) / previous) * 100);
 };
+
+const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
+
+const styles = StyleSheet.create({
+	page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
+	header: { marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
+	title: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 4 },
+	subtitle: { fontSize: 12, color: '#475569' },
+	meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
+	section: { marginTop: 14 },
+	sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
+	rowLabel: { color: '#334155', flex: 1 },
+	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
+	footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
+});
+
+const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
+const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+
+const IncomeSummaryDocument = ({ data }: { data: IncomeSummaryResponse['data'] }) => React.createElement(
+	Document as any,
+	null,
+	React.createElement(
+		Page as any,
+		{ size: 'A4', style: styles.page },
+		v([
+			t('Reporte de Ingresos', styles.title),
+			t('Resumen ejecutivo de recaudo', styles.subtitle),
+			t(`Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+		], styles.header),
+		v([
+			t('RESUMEN', styles.sectionTitle),
+			v([t('Ingreso bruto', styles.rowLabel), t(moneyText(data.summary.grossIncomeUsd), styles.rowValue)], styles.row),
+			v([t('Cobrado', styles.rowLabel), t(moneyText(data.summary.collectedUsd), styles.rowValue)], styles.row),
+			v([t('Pendiente', styles.rowLabel), t(moneyText(data.summary.pendingBalanceUsd), styles.rowValue)], styles.row),
+			v([t('Tasa de recaudo', styles.rowLabel), t(`${data.summary.collectionRate.toFixed(1)}%`, styles.rowValue)], styles.row),
+		], styles.section),
+		v([
+			t('ESPECIALIDADES', styles.sectionTitle),
+			...data.breakdownBySpecialty.map((item) => v([t(item.specialty, styles.rowLabel), t(moneyText(item.incomeUsd), styles.rowValue)], styles.row)),
+		], styles.section),
+		v([
+			t('CARTERA VENCIDA', styles.sectionTitle),
+			...data.receivables.agingBuckets.map((item) => v([t(item.label, styles.rowLabel), t(moneyText(item.amountUsd), styles.rowValue)], styles.row)),
+		], styles.section),
+		t('VitalFe & Alegria', styles.footer),
+	)
+);
 
 const normalizeCurrency = (value: unknown): 'USD' | 'VES' => {
   const currency = String(value ?? 'USD').toUpperCase();
@@ -366,4 +417,10 @@ export class IncomeSummaryService {
       },
     };
   }
+
+	public static async generatePdf(params: Partial<IncomeSummaryQueryRange>): Promise<Buffer> {
+		const report = await this.getSummary(params);
+		const doc = React.createElement(IncomeSummaryDocument, { data: report.data });
+		return await renderToBuffer(doc);
+	}
 }

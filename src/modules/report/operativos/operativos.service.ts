@@ -1,4 +1,6 @@
 import { prisma } from '@/configs';
+import React from 'react';
+import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { ReportPeriod, ReportQueryRange, OperativosCitasDay, OperativosCitasResponse, OperativosOverviewResponse, OperativosProductividadResponse, OperativosTiemposResponse, OperativosTiemposSpecialty } from './operativos.interface';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -64,6 +66,65 @@ const getMinutesDiff = (start?: Date | null, end?: Date | null) => {
 };
 
 const getHourLabel = (date: Date) => `${String(date.getUTCHours()).padStart(2, '0')}:00`;
+
+const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
+
+const styles = StyleSheet.create({
+	page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
+	header: { marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
+	title: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 4 },
+	subtitle: { fontSize: 12, color: '#475569' },
+	meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
+	section: { marginTop: 14 },
+	sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
+	rowLabel: { color: '#334155', flex: 1 },
+	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
+	footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
+});
+
+const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
+const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+
+const OperativosDocument = ({ overview, citas, tiempos, productividad }: { overview: OperativosOverviewResponse['data']; citas: OperativosCitasResponse['data']; tiempos: OperativosTiemposResponse['data']; productividad: OperativosProductividadResponse['data']; }) => React.createElement(
+	Document as any,
+	null,
+	React.createElement(
+		Page as any,
+		{ size: 'A4', style: styles.page },
+		v([
+			t('Reporte Operativo', styles.title),
+			t('Resumen consolidado de actividad asistencial', styles.subtitle),
+			t(`Periodo: ${overview.meta.from} - ${overview.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+		], styles.header),
+		v([
+			t('RESUMEN', styles.sectionTitle),
+			v([t('Citas programadas', styles.rowLabel), t(String(overview.stats.scheduledAppointments), styles.rowValue)], styles.row),
+			v([t('Pacientes atendidos', styles.rowLabel), t(String(overview.stats.patientsAttended), styles.rowValue)], styles.row),
+			v([t('Tiempo promedio', styles.rowLabel), t(`${overview.stats.avgAttentionTime} min`, styles.rowValue)], styles.row),
+			v([t('Médicos activos', styles.rowLabel), t(String(overview.stats.activeDoctors), styles.rowValue)], styles.row),
+		], styles.section),
+		v([
+			t('CITAS', styles.sectionTitle),
+			v([t('Total citas', styles.rowLabel), t(String(citas.stats.totalAppointments), styles.rowValue)], styles.row),
+			v([t('Completadas', styles.rowLabel), t(String(citas.stats.completedAppointments), styles.rowValue)], styles.row),
+			v([t('Canceladas', styles.rowLabel), t(String(citas.stats.cancelledAppointments), styles.rowValue)], styles.row),
+		], styles.section),
+		v([
+			t('TIEMPOS', styles.sectionTitle),
+			v([t('Tiempo promedio consulta', styles.rowLabel), t(`${tiempos.stats.avgConsultTime.toFixed(1)} min`, styles.rowValue)], styles.row),
+			v([t('Hora pico', styles.rowLabel), t(tiempos.stats.peakHour, styles.rowValue)], styles.row),
+			v([t('Consultas totales', styles.rowLabel), t(String(tiempos.stats.totalConsultations), styles.rowValue)], styles.row),
+		], styles.section),
+		v([
+			t('PRODUCTIVIDAD', styles.sectionTitle),
+			v([t('Médicos en turno', styles.rowLabel), t(String(productividad.stats.doctorsInShift), styles.rowValue)], styles.row),
+			v([t('Atenciones promedio', styles.rowLabel), t(productividad.stats.avgAttentions.toFixed(1), styles.rowValue)], styles.row),
+			v([t('Ingreso promedio', styles.rowLabel), t(moneyText(productividad.stats.avgRevenue), styles.rowValue)], styles.row),
+		], styles.section),
+		t('VitalFe & Alegria', styles.footer),
+	)
+);
 
 export class OperativosService {
 	public static async getOverview(params: Partial<ReportQueryRange>): Promise<OperativosOverviewResponse> {
@@ -250,7 +311,7 @@ export class OperativosService {
 		};
 	}
 
-	public static async getProductividad(params: Partial<ReportQueryRange>): Promise<OperativosProductividadResponse> {
+  public static async getProductividad(params: Partial<ReportQueryRange>): Promise<OperativosProductividadResponse> {
 		const resolvedRange = getResolvedRange(params);
 		const fromDate = parseDateOnly(resolvedRange.from);
 		const toDate = parseDateOnly(resolvedRange.to, true);
@@ -308,5 +369,22 @@ export class OperativosService {
 				byDoctor,
 			},
 		};
+  }
+
+	public static async generatePdf(params: Partial<ReportQueryRange>): Promise<Buffer> {
+		const [overview, citas, tiempos, productividad] = await Promise.all([
+			this.getOverview(params),
+			this.getCitas(params),
+			this.getTiempos(params),
+			this.getProductividad(params),
+		]);
+
+		const doc = React.createElement(OperativosDocument, {
+			overview: overview.data,
+			citas: citas.data,
+			tiempos: tiempos.data,
+			productividad: productividad.data,
+		});
+		return await renderToBuffer(doc);
 	}
 }

@@ -1,4 +1,6 @@
 import { prisma } from '@/configs';
+import React from 'react';
+import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import {
   ExpenseSummaryAlert,
   ExpenseSummaryCategoryItem,
@@ -106,6 +108,55 @@ const pctChange = (current: number, previous: number): number => {
   if (!previous) return current > 0 ? 100 : 0;
   return roundMoney(((current - previous) / previous) * 100);
 };
+
+const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
+
+const styles = StyleSheet.create({
+	page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
+	header: { marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
+	title: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 4 },
+	subtitle: { fontSize: 12, color: '#475569' },
+	meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
+	section: { marginTop: 14 },
+	sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
+	rowLabel: { color: '#334155', flex: 1 },
+	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
+	footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
+});
+
+const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
+const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+
+const ExpenseSummaryDocument = ({ data }: { data: ExpenseSummaryResponse['data'] }) => React.createElement(
+	Document as any,
+	null,
+	React.createElement(
+		Page as any,
+		{ size: 'A4', style: styles.page },
+		v([
+			t('Reporte de Gastos', styles.title),
+			t('Resumen ejecutivo de egresos', styles.subtitle),
+			t(`Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+		], styles.header),
+		v([
+			t('RESUMEN', styles.sectionTitle),
+			v([t('Gasto total', styles.rowLabel), t(moneyText(data.summary.totalExpenseUsd), styles.rowValue)], styles.row),
+			v([t('OPEX', styles.rowLabel), t(moneyText(data.summary.opexUsd), styles.rowValue)], styles.row),
+			v([t('Compras', styles.rowLabel), t(moneyText(data.summary.purchasesUsd), styles.rowValue)], styles.row),
+			v([t('Nómina', styles.rowLabel), t(moneyText(data.summary.payrollUsd + data.summary.salaryAdminUsd), styles.rowValue)], styles.row),
+		], styles.section),
+		v([
+			t('DESGLOSE POR CATEGORÍA', styles.sectionTitle),
+			...data.breakdownByCategory.map((item) => v([t(item.category, styles.rowLabel), t(moneyText(item.amountUsd), styles.rowValue)], styles.row)),
+		], styles.section),
+		v([
+			t('PROVEEDORES DE SERVICIOS', styles.sectionTitle),
+			...data.servicesBySupplier.slice(0, 8).map((item) => v([t(item.supplier, styles.rowLabel), t(moneyText(item.pendingUsd), styles.rowValue)], styles.row)),
+		], styles.section),
+		t(`Generado por VitalFe & Alegria`, styles.footer),
+	)
+);
 
 const groupBy = <T>(items: T[], keyFn: (item: T) => string) => {
   const map = new Map<string, T[]>();
@@ -396,4 +447,10 @@ export class ExpenseSummaryService {
       },
     };
   }
+
+	public static async generatePdf(params: Partial<ExpenseSummaryQueryRange>): Promise<Buffer> {
+		const report = await this.getSummary(params);
+		const doc = React.createElement(ExpenseSummaryDocument, { data: report.data });
+		return await renderToBuffer(doc);
+	}
 }

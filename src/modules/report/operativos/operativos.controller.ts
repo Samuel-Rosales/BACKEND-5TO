@@ -94,4 +94,29 @@ export class OperativosController {
 			});
 		}
 	}
+
+	public static async getPdf(req: Request, res: Response) {
+		try {
+			const validatedQuery = reportQuerySchema.parse({ query: req.query }).query;
+			const pdf = await OperativosService.generatePdf(validatedQuery);
+
+			res.setHeader('Content-Type', 'application/pdf');
+			res.setHeader('Content-Disposition', `inline; filename="reporte-operativo-${new Date().toISOString().slice(0, 10)}.pdf"`);
+			res.setHeader('Content-Length', pdf.length);
+			return res.status(200).send(pdf);
+		} catch (error: any) {
+			if (error instanceof z.ZodError) {
+				return res.status(400).json({
+					message: 'Error de validación en parámetros',
+					errors: error.errors,
+				});
+			}
+
+			console.error('[OperativosController.getPdf] Error:', error);
+			return res.status(500).json({
+				message: 'Error interno al generar el PDF operativo',
+				error: error.message,
+			});
+		}
+	}
 }
