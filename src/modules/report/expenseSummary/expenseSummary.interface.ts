@@ -1,6 +1,14 @@
+export type ExpenseSummaryPeriod = 'day' | 'week' | 'month' | 'year';
+
 export interface ExpenseSummaryQueryRange {
   from: string;
   to: string;
+  period?: ExpenseSummaryPeriod;
+}
+
+export interface ExpenseSummaryPeriodBucket {
+  label: string;
+  amountUsd: number;
 }
 
 export interface ExpenseSummaryCategoryItem {
@@ -8,6 +16,7 @@ export interface ExpenseSummaryCategoryItem {
   category: string;
   amountUsd: number;
   percentage: number;
+  breakdown: ExpenseSummaryPeriodBucket[];
 }
 
 export interface ExpenseSummarySupplierItem {
@@ -61,6 +70,7 @@ export interface ExpenseSummaryResponse {
       previousFrom: string;
       previousTo: string;
       periodDays: number;
+      period?: ExpenseSummaryPeriod;
     };
     summary: ExpenseSummaryInfo;
     breakdownByCategory: ExpenseSummaryCategoryItem[];
