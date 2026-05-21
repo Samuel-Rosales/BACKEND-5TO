@@ -480,6 +480,6 @@ export class IncomeSummaryService {
 	public static async generatePdf(params: Partial<IncomeSummaryQueryRange>): Promise<Buffer> {
 		const report = await this.getSummary(params);
 		const doc = React.createElement(IncomeSummaryDocument, { data: report.data });
-		return await renderToBuffer(doc);
+		return await renderToBuffer(doc as React.ReactElement<any>);
 	}
 }

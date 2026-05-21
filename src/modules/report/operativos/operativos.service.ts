@@ -422,6 +422,6 @@ export class OperativosService {
 			tiempos: tiempos.data,
 			productividad: productividad.data,
 		});
-		return await renderToBuffer(doc);
+		return await renderToBuffer(doc as React.ReactElement<any>);
 	}
 }

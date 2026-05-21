@@ -512,6 +512,6 @@ export class ExpenseSummaryService {
 	public static async generatePdf(params: Partial<ExpenseSummaryQueryRange>): Promise<Buffer> {
 		const report = await this.getSummary(params);
 		const doc = React.createElement(ExpenseSummaryDocument, { data: report.data });
-		return await renderToBuffer(doc);
+		return await renderToBuffer(doc as React.ReactElement<any>);
 	}
 }
