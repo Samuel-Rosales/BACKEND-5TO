@@ -119,6 +119,11 @@ const styles = StyleSheet.create({
 	meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
 	section: { marginTop: 14 },
 	sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+	table: { borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'solid' },
+	tableHeader: { flexDirection: 'row', backgroundColor: '#e2e8f0', paddingVertical: 5, paddingHorizontal: 6 },
+	tableRow: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderTop: '0.5 solid #e2e8f0' },
+	tableCell: { flex: 1, color: '#334155' },
+	tableCellRight: { width: 90, textAlign: 'right', color: '#334155' },
 	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
 	rowLabel: { color: '#334155', flex: 1 },
 	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
@@ -150,12 +155,68 @@ const ExpenseSummaryDocument = ({ data }: { data: ExpenseSummaryResponse['data']
 			t('DESGLOSE POR CATEGORÍA', styles.sectionTitle),
 			...data.breakdownByCategory.map((item) => v([t(item.category, styles.rowLabel), t(moneyText(item.amountUsd), styles.rowValue)], styles.row)),
 		], styles.section),
-		v([
-			t('PROVEEDORES DE SERVICIOS', styles.sectionTitle),
-			...data.servicesBySupplier.slice(0, 8).map((item) => v([t(item.supplier, styles.rowLabel), t(moneyText(item.pendingUsd), styles.rowValue)], styles.row)),
-		], styles.section),
-		t(`Generado por VitalFe & Alegria`, styles.footer),
-	)
+			v([
+				t('PROVEEDORES DE SERVICIOS', styles.sectionTitle),
+				v([
+					t('Proveedor', styles.tableCell),
+					t('Total', styles.tableCellRight),
+					t('Pagado', styles.tableCellRight),
+					t('Pendiente', styles.tableCellRight),
+					t('Facturas', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.servicesBySupplier.slice(0, 8).map((item) => v([
+					t(item.supplier, styles.tableCell),
+					t(moneyText(item.totalUsd), styles.tableCellRight),
+					t(moneyText(item.paidUsd), styles.tableCellRight),
+					t(moneyText(item.pendingUsd), styles.tableCellRight),
+					t(String(item.invoices), styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('COMPRAS POR CATEGORÍA', styles.sectionTitle),
+				v([
+					t('Categoría', styles.tableCell),
+					t('Monto', styles.tableCellRight),
+					t('%', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.purchasesByCategory.slice(0, 8).map((item) => v([
+					t(item.category, styles.tableCell),
+					t(moneyText(item.amountUsd), styles.tableCellRight),
+					t(`${item.percentage.toFixed(1)}%`, styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('NÓMINA POR ESPECIALIDAD', styles.sectionTitle),
+				v([
+					t('Especialidad', styles.tableCell),
+					t('Empleados', styles.tableCellRight),
+					t('Monto', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.payrollBySpecialty.slice(0, 8).map((item) => v([
+					t(item.specialty, styles.tableCell),
+					t(String(item.employees), styles.tableCellRight),
+					t(moneyText(item.amountUsd), styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('SALARIOS ADMINISTRATIVOS', styles.sectionTitle),
+				v([
+					t('Rol', styles.tableCell),
+					t('Empleados', styles.tableCellRight),
+					t('Monto', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.salaryByRole.slice(0, 8).map((item) => v([
+					t(item.role, styles.tableCell),
+					t(String(item.employees), styles.tableCellRight),
+					t(moneyText(item.amountUsd), styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('ALERTAS', styles.sectionTitle),
+				...data.alerts.map((item) => t(`• ${item.message}`, styles.rowLabel)),
+			], styles.section),
+			t(`Generado por VitalFe & Alegria`, styles.footer),
+		)
 );
 
 const groupBy = <T>(items: T[], keyFn: (item: T) => string) => {

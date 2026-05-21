@@ -63,6 +63,11 @@ const styles = StyleSheet.create({
 	meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
 	section: { marginTop: 14 },
 	sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+	table: { borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'solid' },
+	tableHeader: { flexDirection: 'row', backgroundColor: '#e2e8f0', paddingVertical: 5, paddingHorizontal: 6 },
+	tableRow: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderTop: '0.5 solid #e2e8f0' },
+	tableCell: { flex: 1, color: '#334155' },
+	tableCellRight: { width: 90, textAlign: 'right', color: '#334155' },
 	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
 	rowLabel: { color: '#334155', flex: 1 },
 	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
@@ -90,16 +95,70 @@ const IncomeSummaryDocument = ({ data }: { data: IncomeSummaryResponse['data'] }
 			v([t('Pendiente', styles.rowLabel), t(moneyText(data.summary.pendingBalanceUsd), styles.rowValue)], styles.row),
 			v([t('Tasa de recaudo', styles.rowLabel), t(`${data.summary.collectionRate.toFixed(1)}%`, styles.rowValue)], styles.row),
 		], styles.section),
-		v([
-			t('ESPECIALIDADES', styles.sectionTitle),
-			...data.breakdownBySpecialty.map((item) => v([t(item.specialty, styles.rowLabel), t(moneyText(item.incomeUsd), styles.rowValue)], styles.row)),
-		], styles.section),
-		v([
-			t('CARTERA VENCIDA', styles.sectionTitle),
-			...data.receivables.agingBuckets.map((item) => v([t(item.label, styles.rowLabel), t(moneyText(item.amountUsd), styles.rowValue)], styles.row)),
-		], styles.section),
-		t('VitalFe & Alegria', styles.footer),
-	)
+			v([
+				t('ESPECIALIDADES', styles.sectionTitle),
+				v([
+					t('Especialidad', styles.tableCell),
+					t('Consultas', styles.tableCellRight),
+					t('Ingreso', styles.tableCellRight),
+					t('%', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.breakdownBySpecialty.slice(0, 8).map((item) => v([
+					t(item.specialty, styles.tableCell),
+					t(String(item.consultations), styles.tableCellRight),
+					t(moneyText(item.incomeUsd), styles.tableCellRight),
+					t(`${item.percentage.toFixed(1)}%`, styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('MEDIOS DE PAGO', styles.sectionTitle),
+				v([
+					t('Método', styles.tableCell),
+					t('Pagos', styles.tableCellRight),
+					t('Monto', styles.tableCellRight),
+					t('IGTF', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.collectionByPaymentMethod.slice(0, 8).map((item) => v([
+					t(item.paymentMethod, styles.tableCell),
+					t(String(item.payments), styles.tableCellRight),
+					t(moneyText(item.amountUsd), styles.tableCellRight),
+					t(moneyText(item.igtfUsd), styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('CARTERA VENCIDA', styles.sectionTitle),
+				v([
+					t('Rango', styles.tableCell),
+					t('Casos', styles.tableCellRight),
+					t('Monto', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.receivables.agingBuckets.map((item) => v([
+					t(item.label, styles.tableCell),
+					t(String(item.count), styles.tableCellRight),
+					t(moneyText(item.amountUsd), styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('FACTURAS PENDIENTES', styles.sectionTitle),
+				v([
+					t('Paciente', styles.tableCell),
+					t('Especialidad', styles.tableCell),
+					t('Días', styles.tableCellRight),
+					t('Pendiente', styles.tableCellRight),
+				], styles.tableHeader),
+				...data.receivables.items.slice(0, 8).map((item) => v([
+					t(item.patientName, styles.tableCell),
+					t(item.specialty, styles.tableCell),
+					t(String(item.daysOutstanding), styles.tableCellRight),
+					t(moneyText(item.pendingUsd), styles.tableCellRight),
+				], styles.tableRow)),
+			], styles.section),
+			v([
+				t('ALERTAS', styles.sectionTitle),
+				...data.alerts.map((item) => t(`• ${item.message}`, styles.rowLabel)),
+			], styles.section),
+			t('VitalFe & Alegria', styles.footer),
+		)
 );
 
 const normalizeCurrency = (value: unknown): 'USD' | 'VES' => {

@@ -77,6 +77,11 @@ const styles = StyleSheet.create({
 	meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
 	section: { marginTop: 14 },
 	sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+	table: { borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'solid' },
+	tableHeader: { flexDirection: 'row', backgroundColor: '#e2e8f0', paddingVertical: 5, paddingHorizontal: 6 },
+	tableRow: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderTop: '0.5 solid #e2e8f0' },
+	tableCell: { flex: 1, color: '#334155' },
+	tableCellRight: { width: 90, textAlign: 'right', color: '#334155' },
 	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
 	rowLabel: { color: '#334155', flex: 1 },
 	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
@@ -97,33 +102,65 @@ const OperativosDocument = ({ overview, citas, tiempos, productividad }: { overv
 			t('Resumen consolidado de actividad asistencial', styles.subtitle),
 			t(`Periodo: ${overview.meta.from} - ${overview.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
 		], styles.header),
-		v([
-			t('RESUMEN', styles.sectionTitle),
-			v([t('Citas programadas', styles.rowLabel), t(String(overview.stats.scheduledAppointments), styles.rowValue)], styles.row),
+			v([
+				t('RESUMEN', styles.sectionTitle),
+				v([t('Citas programadas', styles.rowLabel), t(String(overview.stats.scheduledAppointments), styles.rowValue)], styles.row),
 			v([t('Pacientes atendidos', styles.rowLabel), t(String(overview.stats.patientsAttended), styles.rowValue)], styles.row),
 			v([t('Tiempo promedio', styles.rowLabel), t(`${overview.stats.avgAttentionTime} min`, styles.rowValue)], styles.row),
 			v([t('Médicos activos', styles.rowLabel), t(String(overview.stats.activeDoctors), styles.rowValue)], styles.row),
-		], styles.section),
-		v([
-			t('CITAS', styles.sectionTitle),
-			v([t('Total citas', styles.rowLabel), t(String(citas.stats.totalAppointments), styles.rowValue)], styles.row),
-			v([t('Completadas', styles.rowLabel), t(String(citas.stats.completedAppointments), styles.rowValue)], styles.row),
-			v([t('Canceladas', styles.rowLabel), t(String(citas.stats.cancelledAppointments), styles.rowValue)], styles.row),
-		], styles.section),
-		v([
-			t('TIEMPOS', styles.sectionTitle),
-			v([t('Tiempo promedio consulta', styles.rowLabel), t(`${tiempos.stats.avgConsultTime.toFixed(1)} min`, styles.rowValue)], styles.row),
-			v([t('Hora pico', styles.rowLabel), t(tiempos.stats.peakHour, styles.rowValue)], styles.row),
-			v([t('Consultas totales', styles.rowLabel), t(String(tiempos.stats.totalConsultations), styles.rowValue)], styles.row),
-		], styles.section),
-		v([
-			t('PRODUCTIVIDAD', styles.sectionTitle),
-			v([t('Médicos en turno', styles.rowLabel), t(String(productividad.stats.doctorsInShift), styles.rowValue)], styles.row),
-			v([t('Atenciones promedio', styles.rowLabel), t(productividad.stats.avgAttentions.toFixed(1), styles.rowValue)], styles.row),
-			v([t('Ingreso promedio', styles.rowLabel), t(moneyText(productividad.stats.avgRevenue), styles.rowValue)], styles.row),
-		], styles.section),
-		t('VitalFe & Alegria', styles.footer),
-	)
+			], styles.section),
+			v([
+				t('CITAS', styles.sectionTitle),
+				v([
+					t('Día', styles.tableCell),
+					t('Atendidas', styles.tableCellRight),
+					t('Canceladas', styles.tableCellRight),
+				], styles.tableHeader),
+				...citas.dailyData.slice(0, 10).map((item) => v([
+					t(item.date, styles.tableCell),
+					t(String(item.attended), styles.tableCellRight),
+					t(String(item.cancelled), styles.tableCellRight),
+				], styles.tableRow)),
+				v([t('Total citas', styles.rowLabel), t(String(citas.stats.totalAppointments), styles.rowValue)], styles.row),
+				v([t('Completadas', styles.rowLabel), t(String(citas.stats.completedAppointments), styles.rowValue)], styles.row),
+				v([t('Canceladas', styles.rowLabel), t(String(citas.stats.cancelledAppointments), styles.rowValue)], styles.row),
+			], styles.section),
+			v([
+				t('TIEMPOS', styles.sectionTitle),
+				v([
+					t('Especialidad', styles.tableCell),
+					t('Promedio', styles.tableCellRight),
+					t('Consultas', styles.tableCellRight),
+				], styles.tableHeader),
+				...tiempos.bySpecialty.slice(0, 8).map((item) => v([
+					t(item.area, styles.tableCell),
+					t(`${item.consult.toFixed(1)} min`, styles.tableCellRight),
+					t(String(item.consultations), styles.tableCellRight),
+				], styles.tableRow)),
+				v([t('Tiempo promedio consulta', styles.rowLabel), t(`${tiempos.stats.avgConsultTime.toFixed(1)} min`, styles.rowValue)], styles.row),
+				v([t('Hora pico', styles.rowLabel), t(tiempos.stats.peakHour, styles.rowValue)], styles.row),
+				v([t('Consultas totales', styles.rowLabel), t(String(tiempos.stats.totalConsultations), styles.rowValue)], styles.row),
+			], styles.section),
+			v([
+				t('PRODUCTIVIDAD', styles.sectionTitle),
+				v([
+					t('Médico', styles.tableCell),
+					t('Atenciones', styles.tableCellRight),
+					t('Tiempo', styles.tableCellRight),
+					t('Ingresos', styles.tableCellRight),
+				], styles.tableHeader),
+				...productividad.byDoctor.slice(0, 8).map((item) => v([
+					t(item.name, styles.tableCell),
+					t(String(item.attended), styles.tableCellRight),
+					t(`${item.avgTime.toFixed(1)} min`, styles.tableCellRight),
+					t(moneyText(item.revenue), styles.tableCellRight),
+				], styles.tableRow)),
+				v([t('Médicos en turno', styles.rowLabel), t(String(productividad.stats.doctorsInShift), styles.rowValue)], styles.row),
+				v([t('Atenciones promedio', styles.rowLabel), t(productividad.stats.avgAttentions.toFixed(1), styles.rowValue)], styles.row),
+				v([t('Ingreso promedio', styles.rowLabel), t(moneyText(productividad.stats.avgRevenue), styles.rowValue)], styles.row),
+			], styles.section),
+			t('VitalFe & Alegria', styles.footer),
+		)
 );
 
 export class OperativosService {
