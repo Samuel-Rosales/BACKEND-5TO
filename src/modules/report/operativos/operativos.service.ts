@@ -268,8 +268,12 @@ export class OperativosService {
 			orderBy: { id: 'asc' },
 		});
 
+		const isCompletedConsultation = (consultation: { status: string; started_at: Date | null; finished_at: Date | null }) => {
+			return consultation.status === 'FINISHED' || Boolean(consultation.started_at && consultation.finished_at);
+		};
+
 		const byDoctor = doctors.map((doctor) => {
-			const attendedConsultations = doctor.consultations.filter((consultation) => consultation.status === 'FINISHED');
+			const attendedConsultations = doctor.consultations.filter(isCompletedConsultation);
 			const attended = attendedConsultations.length;
 			const avgTime = attendedConsultations.length > 0
 				? roundMinutes(attendedConsultations.reduce((sum, consultation) => sum + getMinutesDiff(consultation.started_at, consultation.finished_at), 0) / attendedConsultations.length)
