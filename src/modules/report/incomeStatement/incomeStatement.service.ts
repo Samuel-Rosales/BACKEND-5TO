@@ -1,5 +1,7 @@
+import fs from 'fs';
+import path from 'path';
 import React from 'react';
-import { renderToBuffer, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { prisma } from '@/configs';
 import { IncomeStatementSummary, IncomeStatementQueryRange } from './incomeStatement.interface';
 
@@ -9,6 +11,20 @@ const monthNames = [
 ];
 
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const resolveLogoBase64 = () => {
+  const candidates = [
+    path.resolve(process.cwd(), '..', 'FRONTEND-5TO', 'src', 'assets', 'clinicasintext.png'),
+    path.resolve(process.cwd(), '..', '..', 'FRONTEND-5TO', 'src', 'assets', 'clinicasintext.png'),
+  ];
+  const foundPath = candidates.find((candidate) => fs.existsSync(candidate));
+  
+  if (foundPath) {
+    const bitmap = fs.readFileSync(foundPath);
+    return `data:image/png;base64,${bitmap.toString('base64')}`;
+  }
+  return null;
+};
 
 const makeMonthRange = (year: number, month: number) => {
   const from = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
@@ -23,9 +39,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
     borderBottom: '1 solid #cbd5e1',
     paddingBottom: 10,
+  },
+  headerTextContainer: {
+    flex: 1,
+    marginLeft: 15,
   },
   title: {
     fontSize: 18,
@@ -111,21 +133,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     width: 120,
   },
-  profitPositive: {
-    color: '#059669',
-  },
-  profitNegative: {
-    color: '#dc2626',
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: 'center',
-    color: '#64748b',
-    fontSize: 8,
-  },
   infoBox: {
     marginTop: 12,
     padding: 8,
@@ -136,28 +143,48 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#64748b',
   },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    color: '#64748b',
+    fontSize: 8,
+  },
 });
 
 interface IncomeStatementDocumentProps {
   year: number;
   month: number;
   summary: IncomeStatementSummary;
+  logoDataUri: string | null; 
 }
 
 const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
 const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
 
-const IncomeStatementDocument = ({ year, month, summary }: IncomeStatementDocumentProps) => React.createElement(
+const IncomeStatementDocument = ({ year, month, summary, logoDataUri }: IncomeStatementDocumentProps) => React.createElement(
   Document as any,
   null,
   React.createElement(
     Page as any,
     { size: 'A4', style: styles.page },
     v([
-      t('VitalFe & Alegria', styles.title),
-      t('Estado de Resultado', styles.subtitle),
-      t(`Periodo: ${monthNames[month - 1]} ${year} | Generado: ${new Date().toLocaleDateString('es-VE')}`, styles.meta),
+      logoDataUri 
+        ? React.createElement(Image as any, {
+            src: logoDataUri,
+            style: { width: 56, height: 56 }
+          })
+        : null,
+      
+      v([
+        t('VitalFe & Alegria', styles.title),
+        t('Estado de Resultado', styles.subtitle),
+        t(`Periodo: ${monthNames[month - 1]} ${year} | Generado: ${new Date().toLocaleDateString('es-VE')}`, styles.meta),
+      ], styles.headerTextContainer),
     ], styles.header),
+
     v([
       t('INGRESOS', styles.sectionTitle),
       v([
@@ -222,6 +249,9 @@ export class IncomeStatementService {
   public static async generatePdf(query: IncomeStatementQueryRange): Promise<Buffer> {
     const { from, to } = makeMonthRange(query.year, query.month);
 
+    // ─── CAMBIO: Obtenemos el URI base64 ───
+    const logoDataUri = resolveLogoBase64();
+
     const [invoices, purchases, payrollLines, salaryPayments, opexExpenses] = await Promise.all([
       prisma.invoice.findMany({
         where: { date_at: { gte: from, lte: to } },
@@ -279,8 +309,8 @@ export class IncomeStatementService {
       entriesCount: invoices.length + purchases.length + payrollLines.length + salaryPayments.length + opexExpenses.length,
     };
 
-    const doc = React.createElement(IncomeStatementDocument, { year: query.year, month: query.month, summary });
-    const buffer = await renderToBuffer(doc);
+    const doc = React.createElement(IncomeStatementDocument, { year: query.year, month: query.month, summary, logoDataUri });
+    const buffer = await renderToBuffer(doc as React.ReactElement<any>);
     return buffer;
   }
 }
