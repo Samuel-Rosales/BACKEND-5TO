@@ -71,6 +71,23 @@ const styles = StyleSheet.create({
 	row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
 	rowLabel: { color: '#334155', flex: 1 },
 	rowValue: { color: '#334155', textAlign: 'right', width: 120 },
+	alertList: { marginTop: 2 },
+	alertCard: {
+		borderWidth: 1,
+		borderStyle: 'solid',
+		borderRadius: 6,
+		paddingVertical: 8,
+		paddingHorizontal: 10,
+		marginBottom: 6,
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+	},
+	alertBullet: { width: 12, fontSize: 11, lineHeight: 1.2, marginTop: 1 },
+	alertMessage: { flex: 1, color: '#334155', lineHeight: 1.35 },
+	alertInfo: { backgroundColor: '#eff6ff', borderColor: '#93c5fd' },
+	alertSuccess: { backgroundColor: '#ecfdf5', borderColor: '#86efac' },
+	alertWarning: { backgroundColor: '#fffbeb', borderColor: '#fcd34d' },
+	alertDanger: { backgroundColor: '#fef2f2', borderColor: '#fca5a5' },
 	footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
 });
 
@@ -155,7 +172,23 @@ const IncomeSummaryDocument = ({ data }: { data: IncomeSummaryResponse['data'] }
 			], styles.section),
 			v([
 				t('ALERTAS', styles.sectionTitle),
-				...data.alerts.map((item) => t(`• ${item.message}`, styles.rowLabel)),
+				v(
+					data.alerts.map((item) => {
+						const severityStyle = item.severity === 'success'
+							? styles.alertSuccess
+							: item.severity === 'warning'
+								? styles.alertWarning
+								: item.severity === 'danger'
+									? styles.alertDanger
+									: styles.alertInfo;
+
+						return v([
+							t('•', styles.alertBullet),
+							t(item.message, styles.alertMessage),
+						], [styles.alertCard, severityStyle]);
+					}),
+					styles.alertList,
+				),
 			], styles.section),
 			t('VitalFe & Alegria', styles.footer),
 		)
