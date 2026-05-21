@@ -7,7 +7,11 @@ export class ExpenseSummaryController {
   public static async getSummary(req: Request, res: Response) {
     try {
       const validatedQuery = getExpenseSummarySchema.parse({ query: req.query }).query;
-      const data = await ExpenseSummaryService.getSummary({ from: validatedQuery.from, to: validatedQuery.to });
+      const data = await ExpenseSummaryService.getSummary({
+        from: validatedQuery.from,
+        to: validatedQuery.to,
+        period: validatedQuery.period,
+      });
       return res.status(200).json(data);
     } catch (error: any) {
       if (error instanceof z.ZodError) {

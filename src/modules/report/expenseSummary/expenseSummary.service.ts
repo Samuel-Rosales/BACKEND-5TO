@@ -3,6 +3,8 @@ import {
   ExpenseSummaryAlert,
   ExpenseSummaryCategoryItem,
   ExpenseSummaryInfo,
+  ExpenseSummaryPeriod,
+  ExpenseSummaryPeriodBucket,
   ExpenseSummaryPayrollBySpecialtyItem,
   ExpenseSummaryQueryRange,
   ExpenseSummaryResponse,
@@ -20,6 +22,67 @@ const toNumber = (value: unknown): number => {
 };
 
 const formatDateOnly = (date: Date): string => date.toISOString().slice(0, 10);
+
+const formatMonthLabel = (date: Date): string => new Intl.DateTimeFormat('es-VE', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
+
+const formatDayLabel = (date: Date): string => new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', timeZone: 'UTC' }).format(date);
+
+const formatWeekLabel = (date: Date): string => {
+  const start = getStartOfWeek(date);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  return `${formatDayLabel(start)} - ${formatDayLabel(end)}`;
+};
+
+const getStartOfWeek = (date: Date): Date => {
+  const current = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const diff = (current.getUTCDay() + 6) % 7;
+  current.setUTCDate(current.getUTCDate() - diff);
+  return current;
+};
+
+const getBucketKey = (date: Date, period: ExpenseSummaryPeriod): string => {
+  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+
+  if (period === 'day') return formatDateOnly(utcDate);
+  if (period === 'week') {
+    const startOfWeek = getStartOfWeek(utcDate);
+    return formatDateOnly(startOfWeek);
+  }
+  if (period === 'month') return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, '0')}`;
+  return String(utcDate.getUTCFullYear());
+};
+
+const getBucketLabel = (key: string, period: ExpenseSummaryPeriod): string => {
+  if (period === 'day') return formatDayLabel(new Date(`${key}T00:00:00.000Z`));
+  if (period === 'week') return formatWeekLabel(new Date(`${key}T00:00:00.000Z`));
+  if (period === 'month') return formatMonthLabel(new Date(`${key}-01T00:00:00.000Z`));
+  return key;
+};
+
+const buildPeriodBuckets = (from: Date, to: Date, period: ExpenseSummaryPeriod): ExpenseSummaryPeriodBucket[] => {
+  const buckets = new Map<string, ExpenseSummaryPeriodBucket>();
+  const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+
+  while (cursor <= to) {
+    const key = getBucketKey(cursor, period);
+    if (!buckets.has(key)) {
+      buckets.set(key, { label: getBucketLabel(key, period), amountUsd: 0 });
+    }
+
+    if (period === 'day') {
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    } else if (period === 'week') {
+      cursor.setUTCDate(cursor.getUTCDate() + 7);
+    } else if (period === 'month') {
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+    } else {
+      cursor.setUTCFullYear(cursor.getUTCFullYear() + 1, 0, 1);
+    }
+  }
+
+  return [...buckets.values()];
+};
 
 const parseDateOnly = (value: string, isEnd = false): Date => {
   const suffix = isEnd ? 'T23:59:59.999Z' : 'T00:00:00.000Z';
@@ -55,7 +118,7 @@ const groupBy = <T>(items: T[], keyFn: (item: T) => string) => {
   return map;
 };
 
-const getRangeData = async (from: Date, to: Date) => {
+const getRangeData = async (from: Date, to: Date, period: ExpenseSummaryPeriod) => {
   const [invoiceExpenses, purchases, payrollLines, salaryPayments, latestRate] = await Promise.all([
     prisma.invoiceExpense.findMany({
       where: { date_at: { gte: from, lte: to } },
@@ -144,6 +207,7 @@ const getRangeData = async (from: Date, to: Date) => {
       category: expense.category.name,
       amountUsd: 0,
       percentage: 0,
+      breakdown: [],
     };
     current.amountUsd = roundMoney(current.amountUsd + toNumber(expense.total_amount));
     categoryMap.set(key, current);
@@ -183,15 +247,40 @@ const getRangeData = async (from: Date, to: Date) => {
 
   const servicesBySupplier = [...supplierMap.values()].sort((a, b) => b.pendingUsd - a.pendingUsd);
 
-  const purchasesGrouped = groupBy(purchases.flatMap((purchase) => purchase.items), (item) => `${item.supply.categoryId}-${item.supply.category.name}`);
-  const purchasesByCategory = [...purchasesGrouped.entries()].map(([key, items]) => {
+  const purchaseItems = purchases.flatMap((purchase) =>
+    purchase.items.map((item) => ({
+      ...item,
+      purchaseDate: purchase.date,
+    })),
+  );
+
+  const purchasesGrouped = groupBy(purchaseItems, (item) => `${item.supply.categoryId}-${item.supply.category.name}`);
+  const purchasesByCategory = [...purchasesGrouped.entries()].map(([, items]) => {
     const first = items[0];
     const amountUsd = roundMoney(items.reduce((acc, item) => acc + toNumber(item.unit_cost) * toNumber(item.quantity), 0));
+    const breakdownMap = new Map<string, ExpenseSummaryPeriodBucket>();
+    const buckets = buildPeriodBuckets(from, to, period);
+
+    for (const bucket of buckets) {
+      breakdownMap.set(bucket.label, { ...bucket });
+    }
+
+    for (const item of items) {
+      const purchaseDate = item.purchaseDate ?? null;
+      if (!purchaseDate) continue;
+      const bucketKey = getBucketKey(new Date(purchaseDate), period);
+      const bucketLabel = getBucketLabel(bucketKey, period);
+      const current = breakdownMap.get(bucketLabel) ?? { label: bucketLabel, amountUsd: 0 };
+      current.amountUsd = roundMoney(current.amountUsd + toNumber(item.unit_cost) * toNumber(item.quantity));
+      breakdownMap.set(bucketLabel, current);
+    }
+
     return {
       categoryId: first.supply.categoryId,
       category: first.supply.category.name,
       amountUsd,
       percentage: roundMoney(purchasesUsd > 0 ? (amountUsd / purchasesUsd) * 100 : 0),
+      breakdown: [...breakdownMap.values()],
     };
   }).sort((a, b) => b.amountUsd - a.amountUsd);
 
@@ -249,14 +338,15 @@ export class ExpenseSummaryService {
     const resolvedRange = {
       from: params.from || getDefaultRange().from,
       to: params.to || getDefaultRange().to,
+      period: params.period || 'week',
     };
 
     const fromDate = parseDateOnly(resolvedRange.from);
     const toDate = parseDateOnly(resolvedRange.to, true);
     const previousRange = getPreviousRange(fromDate, toDate);
 
-    const current = await getRangeData(fromDate, toDate);
-    const previous = await getRangeData(parseDateOnly(previousRange.from), parseDateOnly(previousRange.to, true));
+    const current = await getRangeData(fromDate, toDate, resolvedRange.period);
+    const previous = await getRangeData(parseDateOnly(previousRange.from), parseDateOnly(previousRange.to, true), resolvedRange.period);
 
     const alerts: ExpenseSummaryAlert[] = [];
 
@@ -294,6 +384,7 @@ export class ExpenseSummaryService {
           previousFrom: previousRange.from,
           previousTo: previousRange.to,
           periodDays: Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / DAY_MS) + 1),
+          period: resolvedRange.period,
         },
         summary,
         breakdownByCategory: current.breakdownByCategory,
