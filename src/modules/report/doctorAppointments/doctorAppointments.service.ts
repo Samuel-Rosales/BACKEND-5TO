@@ -60,6 +60,27 @@ export class DoctorAppointmentsService {
       orderBy: { date: "asc" },
     });
 
+    const cancelledAppointments = await prisma.appointment.findMany({
+      where: {
+        doctorId: doctor.id,
+        date_time: { gte: fromDate, lte: toDate },
+        status: { name: { contains: "cancel", mode: "insensitive" } },
+      },
+      include: {
+        patient: { select: { id: true, name: true } },
+        status: { select: { name: true } },
+      },
+      orderBy: { date_time: "asc" },
+    });
+
+    const consultationKeys = new Set<string>();
+    for (const c of consultations) {
+      const patientId = c.invoice?.patient?.id;
+      if (patientId) {
+        consultationKeys.add(`${c.doctorId}-${patientId}-${formatDateOnly(c.date)}`);
+      }
+    }
+
     const dailyMap = new Map<string, DoctorAppointmentsDailyData>();
     const patientMap = new Map<number, DoctorAppointmentsTopPatient>();
     let completed = 0;
@@ -117,7 +138,46 @@ export class DoctorAppointmentsService {
       }
     }
 
-    const total = consultations.length;
+    for (const appointment of cancelledAppointments) {
+      const dateKey = formatDateOnly(appointment.date_time);
+      const dedupKey = `${appointment.doctorId}-${appointment.patientId}-${dateKey}`;
+      if (consultationKeys.has(dedupKey)) continue;
+
+      const daily =
+        dailyMap.get(dateKey) ??
+        ({
+          date: dateKey,
+          total: 0,
+          completed: 0,
+          cancelled: 0,
+        } satisfies DoctorAppointmentsDailyData);
+
+      daily.total += 1;
+      daily.cancelled += 1;
+      cancelled += 1;
+      dailyMap.set(dateKey, daily);
+
+      const current = patientMap.get(appointment.patient.id) ?? {
+        patientId: appointment.patient.id,
+        patientName: appointment.patient.name ?? "Sin nombre",
+        totalAppointments: 0,
+        completedAppointments: 0,
+        cancelledAppointments: 0,
+        lastAppointmentDate: dateKey,
+      };
+
+      current.totalAppointments += 1;
+      current.cancelledAppointments += 1;
+      if (dateKey > current.lastAppointmentDate) {
+        current.lastAppointmentDate = dateKey;
+      }
+      patientMap.set(appointment.patient.id, current);
+    }
+
+    const total = consultations.length + cancelledAppointments.filter((a) => {
+      const dateKey = formatDateOnly(a.date_time);
+      return !consultationKeys.has(`${a.doctorId}-${a.patientId}-${dateKey}`);
+    }).length;
     const stats = {
       total,
       completed,
