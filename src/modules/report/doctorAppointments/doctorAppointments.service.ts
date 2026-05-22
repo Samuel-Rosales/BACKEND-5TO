@@ -13,29 +13,6 @@ const parseDateOnly = (value: string, isEnd = false): Date => {
   return new Date(`${value}${suffix}`);
 };
 
-const normalize = (value?: string | null) => (value ?? "").toLowerCase();
-
-const isCancelledStatus = (statusName?: string | null): boolean => {
-  const status = normalize(statusName);
-  return status.includes("cancel") || status.includes("anulad");
-};
-
-const isCompletedStatus = (statusName?: string | null): boolean => {
-  const status = normalize(statusName);
-  return (
-    status.includes("complete") ||
-    status.includes("finished") ||
-    status.includes("final") ||
-    status.includes("atend") ||
-    status.includes("realiz")
-  );
-};
-
-const isScheduledStatus = (statusName?: string | null): boolean => {
-  const status = normalize(statusName);
-  return status.includes("confirm");
-};
-
 const getDefaultRange = (): { from: string; to: string } => {
   const now = new Date();
   const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -44,7 +21,7 @@ const getDefaultRange = (): { from: string; to: string } => {
 
 export class DoctorAppointmentsService {
   public static async getReport(
-    doctorId: number,
+    userId: number,
     params: DoctorAppointmentsQuery,
   ): Promise<DoctorAppointmentsResponse> {
     const defaults = getDefaultRange();
@@ -53,16 +30,34 @@ export class DoctorAppointmentsService {
     const fromDate = parseDateOnly(from);
     const toDate = parseDateOnly(to, true);
 
-    const appointments = await prisma.appointment.findMany({
+    const doctor = await prisma.doctor.findUnique({ where: { userId } });
+    if (!doctor) {
+      return {
+        message: "Doctor no encontrado",
+        data: {
+          meta: { from, to },
+          stats: { total: 0, completed: 0, cancelled: 0, scheduled: 0 },
+          dailyData: [],
+          topPatients: [],
+        },
+      };
+    }
+
+    const consultations = await prisma.consultation.findMany({
       where: {
-        doctorId,
-        date_time: { gte: fromDate, lte: toDate },
+        doctorId: doctor.id,
+        date: { gte: fromDate, lte: toDate },
       },
       include: {
-        status: true,
-        patient: { select: { id: true, name: true } },
+        invoice: {
+          select: {
+            id: true,
+            date_at: true,
+            patient: { select: { id: true, name: true } },
+          },
+        },
       },
-      orderBy: { date_time: "asc" },
+      orderBy: { date: "asc" },
     });
 
     const dailyMap = new Map<string, DoctorAppointmentsDailyData>();
@@ -71,59 +66,58 @@ export class DoctorAppointmentsService {
     let cancelled = 0;
     let scheduled = 0;
 
-    for (const appointment of appointments) {
-      const dateKey = formatDateOnly(appointment.date_time);
+    for (const consultation of consultations) {
+      const dateKey = formatDateOnly(consultation.date);
       const daily =
-        dailyMap.get(dateKey) ?? {
+        dailyMap.get(dateKey) ??
+        ({
           date: dateKey,
           total: 0,
           completed: 0,
           cancelled: 0,
-        };
+        } satisfies DoctorAppointmentsDailyData);
 
       daily.total += 1;
 
-      if (isCompletedStatus(appointment.status?.name)) {
+      if (consultation.status === "FINISHED") {
         daily.completed += 1;
         completed += 1;
-      } else if (isCancelledStatus(appointment.status?.name)) {
+      } else if (consultation.status === "CANCELLED") {
         daily.cancelled += 1;
         cancelled += 1;
-      } else if (isScheduledStatus(appointment.status?.name)) {
+      } else {
         scheduled += 1;
       }
 
       dailyMap.set(dateKey, daily);
 
-      if (appointment.patient) {
-        const current = patientMap.get(appointment.patient.id) ?? {
-          patientId: appointment.patient.id,
-          patientName: appointment.patient.name ?? "Sin nombre",
+      const patient = consultation.invoice?.patient;
+      if (patient) {
+        const current = patientMap.get(patient.id) ?? {
+          patientId: patient.id,
+          patientName: patient.name ?? "Sin nombre",
           totalAppointments: 0,
           completedAppointments: 0,
           cancelledAppointments: 0,
-          lastAppointmentDate: formatDateOnly(appointment.date_time),
+          lastAppointmentDate: dateKey,
         };
 
         current.totalAppointments += 1;
-        if (isCompletedStatus(appointment.status?.name)) {
+        if (consultation.status === "FINISHED") {
           current.completedAppointments += 1;
-        } else if (isCancelledStatus(appointment.status?.name)) {
+        } else if (consultation.status === "CANCELLED") {
           current.cancelledAppointments += 1;
         }
 
-        if (appointment.date_time) {
-          const currentDate = formatDateOnly(appointment.date_time);
-          if (currentDate > current.lastAppointmentDate) {
-            current.lastAppointmentDate = currentDate;
-          }
+        if (dateKey > current.lastAppointmentDate) {
+          current.lastAppointmentDate = dateKey;
         }
 
-        patientMap.set(appointment.patient.id, current);
+        patientMap.set(patient.id, current);
       }
     }
 
-    const total = appointments.length;
+    const total = consultations.length;
     const stats = {
       total,
       completed,
@@ -137,7 +131,7 @@ export class DoctorAppointmentsService {
       .slice(0, 5);
 
     return {
-      message: "Reporte de citas del doctor encontrado exitosamente",
+      message: "Reporte de consultas del doctor encontrado exitosamente",
       data: {
         meta: { from, to },
         stats,
