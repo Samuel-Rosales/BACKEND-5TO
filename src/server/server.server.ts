@@ -10,7 +10,7 @@ import { CategoryRoute, MeasurementUnitRoute, SupplyRoute, StockLotRoute, StockM
 import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRoute, PayrollLineRoute, PayrollRoute, SalaryPaymentRoute, StatusInvoiceRoute, TaxRoute } from '@/modules/finance';
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
-import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter, monthlyRevenueRouter, operativosRouter, receptionistOverviewRouter, specialtyDemandRouter, incomeStatementRouter } from '@/modules/report';
+import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter, monthlyRevenueRouter, operativosRouter, receptionistOverviewRouter, specialtyDemandRouter, incomeStatementRouter, doctorAppointmentsRouter } from '@/modules/report';
 
 export class Server {
 
@@ -82,6 +82,7 @@ export class Server {
             dailyBook: `${this.prefix}/report/daily-book`,
             incomeStatement: `${this.prefix}/report/income-statement`,
             operativos: `${this.prefix}/report/operativos`,
+            doctorAppointments: `${this.prefix}/report/doctor`,
         };
 
         this.dbConnection();
@@ -168,6 +169,7 @@ export class Server {
 this.app.use(this.paths.dailyBook, dailyBookRouter);
         this.app.use(this.paths.incomeStatement, incomeStatementRouter);
         this.app.use(this.paths.operativos, operativosRouter);
+        this.app.use(this.paths.doctorAppointments, doctorAppointmentsRouter);
 
         this.app.use((req, res) => {
             console.log(`[404 ERROR] Se intentó acceder a: ${req.originalUrl}`);

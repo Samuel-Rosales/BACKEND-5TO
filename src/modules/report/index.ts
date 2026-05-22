@@ -36,3 +36,7 @@ export * from './incomeStatement/incomeStatement.controller';
 export * from './incomeStatement/incomeStatement.route';
 export * from './receptionistOverview';
 export * from './operativos';
+export * from './doctorAppointments/doctorAppointments.interface';
+export * from './doctorAppointments/doctorAppointments.service';
+export * from './doctorAppointments/doctorAppointments.controller';
+export * from './doctorAppointments/doctorAppointments.route';
