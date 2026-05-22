@@ -1,4 +1,8 @@
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '@/configs';
+import React from 'react';
+import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import {
   IncomeSummaryAlert,
   IncomeSummaryBreakdownItem,
@@ -11,6 +15,19 @@ import {
 } from './incomeSummary.interface';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const resolveLogoBase64 = () => {
+    const candidates = [
+        path.resolve(process.cwd(), '..', 'FRONTEND-5TO', 'src', 'assets', 'clinicasintext.png'),
+        path.resolve(process.cwd(), '..', '..', 'FRONTEND-5TO', 'src', 'assets', 'clinicasintext.png'),
+    ];
+    const foundPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (foundPath) {
+        const bitmap = fs.readFileSync(foundPath);
+        return `data:image/png;base64,${bitmap.toString('base64')}`;
+    }
+    return null;
+};
 
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
@@ -50,6 +67,155 @@ const pctChange = (current: number, previous: number): number => {
   if (!previous) return current > 0 ? 100 : 0;
   return roundMoney(((current - previous) / previous) * 100);
 };
+
+const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
+
+const styles = StyleSheet.create({
+  page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
+  headerTextContainer: { flex: 1, marginLeft: 15 },
+  title: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 4 },
+  subtitle: { fontSize: 12, color: '#475569' },
+  meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
+  section: { marginTop: 14 },
+  sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+  table: { borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'solid' },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#e2e8f0', paddingVertical: 5, paddingHorizontal: 6 },
+  tableRow: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderTop: '0.5 solid #e2e8f0' },
+  tableCell: { flex: 1, color: '#334155' },
+  tableCellRight: { width: 90, textAlign: 'right', color: '#334155' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
+  rowLabel: { color: '#334155', flex: 1 },
+  rowValue: { color: '#334155', textAlign: 'right', width: 120 },
+  alertList: { marginTop: 2 },
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderRadius: 6,
+  },
+  alertBullet: { width: 10, fontSize: 11, lineHeight: 1.2, color: '#0f172a', marginTop: 1 },
+  alertMessage: { flex: 1, color: '#334155', lineHeight: 1.35 },
+  alertInfo: { backgroundColor: '#eff6ff', borderColor: '#93c5fd' },
+  alertSuccess: { backgroundColor: '#ecfdf5', borderColor: '#86efac' },
+  alertWarning: { backgroundColor: '#fffbeb', borderColor: '#fcd34d' },
+  alertDanger: { backgroundColor: '#fef2f2', borderColor: '#fca5a5' },
+  footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
+});
+
+const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
+const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+
+const IncomeSummaryDocument = ({ data, logoDataUri }: { data: IncomeSummaryResponse['data'], logoDataUri: string | null }) => React.createElement(
+  Document as any,
+  null,
+  React.createElement(
+    Page as any,
+    { size: 'A4', style: styles.page },
+    v([
+      logoDataUri ? React.createElement(Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
+      v([
+        t('Reporte de Ingresos', styles.title),
+        t('Resumen ejecutivo de recaudo', styles.subtitle),
+        t(`Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+      ], styles.headerTextContainer)
+    ], styles.header),
+    v([
+      t('RESUMEN', styles.sectionTitle),
+      v([t('Ingreso bruto', styles.rowLabel), t(moneyText(data.summary.grossIncomeUsd), styles.rowValue)], styles.row),
+      v([t('Cobrado', styles.rowLabel), t(moneyText(data.summary.collectedUsd), styles.rowValue)], styles.row),
+      v([t('Pendiente', styles.rowLabel), t(moneyText(data.summary.pendingBalanceUsd), styles.rowValue)], styles.row),
+      v([t('Tasa de recaudo', styles.rowLabel), t(`${data.summary.collectionRate.toFixed(1)}%`, styles.rowValue)], styles.row),
+    ], styles.section),
+      v([
+        t('ESPECIALIDADES', styles.sectionTitle),
+        v([
+          t('Especialidad', styles.tableCell),
+          t('Consultas', styles.tableCellRight),
+          t('Ingreso', styles.tableCellRight),
+          t('%', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.breakdownBySpecialty.slice(0, 8).map((item) => v([
+          t(item.specialty, styles.tableCell),
+          t(String(item.consultations), styles.tableCellRight),
+          t(moneyText(item.incomeUsd), styles.tableCellRight),
+          t(`${item.percentage.toFixed(1)}%`, styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('MEDIOS DE PAGO', styles.sectionTitle),
+        v([
+          t('Método', styles.tableCell),
+          t('Pagos', styles.tableCellRight),
+          t('Monto', styles.tableCellRight),
+          t('IGTF', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.collectionByPaymentMethod.slice(0, 8).map((item) => v([
+          t(item.paymentMethod, styles.tableCell),
+          t(String(item.payments), styles.tableCellRight),
+          t(moneyText(item.amountUsd), styles.tableCellRight),
+          t(moneyText(item.igtfUsd), styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('CARTERA VENCIDA', styles.sectionTitle),
+        v([
+          t('Rango', styles.tableCell),
+          t('Casos', styles.tableCellRight),
+          t('Monto', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.receivables.agingBuckets.map((item) => v([
+          t(item.label, styles.tableCell),
+          t(String(item.count), styles.tableCellRight),
+          t(moneyText(item.amountUsd), styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('FACTURAS PENDIENTES', styles.sectionTitle),
+        v([
+          t('Paciente', styles.tableCell),
+          t('Especialidad', styles.tableCell),
+          t('Días', styles.tableCellRight),
+          t('Pendiente', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.receivables.items.slice(0, 8).map((item) => v([
+          t(item.patientName, styles.tableCell),
+          t(item.specialty, styles.tableCell),
+          t(String(item.daysOutstanding), styles.tableCellRight),
+          t(moneyText(item.pendingUsd), styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('ALERTAS', styles.sectionTitle),
+        v(
+          data.alerts.map((item) => {
+            const severityStyle = item.severity === 'success'
+              ? styles.alertSuccess
+              : item.severity === 'warning'
+                ? styles.alertWarning
+                : item.severity === 'danger'
+                  ? styles.alertDanger
+                  : styles.alertInfo;
+
+            return v(
+              [
+                t('•', styles.alertBullet),
+                t(item.message, styles.alertMessage),
+              ],
+              [styles.alertItem, severityStyle],
+            );
+          }),
+          styles.alertList,
+        ),
+      ], styles.section),
+      t('VitalFe & Alegria', styles.footer),
+    )
+);
 
 const normalizeCurrency = (value: unknown): 'USD' | 'VES' => {
   const currency = String(value ?? 'USD').toUpperCase();
@@ -365,5 +531,12 @@ export class IncomeSummaryService {
         alerts,
       },
     };
+  }
+
+  public static async generatePdf(params: Partial<IncomeSummaryQueryRange>): Promise<Buffer> {
+    const report = await this.getSummary(params);
+    const logoDataUri = resolveLogoBase64();
+    const doc = React.createElement(IncomeSummaryDocument, { data: report.data, logoDataUri });
+    return await renderToBuffer(doc as React.ReactElement<any>);
   }
 }
