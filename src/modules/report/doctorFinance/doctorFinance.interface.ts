@@ -36,8 +36,8 @@ export type DoctorFinanceResponse = {
       totalRevenue: number;
       totalExpenses: number;
       netProfit: number;
-      profitMargin: number;
       doctorEarnings: number;
+      doctorCommission: number;
     };
     monthlyData: DoctorFinanceMonthlyData[];
     revenueSources: DoctorFinanceRevenueSource[];
