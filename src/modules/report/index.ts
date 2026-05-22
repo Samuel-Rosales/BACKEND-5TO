@@ -40,3 +40,7 @@ export * from './doctorAppointments/doctorAppointments.interface';
 export * from './doctorAppointments/doctorAppointments.service';
 export * from './doctorAppointments/doctorAppointments.controller';
 export * from './doctorAppointments/doctorAppointments.route';
+export * from './doctorFinance/doctorFinance.interface';
+export * from './doctorFinance/doctorFinance.service';
+export * from './doctorFinance/doctorFinance.controller';
+export * from './doctorFinance/doctorFinance.route';

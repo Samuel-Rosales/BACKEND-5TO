@@ -67,6 +67,7 @@ type ConsultationBundleInput = {
     patientId: number;
     receptionistId: number;
     statusInvoiceId: number;
+    status: "PENDING" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
     taxId: number;
     exchangeRateId: number;
     paymentMethodId: number;
@@ -130,6 +131,7 @@ async function ensureConsultationBundle(input: ConsultationBundleInput) {
                 date: input.startedAt,
                 started_at: input.startedAt,
                 finished_at: input.finishedAt,
+                status: input.status,
             },
             select: { id: true, invoiceId: true },
         });
@@ -346,15 +348,15 @@ async function seedRecentOperativosData(deps: ClinicalSeedDeps, context: {
     }
 
     const recentConsultationSpecs = [
-        { doctorId: context.doctor1.id, patientId: context.patient1.id, daysAgo: 0, startHour: 8, duration: 20, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd },
-        { doctorId: context.doctor1.id, patientId: context.patient2.id, daysAgo: 1, startHour: 9, duration: 25, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd },
-        { doctorId: context.doctor1.id, patientId: context.patient3.id, daysAgo: 3, startHour: 11, duration: 30, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.transferBs },
-        { doctorId: context.doctor1.id, patientId: context.patient4.id, daysAgo: 7, startHour: 14, duration: 18, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd },
-        { doctorId: context.doctor2.id, patientId: context.patient2.id, daysAgo: 0, startHour: 9, duration: 22, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.transferBs },
-        { doctorId: context.doctor2.id, patientId: context.patient3.id, daysAgo: 4, startHour: 11, duration: 20, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.transferBs },
-        { doctorId: context.doctor2.id, patientId: context.patient5.id, daysAgo: 10, startHour: 15, duration: 28, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.zelleUsd },
-        { doctorId: context.doctor3.id, patientId: context.patient1.id, daysAgo: 2, startHour: 11, duration: 35, invoiceTotalUsd: 35, paymentMethodId: deps.finance.paymentMethods.zelleUsd },
-        { doctorId: context.doctor3.id, patientId: context.patient4.id, daysAgo: 14, startHour: 8, duration: 40, invoiceTotalUsd: 35, paymentMethodId: deps.finance.paymentMethods.zelleUsd },
+        { doctorId: context.doctor1.id, patientId: context.patient1.id, daysAgo: 0, startHour: 8, duration: 20, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd, status: "FINISHED" },
+        { doctorId: context.doctor1.id, patientId: context.patient2.id, daysAgo: 1, startHour: 9, duration: 25, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd, status: "FINISHED" },
+        { doctorId: context.doctor1.id, patientId: context.patient3.id, daysAgo: 3, startHour: 11, duration: 30, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.transferBs, status: "CANCELLED" },
+        { doctorId: context.doctor1.id, patientId: context.patient4.id, daysAgo: 7, startHour: 14, duration: 18, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd, status: "FINISHED" },
+        { doctorId: context.doctor2.id, patientId: context.patient2.id, daysAgo: 0, startHour: 9, duration: 22, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.transferBs, status: "FINISHED" },
+        { doctorId: context.doctor2.id, patientId: context.patient3.id, daysAgo: 4, startHour: 11, duration: 20, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.transferBs, status: "FINISHED" },
+        { doctorId: context.doctor2.id, patientId: context.patient5.id, daysAgo: 10, startHour: 15, duration: 28, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.zelleUsd, status: "CANCELLED" },
+        { doctorId: context.doctor3.id, patientId: context.patient1.id, daysAgo: 2, startHour: 11, duration: 35, invoiceTotalUsd: 35, paymentMethodId: deps.finance.paymentMethods.zelleUsd, status: "FINISHED" },
+        { doctorId: context.doctor3.id, patientId: context.patient4.id, daysAgo: 14, startHour: 8, duration: 40, invoiceTotalUsd: 35, paymentMethodId: deps.finance.paymentMethods.zelleUsd, status: "CANCELLED" },
     ];
 
     for (const spec of recentConsultationSpecs) {
@@ -365,6 +367,7 @@ async function seedRecentOperativosData(deps: ClinicalSeedDeps, context: {
             patientId: spec.patientId,
             receptionistId: deps.users.reception,
             statusInvoiceId: deps.finance.invoiceStatuses.paid,
+            status: spec.status,
             taxId: deps.finance.taxId,
             exchangeRateId: deps.finance.exchangeRates.active,
             paymentMethodId: spec.paymentMethodId,
@@ -686,6 +689,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient1.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
@@ -727,6 +731,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient2.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
@@ -768,6 +773,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient3.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.zelleUsd,
@@ -812,6 +818,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient2.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        status: "CANCELLED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
@@ -852,6 +859,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient3.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        status: "CANCELLED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
@@ -883,6 +891,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient4.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
@@ -924,6 +933,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient5.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
@@ -964,6 +974,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient6.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        status: "CANCELLED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.zelleUsd,
