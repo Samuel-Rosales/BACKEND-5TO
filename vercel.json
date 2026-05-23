@@ -4,7 +4,10 @@
   "installCommand": "npm install",
   "framework": null,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/dist/api/index" }
+    {
+      "source": "/(.*)",
+      "destination": "/src/server/server.server.js"
+    }
   ],
   "crons": [
     {
