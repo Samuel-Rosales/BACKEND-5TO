@@ -37,6 +37,18 @@ export class UserValidator {
                     return Promise.reject("El rol no existe o no está activo");
                 }
             }),
+
+        body("specialtyId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("El specialtyId debe ser un número entero positivo")
+            .custom(async (value) => {
+                const specialty = await prisma.medicalSpecialty.findUnique({ where: { id: Number(value) } });
+
+                if (!specialty || !specialty.active) {
+                    return Promise.reject("La especialidad no existe o no está activa");
+                }
+            }),
     ];
 
     public updateUserValidator: ValidationChain[] = [
@@ -69,6 +81,18 @@ export class UserValidator {
 
                 if (!role) {
                     return Promise.reject("El rol no existe o no está activo");
+                }
+            }),
+
+        body("specialtyId")
+            .optional()
+            .isInt({ gt: 0 })
+            .withMessage("El specialtyId debe ser un número entero positivo")
+            .custom(async (value) => {
+                const specialty = await prisma.medicalSpecialty.findUnique({ where: { id: Number(value) } });
+
+                if (!specialty || !specialty.active) {
+                    return Promise.reject("La especialidad no existe o no está activa");
                 }
             }),
     ];

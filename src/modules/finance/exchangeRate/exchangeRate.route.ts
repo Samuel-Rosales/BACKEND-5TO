@@ -21,6 +21,16 @@ exchangeRateRouter.get(
 );
 
 exchangeRateRouter.get(
+    "/bcv",
+    controller.fetchBcv
+);
+
+exchangeRateRouter.post(
+    "/bcv/sync",
+    controller.syncBcv
+);
+
+exchangeRateRouter.get(
     "/:id",
     validator.IdParamValidator,
     validator.ExchangeRateExistsValidator,

@@ -67,6 +67,7 @@ type ConsultationBundleInput = {
     patientId: number;
     receptionistId: number;
     statusInvoiceId: number;
+    status: "PENDING" | "IN_PROGRESS" | "FINISHED" | "CANCELLED";
     taxId: number;
     exchangeRateId: number;
     paymentMethodId: number;
@@ -130,6 +131,7 @@ async function ensureConsultationBundle(input: ConsultationBundleInput) {
                 date: input.startedAt,
                 started_at: input.startedAt,
                 finished_at: input.finishedAt,
+                status: input.status,
             },
             select: { id: true, invoiceId: true },
         });
@@ -269,6 +271,128 @@ async function ensureConsultationBundle(input: ConsultationBundleInput) {
 
         return consultation;
     });
+}
+
+const addDays = (date: Date, days: number) => {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+};
+
+const atUtcTime = (base: Date, hours: number, minutes: number) => new Date(Date.UTC(
+    base.getUTCFullYear(),
+    base.getUTCMonth(),
+    base.getUTCDate(),
+    hours,
+    minutes,
+    0,
+    0
+));
+
+const getRecentAppointmentDate = (daysAgo: number, hours: number, minutes: number) => {
+    const base = addDays(new Date(), -daysAgo);
+    return atUtcTime(base, hours, minutes);
+};
+
+async function seedRecentOperativosData(deps: ClinicalSeedDeps, context: {
+    doctor1: { id: number };
+    doctor2: { id: number };
+    doctor3: { id: number };
+    patient1: { id: number };
+    patient2: { id: number };
+    patient3: { id: number };
+    patient4: { id: number };
+    patient5: { id: number };
+    patient6: { id: number };
+    symptomId: number;
+    diagnosisId: number;
+}) {
+    const recentStatusPending = await ensureStatusAppointment("Pendiente", "#facc15");
+    const recentStatusConfirmed = await ensureStatusAppointment("Confirmada", "#22c55e");
+    const recentStatusCancelled = await ensureStatusAppointment("Cancelada", "#ef4444");
+    const recentStatusFinished = await ensureStatusAppointment("Finalizada", "#3b82f6");
+    void recentStatusPending;
+    void recentStatusFinished;
+
+    const recentConsultType = await ensureAppointmentType("Consulta");
+    const recentControlType = await ensureAppointmentType("Control");
+
+    const appointmentMatrix = [
+        { doctorId: context.doctor1.id, patientId: context.patient1.id, daysAgo: 0, hour: 8, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 20 },
+        { doctorId: context.doctor1.id, patientId: context.patient2.id, daysAgo: 1, hour: 9, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 20 },
+        { doctorId: context.doctor1.id, patientId: context.patient3.id, daysAgo: 2, hour: 10, minute: 0, statusId: recentStatusCancelled.id, typeId: recentControlType.id, price: 20 },
+        { doctorId: context.doctor1.id, patientId: context.patient4.id, daysAgo: 3, hour: 11, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 20 },
+        { doctorId: context.doctor1.id, patientId: context.patient5.id, daysAgo: 7, hour: 14, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 20 },
+        { doctorId: context.doctor2.id, patientId: context.patient2.id, daysAgo: 0, hour: 9, minute: 30, statusId: recentStatusConfirmed.id, typeId: recentControlType.id, price: 25 },
+        { doctorId: context.doctor2.id, patientId: context.patient3.id, daysAgo: 1, hour: 11, minute: 30, statusId: recentStatusConfirmed.id, typeId: recentControlType.id, price: 25 },
+        { doctorId: context.doctor2.id, patientId: context.patient4.id, daysAgo: 4, hour: 15, minute: 0, statusId: recentStatusCancelled.id, typeId: recentControlType.id, price: 25 },
+        { doctorId: context.doctor2.id, patientId: context.patient5.id, daysAgo: 10, hour: 9, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 25 },
+        { doctorId: context.doctor2.id, patientId: context.patient6.id, daysAgo: 14, hour: 13, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentControlType.id, price: 25 },
+        { doctorId: context.doctor3.id, patientId: context.patient1.id, daysAgo: 0, hour: 11, minute: 0, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 35 },
+        { doctorId: context.doctor3.id, patientId: context.patient2.id, daysAgo: 2, hour: 8, minute: 30, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 35 },
+        { doctorId: context.doctor3.id, patientId: context.patient3.id, daysAgo: 5, hour: 14, minute: 30, statusId: recentStatusCancelled.id, typeId: recentControlType.id, price: 35 },
+        { doctorId: context.doctor3.id, patientId: context.patient4.id, daysAgo: 9, hour: 10, minute: 30, statusId: recentStatusConfirmed.id, typeId: recentConsultType.id, price: 35 },
+        { doctorId: context.doctor3.id, patientId: context.patient5.id, daysAgo: 21, hour: 15, minute: 30, statusId: recentStatusConfirmed.id, typeId: recentControlType.id, price: 35 },
+    ];
+
+    for (const item of appointmentMatrix) {
+        await ensureAppointment({
+            doctorId: item.doctorId,
+            patientId: item.patientId,
+            statusId: item.statusId,
+            typeId: item.typeId,
+            price: item.price,
+            date_time: getRecentAppointmentDate(item.daysAgo, item.hour, item.minute),
+            reson_visit: `SEED: cita reciente ${item.daysAgo}d`,
+        });
+    }
+
+    const recentConsultationSpecs = [
+        { doctorId: context.doctor1.id, patientId: context.patient1.id, daysAgo: 0, startHour: 8, duration: 20, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd, status: "FINISHED" },
+        { doctorId: context.doctor1.id, patientId: context.patient2.id, daysAgo: 1, startHour: 9, duration: 25, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd, status: "FINISHED" },
+        { doctorId: context.doctor1.id, patientId: context.patient3.id, daysAgo: 3, startHour: 11, duration: 30, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.transferBs, status: "CANCELLED" },
+        { doctorId: context.doctor1.id, patientId: context.patient4.id, daysAgo: 7, startHour: 14, duration: 18, invoiceTotalUsd: 20, paymentMethodId: deps.finance.paymentMethods.cashUsd, status: "FINISHED" },
+        { doctorId: context.doctor2.id, patientId: context.patient2.id, daysAgo: 0, startHour: 9, duration: 22, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.transferBs, status: "FINISHED" },
+        { doctorId: context.doctor2.id, patientId: context.patient3.id, daysAgo: 4, startHour: 11, duration: 20, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.transferBs, status: "FINISHED" },
+        { doctorId: context.doctor2.id, patientId: context.patient5.id, daysAgo: 10, startHour: 15, duration: 28, invoiceTotalUsd: 25, paymentMethodId: deps.finance.paymentMethods.zelleUsd, status: "CANCELLED" },
+        { doctorId: context.doctor3.id, patientId: context.patient1.id, daysAgo: 2, startHour: 11, duration: 35, invoiceTotalUsd: 35, paymentMethodId: deps.finance.paymentMethods.zelleUsd, status: "FINISHED" },
+        { doctorId: context.doctor3.id, patientId: context.patient4.id, daysAgo: 14, startHour: 8, duration: 40, invoiceTotalUsd: 35, paymentMethodId: deps.finance.paymentMethods.zelleUsd, status: "CANCELLED" },
+    ];
+
+    for (const spec of recentConsultationSpecs) {
+        const start = getRecentAppointmentDate(spec.daysAgo, spec.startHour, 0);
+        const finish = new Date(start.getTime() + spec.duration * 60000);
+        const response = await ensureConsultationBundle({
+            doctorId: spec.doctorId,
+            patientId: spec.patientId,
+            receptionistId: deps.users.reception,
+            statusInvoiceId: deps.finance.invoiceStatuses.paid,
+            status: spec.status,
+            taxId: deps.finance.taxId,
+            exchangeRateId: deps.finance.exchangeRates.active,
+            paymentMethodId: spec.paymentMethodId,
+            invoiceTotalUsd: spec.invoiceTotalUsd,
+            startedAt: start,
+            finishedAt: finish,
+            symptoms: [
+                { symptomId: context.symptomId, severity: "Media", duration: "2 días", notes: "SEED: control reciente" },
+            ],
+            diagnoses: [
+                { diagnosisId: context.diagnosisId, isPrimary: true, conditionStatus: "Agudo", onsetDate: new Date() },
+            ],
+            supplyConsumptions: [],
+            prescriptions: [],
+            exam: {
+                temperature: 36.8,
+                systolic_bp: 118,
+                diastolic_bp: 76,
+                heart_rate: 82,
+                respiratory_rate: 18,
+                oxygen_saturation: 98,
+            },
+        });
+        void response;
+    }
 }
 
 export async function seedClinical(deps: ClinicalSeedDeps) {
@@ -565,6 +689,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient1.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
@@ -606,6 +731,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient2.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
@@ -647,6 +773,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient3.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.zelleUsd,
@@ -691,6 +818,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient2.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        status: "CANCELLED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
@@ -731,6 +859,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient3.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        status: "CANCELLED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
@@ -762,6 +891,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient4.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.cashUsd,
@@ -803,6 +933,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient5.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.paid,
+        status: "FINISHED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.transferBs,
@@ -843,6 +974,7 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
         patientId: patient6.id,
         receptionistId: deps.users.reception,
         statusInvoiceId: deps.finance.invoiceStatuses.proforma,
+        status: "CANCELLED",
         taxId: deps.finance.taxId,
         exchangeRateId: deps.finance.exchangeRates.active,
         paymentMethodId: deps.finance.paymentMethods.zelleUsd,
@@ -876,6 +1008,20 @@ export async function seedClinical(deps: ClinicalSeedDeps) {
             respiratory_rate: 17,
             oxygen_saturation: 99,
         },
+    });
+
+    await seedRecentOperativosData(deps, {
+        doctor1,
+        doctor2,
+        doctor3,
+        patient1,
+        patient2,
+        patient3,
+        patient4,
+        patient5,
+        patient6,
+        symptomId: symptoms[0].id,
+        diagnosisId: diagnoses[0].id,
     });
 
     return {

@@ -3,6 +3,7 @@ export interface CreateUserDto {
     name: string;
     password: string;
     roleId: number;
+    specialtyId?: number;
 }
 
 export interface UpdateUserDto {
@@ -10,4 +11,5 @@ export interface UpdateUserDto {
     name?: string;
     password?: string;
     roleId?: number;
+    specialtyId?: number;
 }

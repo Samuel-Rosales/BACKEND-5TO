@@ -1,8 +1,14 @@
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '@/configs';
+import React from 'react';
+import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import {
   ExpenseSummaryAlert,
   ExpenseSummaryCategoryItem,
   ExpenseSummaryInfo,
+  ExpenseSummaryPeriod,
+  ExpenseSummaryPeriodBucket,
   ExpenseSummaryPayrollBySpecialtyItem,
   ExpenseSummaryQueryRange,
   ExpenseSummaryResponse,
@@ -12,6 +18,19 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const resolveLogoBase64 = () => {
+    const candidates = [
+        path.resolve(process.cwd(), '..', 'FRONTEND-5TO', 'src', 'assets', 'clinicasintext.png'),
+        path.resolve(process.cwd(), '..', '..', 'FRONTEND-5TO', 'src', 'assets', 'clinicasintext.png'),
+    ];
+    const foundPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (foundPath) {
+        const bitmap = fs.readFileSync(foundPath);
+        return `data:image/png;base64,${bitmap.toString('base64')}`;
+    }
+    return null;
+};
+
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 const toNumber = (value: unknown): number => {
@@ -20,6 +39,67 @@ const toNumber = (value: unknown): number => {
 };
 
 const formatDateOnly = (date: Date): string => date.toISOString().slice(0, 10);
+
+const formatMonthLabel = (date: Date): string => new Intl.DateTimeFormat('es-VE', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
+
+const formatDayLabel = (date: Date): string => new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', timeZone: 'UTC' }).format(date);
+
+const formatWeekLabel = (date: Date): string => {
+  const start = getStartOfWeek(date);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  return `${formatDayLabel(start)} - ${formatDayLabel(end)}`;
+};
+
+const getStartOfWeek = (date: Date): Date => {
+  const current = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const diff = (current.getUTCDay() + 6) % 7;
+  current.setUTCDate(current.getUTCDate() - diff);
+  return current;
+};
+
+const getBucketKey = (date: Date, period: ExpenseSummaryPeriod): string => {
+  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+
+  if (period === 'day') return formatDateOnly(utcDate);
+  if (period === 'week') {
+    const startOfWeek = getStartOfWeek(utcDate);
+    return formatDateOnly(startOfWeek);
+  }
+  if (period === 'month') return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, '0')}`;
+  return String(utcDate.getUTCFullYear());
+};
+
+const getBucketLabel = (key: string, period: ExpenseSummaryPeriod): string => {
+  if (period === 'day') return formatDayLabel(new Date(`${key}T00:00:00.000Z`));
+  if (period === 'week') return formatWeekLabel(new Date(`${key}T00:00:00.000Z`));
+  if (period === 'month') return formatMonthLabel(new Date(`${key}-01T00:00:00.000Z`));
+  return key;
+};
+
+const buildPeriodBuckets = (from: Date, to: Date, period: ExpenseSummaryPeriod): ExpenseSummaryPeriodBucket[] => {
+  const buckets = new Map<string, ExpenseSummaryPeriodBucket>();
+  const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+
+  while (cursor <= to) {
+    const key = getBucketKey(cursor, period);
+    if (!buckets.has(key)) {
+      buckets.set(key, { label: getBucketLabel(key, period), amountUsd: 0 });
+    }
+
+    if (period === 'day') {
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    } else if (period === 'week') {
+      cursor.setUTCDate(cursor.getUTCDate() + 7);
+    } else if (period === 'month') {
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+    } else {
+      cursor.setUTCFullYear(cursor.getUTCFullYear() + 1, 0, 1);
+    }
+  }
+
+  return [...buckets.values()];
+};
 
 const parseDateOnly = (value: string, isEnd = false): Date => {
   const suffix = isEnd ? 'T23:59:59.999Z' : 'T00:00:00.000Z';
@@ -44,6 +124,120 @@ const pctChange = (current: number, previous: number): number => {
   return roundMoney(((current - previous) / previous) * 100);
 };
 
+const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
+
+const styles = StyleSheet.create({
+  page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
+  headerTextContainer: { flex: 1, marginLeft: 15 },
+  title: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 4 },
+  subtitle: { fontSize: 12, color: '#475569' },
+  meta: { fontSize: 9, color: '#64748b', marginTop: 4 },
+  section: { marginTop: 14 },
+  sectionTitle: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', backgroundColor: '#f1f5f9', padding: 6, marginBottom: 8 },
+  table: { borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'solid' },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#e2e8f0', paddingVertical: 5, paddingHorizontal: 6 },
+  tableRow: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 6, borderTop: '0.5 solid #e2e8f0' },
+  tableCell: { flex: 1, color: '#334155' },
+  tableCellRight: { width: 90, textAlign: 'right', color: '#334155' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 6, borderBottom: '0.5 solid #e2e8f0' },
+  rowLabel: { color: '#334155', flex: 1 },
+  rowValue: { color: '#334155', textAlign: 'right', width: 120 },
+  footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
+});
+
+const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
+const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+
+const ExpenseSummaryDocument = ({ data, logoDataUri }: { data: ExpenseSummaryResponse['data'], logoDataUri: string | null }) => React.createElement(
+  Document as any,
+  null,
+  React.createElement(
+    Page as any,
+    { size: 'A4', style: styles.page },
+    v([
+      logoDataUri ? React.createElement(Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
+      v([
+        t('Reporte de Gastos', styles.title),
+        t('Resumen ejecutivo de egresos', styles.subtitle),
+        t(`Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+      ], styles.headerTextContainer)
+    ], styles.header),
+    v([
+      t('RESUMEN', styles.sectionTitle),
+      v([t('Gasto total', styles.rowLabel), t(moneyText(data.summary.totalExpenseUsd), styles.rowValue)], styles.row),
+      v([t('OPEX', styles.rowLabel), t(moneyText(data.summary.opexUsd), styles.rowValue)], styles.row),
+      v([t('Compras', styles.rowLabel), t(moneyText(data.summary.purchasesUsd), styles.rowValue)], styles.row),
+      v([t('Nómina', styles.rowLabel), t(moneyText(data.summary.payrollUsd + data.summary.salaryAdminUsd), styles.rowValue)], styles.row),
+    ], styles.section),
+    v([
+      t('DESGLOSE POR CATEGORÍA', styles.sectionTitle),
+      ...data.breakdownByCategory.map((item) => v([t(item.category, styles.rowLabel), t(moneyText(item.amountUsd), styles.rowValue)], styles.row)),
+    ], styles.section),
+      v([
+        t('PROVEEDORES DE SERVICIOS', styles.sectionTitle),
+        v([
+          t('Proveedor', styles.tableCell),
+          t('Total', styles.tableCellRight),
+          t('Pagado', styles.tableCellRight),
+          t('Pendiente', styles.tableCellRight),
+          t('Facturas', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.servicesBySupplier.slice(0, 8).map((item) => v([
+          t(item.supplier, styles.tableCell),
+          t(moneyText(item.totalUsd), styles.tableCellRight),
+          t(moneyText(item.paidUsd), styles.tableCellRight),
+          t(moneyText(item.pendingUsd), styles.tableCellRight),
+          t(String(item.invoices), styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('COMPRAS POR CATEGORÍA', styles.sectionTitle),
+        v([
+          t('Categoría', styles.tableCell),
+          t('Monto', styles.tableCellRight),
+          t('%', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.purchasesByCategory.slice(0, 8).map((item) => v([
+          t(item.category, styles.tableCell),
+          t(moneyText(item.amountUsd), styles.tableCellRight),
+          t(`${item.percentage.toFixed(1)}%`, styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('NÓMINA POR ESPECIALIDAD', styles.sectionTitle),
+        v([
+          t('Especialidad', styles.tableCell),
+          t('Empleados', styles.tableCellRight),
+          t('Monto', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.payrollBySpecialty.slice(0, 8).map((item) => v([
+          t(item.specialty, styles.tableCell),
+          t(String(item.employees), styles.tableCellRight),
+          t(moneyText(item.amountUsd), styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('SALARIOS ADMINISTRATIVOS', styles.sectionTitle),
+        v([
+          t('Rol', styles.tableCell),
+          t('Empleados', styles.tableCellRight),
+          t('Monto', styles.tableCellRight),
+        ], styles.tableHeader),
+        ...data.salaryByRole.slice(0, 8).map((item) => v([
+          t(item.role, styles.tableCell),
+          t(String(item.employees), styles.tableCellRight),
+          t(moneyText(item.amountUsd), styles.tableCellRight),
+        ], styles.tableRow)),
+      ], styles.section),
+      v([
+        t('ALERTAS', styles.sectionTitle),
+        ...data.alerts.map((item) => t(`• ${item.message}`, styles.rowLabel)),
+      ], styles.section),
+      t(`Generado por VitalFe & Alegria`, styles.footer),
+    )
+);
+
 const groupBy = <T>(items: T[], keyFn: (item: T) => string) => {
   const map = new Map<string, T[]>();
   for (const item of items) {
@@ -55,7 +249,7 @@ const groupBy = <T>(items: T[], keyFn: (item: T) => string) => {
   return map;
 };
 
-const getRangeData = async (from: Date, to: Date) => {
+const getRangeData = async (from: Date, to: Date, period: ExpenseSummaryPeriod) => {
   const [invoiceExpenses, purchases, payrollLines, salaryPayments, latestRate] = await Promise.all([
     prisma.invoiceExpense.findMany({
       where: { date_at: { gte: from, lte: to } },
@@ -144,6 +338,7 @@ const getRangeData = async (from: Date, to: Date) => {
       category: expense.category.name,
       amountUsd: 0,
       percentage: 0,
+      breakdown: [],
     };
     current.amountUsd = roundMoney(current.amountUsd + toNumber(expense.total_amount));
     categoryMap.set(key, current);
@@ -183,15 +378,40 @@ const getRangeData = async (from: Date, to: Date) => {
 
   const servicesBySupplier = [...supplierMap.values()].sort((a, b) => b.pendingUsd - a.pendingUsd);
 
-  const purchasesGrouped = groupBy(purchases.flatMap((purchase) => purchase.items), (item) => `${item.supply.categoryId}-${item.supply.category.name}`);
-  const purchasesByCategory = [...purchasesGrouped.entries()].map(([key, items]) => {
+  const purchaseItems = purchases.flatMap((purchase) =>
+    purchase.items.map((item) => ({
+      ...item,
+      purchaseDate: purchase.date,
+    })),
+  );
+
+  const purchasesGrouped = groupBy(purchaseItems, (item) => `${item.supply.categoryId}-${item.supply.category.name}`);
+  const purchasesByCategory = [...purchasesGrouped.entries()].map(([, items]) => {
     const first = items[0];
     const amountUsd = roundMoney(items.reduce((acc, item) => acc + toNumber(item.unit_cost) * toNumber(item.quantity), 0));
+    const breakdownMap = new Map<string, ExpenseSummaryPeriodBucket>();
+    const buckets = buildPeriodBuckets(from, to, period);
+
+    for (const bucket of buckets) {
+      breakdownMap.set(bucket.label, { ...bucket });
+    }
+
+    for (const item of items) {
+      const purchaseDate = item.purchaseDate ?? null;
+      if (!purchaseDate) continue;
+      const bucketKey = getBucketKey(new Date(purchaseDate), period);
+      const bucketLabel = getBucketLabel(bucketKey, period);
+      const current = breakdownMap.get(bucketLabel) ?? { label: bucketLabel, amountUsd: 0 };
+      current.amountUsd = roundMoney(current.amountUsd + toNumber(item.unit_cost) * toNumber(item.quantity));
+      breakdownMap.set(bucketLabel, current);
+    }
+
     return {
       categoryId: first.supply.categoryId,
       category: first.supply.category.name,
       amountUsd,
       percentage: roundMoney(purchasesUsd > 0 ? (amountUsd / purchasesUsd) * 100 : 0),
+      breakdown: [...breakdownMap.values()],
     };
   }).sort((a, b) => b.amountUsd - a.amountUsd);
 
@@ -249,14 +469,15 @@ export class ExpenseSummaryService {
     const resolvedRange = {
       from: params.from || getDefaultRange().from,
       to: params.to || getDefaultRange().to,
+      period: params.period || 'week',
     };
 
     const fromDate = parseDateOnly(resolvedRange.from);
     const toDate = parseDateOnly(resolvedRange.to, true);
     const previousRange = getPreviousRange(fromDate, toDate);
 
-    const current = await getRangeData(fromDate, toDate);
-    const previous = await getRangeData(parseDateOnly(previousRange.from), parseDateOnly(previousRange.to, true));
+    const current = await getRangeData(fromDate, toDate, resolvedRange.period);
+    const previous = await getRangeData(parseDateOnly(previousRange.from), parseDateOnly(previousRange.to, true), resolvedRange.period);
 
     const alerts: ExpenseSummaryAlert[] = [];
 
@@ -294,6 +515,7 @@ export class ExpenseSummaryService {
           previousFrom: previousRange.from,
           previousTo: previousRange.to,
           periodDays: Math.max(1, Math.round((toDate.getTime() - fromDate.getTime()) / DAY_MS) + 1),
+          period: resolvedRange.period,
         },
         summary,
         breakdownByCategory: current.breakdownByCategory,
@@ -304,5 +526,12 @@ export class ExpenseSummaryService {
         alerts,
       },
     };
+  }
+
+  public static async generatePdf(params: Partial<ExpenseSummaryQueryRange>): Promise<Buffer> {
+    const report = await this.getSummary(params);
+    const logoDataUri = resolveLogoBase64();
+    const doc = React.createElement(ExpenseSummaryDocument, { data: report.data, logoDataUri });
+    return await renderToBuffer(doc as React.ReactElement<any>);
   }
 }

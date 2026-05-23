@@ -43,4 +43,16 @@ export class ExchangeRateController {
 
         return res.status(status).json({ message, data, error });
     }
+
+    async fetchBcv(req: Request, res: Response) {
+        const { data, status, message, error } = await service.fetchBcv();
+
+        return res.status(status).json({ message, data, error });
+    }
+
+    async syncBcv(req: Request, res: Response) {
+        const { data, status, message, error } = await service.syncBcv();
+
+        return res.status(status).json({ message, data, error });
+    }
 }
