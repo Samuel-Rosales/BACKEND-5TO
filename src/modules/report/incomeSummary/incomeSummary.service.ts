@@ -1,8 +1,7 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { prisma } from '@/configs';
 import React from 'react';
-import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import {
   IncomeSummaryAlert,
   IncomeSummaryBreakdownItem,
@@ -70,7 +69,9 @@ const pctChange = (current: number, previous: number): number => {
 
 const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
 
-const styles = StyleSheet.create({
+type PdfRenderer = any;
+
+const createStyles = (StyleSheet: any) => StyleSheet.create({
   page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
   headerTextContainer: { flex: 1, marginLeft: 15 },
@@ -108,115 +109,108 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
 });
 
-const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
-const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+const t = (Text: any, content: React.ReactNode, style?: unknown) => React.createElement(Text, { style }, content);
+const v = (View: any, children: React.ReactNode[], style?: unknown) => React.createElement(View, { style }, ...children);
 
-const IncomeSummaryDocument = ({ data, logoDataUri }: { data: IncomeSummaryResponse['data'], logoDataUri: string | null }) => React.createElement(
-  Document as any,
+const createIncomeSummaryDocument = (pdf: PdfRenderer, styles: ReturnType<typeof createStyles>) => ({ data, logoDataUri }: { data: IncomeSummaryResponse['data'], logoDataUri: string | null }) => React.createElement(
+  pdf.Document,
   null,
   React.createElement(
-    Page as any,
+    pdf.Page,
     { size: 'A4', style: styles.page },
-    v([
-      logoDataUri ? React.createElement(Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
-      v([
-        t('Reporte de Ingresos', styles.title),
-        t('Resumen ejecutivo de recaudo', styles.subtitle),
-        t(`Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
-      ], styles.headerTextContainer)
+    v(pdf.View, [
+      logoDataUri ? React.createElement(pdf.Image, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
+      v(pdf.View, [
+        t(pdf.Text, 'Reporte de Ingresos', styles.title),
+        t(pdf.Text, 'Resumen ejecutivo de recaudo', styles.subtitle),
+        t(pdf.Text, `Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+      ], styles.headerTextContainer),
     ], styles.header),
-    v([
-      t('RESUMEN', styles.sectionTitle),
-      v([t('Ingreso bruto', styles.rowLabel), t(moneyText(data.summary.grossIncomeUsd), styles.rowValue)], styles.row),
-      v([t('Cobrado', styles.rowLabel), t(moneyText(data.summary.collectedUsd), styles.rowValue)], styles.row),
-      v([t('Pendiente', styles.rowLabel), t(moneyText(data.summary.pendingBalanceUsd), styles.rowValue)], styles.row),
-      v([t('Tasa de recaudo', styles.rowLabel), t(`${data.summary.collectionRate.toFixed(1)}%`, styles.rowValue)], styles.row),
+    v(pdf.View, [
+      t(pdf.Text, 'RESUMEN', styles.sectionTitle),
+      v(pdf.View, [t(pdf.Text, 'Ingreso bruto', styles.rowLabel), t(pdf.Text, moneyText(data.summary.grossIncomeUsd), styles.rowValue)], styles.row),
+      v(pdf.View, [t(pdf.Text, 'Cobrado', styles.rowLabel), t(pdf.Text, moneyText(data.summary.collectedUsd), styles.rowValue)], styles.row),
+      v(pdf.View, [t(pdf.Text, 'Pendiente', styles.rowLabel), t(pdf.Text, moneyText(data.summary.pendingBalanceUsd), styles.rowValue)], styles.row),
+      v(pdf.View, [t(pdf.Text, 'Tasa de recaudo', styles.rowLabel), t(pdf.Text, `${data.summary.collectionRate.toFixed(1)}%`, styles.rowValue)], styles.row),
     ], styles.section),
-      v([
-        t('ESPECIALIDADES', styles.sectionTitle),
-        v([
-          t('Especialidad', styles.tableCell),
-          t('Consultas', styles.tableCellRight),
-          t('Ingreso', styles.tableCellRight),
-          t('%', styles.tableCellRight),
-        ], styles.tableHeader),
-        ...data.breakdownBySpecialty.slice(0, 8).map((item) => v([
-          t(item.specialty, styles.tableCell),
-          t(String(item.consultations), styles.tableCellRight),
-          t(moneyText(item.incomeUsd), styles.tableCellRight),
-          t(`${item.percentage.toFixed(1)}%`, styles.tableCellRight),
-        ], styles.tableRow)),
-      ], styles.section),
-      v([
-        t('MEDIOS DE PAGO', styles.sectionTitle),
-        v([
-          t('Método', styles.tableCell),
-          t('Pagos', styles.tableCellRight),
-          t('Monto', styles.tableCellRight),
-          t('IGTF', styles.tableCellRight),
-        ], styles.tableHeader),
-        ...data.collectionByPaymentMethod.slice(0, 8).map((item) => v([
-          t(item.paymentMethod, styles.tableCell),
-          t(String(item.payments), styles.tableCellRight),
-          t(moneyText(item.amountUsd), styles.tableCellRight),
-          t(moneyText(item.igtfUsd), styles.tableCellRight),
-        ], styles.tableRow)),
-      ], styles.section),
-      v([
-        t('CARTERA VENCIDA', styles.sectionTitle),
-        v([
-          t('Rango', styles.tableCell),
-          t('Casos', styles.tableCellRight),
-          t('Monto', styles.tableCellRight),
-        ], styles.tableHeader),
-        ...data.receivables.agingBuckets.map((item) => v([
-          t(item.label, styles.tableCell),
-          t(String(item.count), styles.tableCellRight),
-          t(moneyText(item.amountUsd), styles.tableCellRight),
-        ], styles.tableRow)),
-      ], styles.section),
-      v([
-        t('FACTURAS PENDIENTES', styles.sectionTitle),
-        v([
-          t('Paciente', styles.tableCell),
-          t('Especialidad', styles.tableCell),
-          t('Días', styles.tableCellRight),
-          t('Pendiente', styles.tableCellRight),
-        ], styles.tableHeader),
-        ...data.receivables.items.slice(0, 8).map((item) => v([
-          t(item.patientName, styles.tableCell),
-          t(item.specialty, styles.tableCell),
-          t(String(item.daysOutstanding), styles.tableCellRight),
-          t(moneyText(item.pendingUsd), styles.tableCellRight),
-        ], styles.tableRow)),
-      ], styles.section),
-      v([
-        t('ALERTAS', styles.sectionTitle),
-        v(
-          data.alerts.map((item) => {
-            const severityStyle = item.severity === 'success'
-              ? styles.alertSuccess
-              : item.severity === 'warning'
-                ? styles.alertWarning
-                : item.severity === 'danger'
-                  ? styles.alertDanger
-                  : styles.alertInfo;
+    v(pdf.View, [
+      t(pdf.Text, 'ESPECIALIDADES', styles.sectionTitle),
+      v(pdf.View, [
+        t(pdf.Text, 'Especialidad', styles.tableCell),
+        t(pdf.Text, 'Consultas', styles.tableCellRight),
+        t(pdf.Text, 'Ingreso', styles.tableCellRight),
+        t(pdf.Text, '%', styles.tableCellRight),
+      ], styles.tableHeader),
+      ...data.breakdownBySpecialty.slice(0, 8).map((item) => v(pdf.View, [
+        t(pdf.Text, item.specialty, styles.tableCell),
+        t(pdf.Text, String(item.consultations), styles.tableCellRight),
+        t(pdf.Text, moneyText(item.incomeUsd), styles.tableCellRight),
+        t(pdf.Text, `${item.percentage.toFixed(1)}%`, styles.tableCellRight),
+      ], styles.tableRow)),
+    ], styles.section),
+    v(pdf.View, [
+      t(pdf.Text, 'MEDIOS DE PAGO', styles.sectionTitle),
+      v(pdf.View, [
+        t(pdf.Text, 'Método', styles.tableCell),
+        t(pdf.Text, 'Pagos', styles.tableCellRight),
+        t(pdf.Text, 'Monto', styles.tableCellRight),
+        t(pdf.Text, 'IGTF', styles.tableCellRight),
+      ], styles.tableHeader),
+      ...data.collectionByPaymentMethod.slice(0, 8).map((item) => v(pdf.View, [
+        t(pdf.Text, item.paymentMethod, styles.tableCell),
+        t(pdf.Text, String(item.payments), styles.tableCellRight),
+        t(pdf.Text, moneyText(item.amountUsd), styles.tableCellRight),
+        t(pdf.Text, moneyText(item.igtfUsd), styles.tableCellRight),
+      ], styles.tableRow)),
+    ], styles.section),
+    v(pdf.View, [
+      t(pdf.Text, 'CARTERA VENCIDA', styles.sectionTitle),
+      v(pdf.View, [
+        t(pdf.Text, 'Rango', styles.tableCell),
+        t(pdf.Text, 'Casos', styles.tableCellRight),
+        t(pdf.Text, 'Monto', styles.tableCellRight),
+      ], styles.tableHeader),
+      ...data.receivables.agingBuckets.map((item) => v(pdf.View, [
+        t(pdf.Text, item.label, styles.tableCell),
+        t(pdf.Text, String(item.count), styles.tableCellRight),
+        t(pdf.Text, moneyText(item.amountUsd), styles.tableCellRight),
+      ], styles.tableRow)),
+    ], styles.section),
+    v(pdf.View, [
+      t(pdf.Text, 'FACTURAS PENDIENTES', styles.sectionTitle),
+      v(pdf.View, [
+        t(pdf.Text, 'Paciente', styles.tableCell),
+        t(pdf.Text, 'Especialidad', styles.tableCell),
+        t(pdf.Text, 'Días', styles.tableCellRight),
+        t(pdf.Text, 'Pendiente', styles.tableCellRight),
+      ], styles.tableHeader),
+      ...data.receivables.items.slice(0, 8).map((item) => v(pdf.View, [
+        t(pdf.Text, item.patientName, styles.tableCell),
+        t(pdf.Text, item.specialty, styles.tableCell),
+        t(pdf.Text, String(item.daysOutstanding), styles.tableCellRight),
+        t(pdf.Text, moneyText(item.pendingUsd), styles.tableCellRight),
+      ], styles.tableRow)),
+    ], styles.section),
+    v(pdf.View, [
+      t(pdf.Text, 'ALERTAS', styles.sectionTitle),
+      v(pdf.View, data.alerts.map((item) => {
+        const severityStyle = item.severity === 'success'
+          ? styles.alertSuccess
+          : item.severity === 'warning'
+            ? styles.alertWarning
+            : item.severity === 'danger'
+              ? styles.alertDanger
+              : styles.alertInfo;
 
-            return v(
-              [
-                t('•', styles.alertBullet),
-                t(item.message, styles.alertMessage),
-              ],
-              [styles.alertItem, severityStyle],
-            );
-          }),
-          styles.alertList,
-        ),
-      ], styles.section),
-      t('VitalFe & Alegria', styles.footer),
-    )
+        return v(pdf.View, [
+          t(pdf.Text, '•', styles.alertBullet),
+          t(pdf.Text, item.message, styles.alertMessage),
+        ], [styles.alertItem, severityStyle]);
+      }), styles.alertList),
+    ], styles.section),
+    t(pdf.Text, 'VitalFe & Alegria', styles.footer),
+  )
 );
-
 const normalizeCurrency = (value: unknown): 'USD' | 'VES' => {
   const currency = String(value ?? 'USD').toUpperCase();
   return currency === 'VES' ? 'VES' : 'USD';
@@ -324,10 +318,10 @@ const aggregateRange = async (from: Date, to: Date) => {
       invoiceCollectedUsd += amountUsd;
       invoiceIgtfUsd += igtfUsd;
 
-      const methodKey = `${payment.paymentMethod?.id ?? 'null'}-${payment.paymentMethod?.name ?? 'Sin método'}`;
+      const methodKey = `${payment.paymentMethod?.id ?? 'null'}-${payment.paymentMethod?.name ?? 'Sin mÃ©todo'}`;
       const methodEntry = methods.get(methodKey) ?? {
         paymentMethodId: payment.paymentMethod?.id ?? null,
-        paymentMethod: payment.paymentMethod?.name ?? 'Sin método',
+        paymentMethod: payment.paymentMethod?.name ?? 'Sin mÃ©todo',
         type: payment.paymentMethod?.type ?? 'N/A',
         currency: normalizeCurrency(payment.paymentMethod?.currency),
         payments: 0,
@@ -343,7 +337,7 @@ const aggregateRange = async (from: Date, to: Date) => {
 
       return {
         paymentMethodId: payment.paymentMethod?.id ?? null,
-        paymentMethod: payment.paymentMethod?.name ?? 'Sin método',
+        paymentMethod: payment.paymentMethod?.name ?? 'Sin mÃ©todo',
         type: payment.paymentMethod?.type ?? 'N/A',
         currency: normalizeCurrency(payment.paymentMethod?.currency),
         amountUsd,
@@ -428,10 +422,10 @@ const aggregateRange = async (from: Date, to: Date) => {
     .sort((a, b) => b.amountUsd - a.amountUsd);
 
   const agingBuckets = [
-    { label: '0-30 días', minDays: 0, maxDays: 30 },
-    { label: '31-60 días', minDays: 31, maxDays: 60 },
-    { label: '61-90 días', minDays: 61, maxDays: 90 },
-    { label: '90+ días', minDays: 91, maxDays: null },
+    { label: '0-30 dÃ­as', minDays: 0, maxDays: 30 },
+    { label: '31-60 dÃ­as', minDays: 31, maxDays: 60 },
+    { label: '61-90 dÃ­as', minDays: 61, maxDays: 90 },
+    { label: '90+ dÃ­as', minDays: 91, maxDays: null },
   ].map((bucket) => {
     const items = receivables.filter((item) => item.daysOutstanding >= bucket.minDays && (bucket.maxDays === null || item.daysOutstanding <= bucket.maxDays));
     return {
@@ -490,7 +484,7 @@ export class IncomeSummaryService {
     if (current.receivables.overdueCount > 0) {
       alerts.push({
         severity: 'warning',
-        message: `Hay ${current.receivables.overdueCount} facturas con más de 60 días de antigüedad.`,
+        message: `Hay ${current.receivables.overdueCount} facturas con mÃ¡s de 60 dÃ­as de antigÃ¼edad.`,
       });
     } else {
       alerts.push({
@@ -536,7 +530,9 @@ export class IncomeSummaryService {
   public static async generatePdf(params: Partial<IncomeSummaryQueryRange>): Promise<Buffer> {
     const report = await this.getSummary(params);
     const logoDataUri = resolveLogoBase64();
-    const doc = React.createElement(IncomeSummaryDocument, { data: report.data, logoDataUri });
-    return await renderToBuffer(doc as React.ReactElement<any>);
+    const pdf = await import('@react-pdf/renderer');
+    const styles = createStyles(pdf.StyleSheet);
+    const doc = React.createElement(createIncomeSummaryDocument(pdf as any, styles), { data: report.data, logoDataUri });
+    return await pdf.renderToBuffer(doc as React.ReactElement<any>);
   }
 }

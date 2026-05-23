@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { prisma } from '@/configs';
 import React from 'react';
-import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { ReportPeriod, ReportQueryRange, OperativosCitasDay, OperativosCitasResponse, OperativosOverviewResponse, OperativosProductividadResponse, OperativosTiemposResponse, OperativosTiemposSpecialty } from './operativos.interface';
+
+type PdfRenderer = any;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SLOT_LABELS = ['07:00 - 09:00', '09:00 - 11:00', '11:00 - 13:00', '14:00 - 16:00'] as const;
@@ -84,7 +85,7 @@ const getHourLabel = (date: Date) => `${String(date.getUTCHours()).padStart(2, '
 
 const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
 
-const styles = StyleSheet.create({
+const createStyles = (StyleSheet: PdfRenderer['StyleSheet']) => StyleSheet.create({
     page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
     header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
     headerTextContainer: { flex: 1, marginLeft: 15 },
@@ -104,81 +105,81 @@ const styles = StyleSheet.create({
     footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
 });
 
-const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
-const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+const t = (Text: any, content: React.ReactNode, style?: unknown) => React.createElement(Text, { style }, content);
+const v = (View: any, children: React.ReactNode[], style?: unknown) => React.createElement(View, { style }, ...children);
 
-const OperativosDocument = ({ overview, citas, tiempos, productividad, logoDataUri }: { overview: OperativosOverviewResponse['data']; citas: OperativosCitasResponse['data']; tiempos: OperativosTiemposResponse['data']; productividad: OperativosProductividadResponse['data']; logoDataUri: string | null; }) => React.createElement(
-    Document as any,
+const createOperativosDocument = (pdf: PdfRenderer, styles: ReturnType<typeof createStyles>) => ({ overview, citas, tiempos, productividad, logoDataUri }: { overview: OperativosOverviewResponse['data']; citas: OperativosCitasResponse['data']; tiempos: OperativosTiemposResponse['data']; productividad: OperativosProductividadResponse['data']; logoDataUri: string | null; }) => React.createElement(
+    pdf.Document as any,
     null,
     React.createElement(
-        Page as any,
+        pdf.Page as any,
         { size: 'A4', style: styles.page },
         v([
-            logoDataUri ? React.createElement(Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
+            logoDataUri ? React.createElement(pdf.Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
             v([
-                t('Reporte Operativo', styles.title),
-                t('Resumen consolidado de actividad asistencial', styles.subtitle),
-                t(`Periodo: ${overview.meta.from} - ${overview.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+                t(pdf.Text, 'Reporte Operativo', styles.title),
+                t(pdf.Text, 'Resumen consolidado de actividad asistencial', styles.subtitle),
+                t(pdf.Text, `Periodo: ${overview.meta.from} - ${overview.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
             ], styles.headerTextContainer)
         ], styles.header),
             v([
-                t('RESUMEN', styles.sectionTitle),
-                v([t('Citas programadas', styles.rowLabel), t(String(overview.stats.scheduledAppointments), styles.rowValue)], styles.row),
-            v([t('Pacientes atendidos', styles.rowLabel), t(String(overview.stats.patientsAttended), styles.rowValue)], styles.row),
-            v([t('Tiempo promedio', styles.rowLabel), t(`${overview.stats.avgAttentionTime} min`, styles.rowValue)], styles.row),
-            v([t('Médicos activos', styles.rowLabel), t(String(overview.stats.activeDoctors), styles.rowValue)], styles.row),
+                t(pdf.Text, 'RESUMEN', styles.sectionTitle),
+                v(pdf.View, [t(pdf.Text, 'Citas programadas', styles.rowLabel), t(pdf.Text, String(overview.stats.scheduledAppointments), styles.rowValue)], styles.row),
+            v(pdf.View, [t(pdf.Text, 'Pacientes atendidos', styles.rowLabel), t(pdf.Text, String(overview.stats.patientsAttended), styles.rowValue)], styles.row),
+            v(pdf.View, [t(pdf.Text, 'Tiempo promedio', styles.rowLabel), t(pdf.Text, `${overview.stats.avgAttentionTime} min`, styles.rowValue)], styles.row),
+            v(pdf.View, [t(pdf.Text, 'Médicos activos', styles.rowLabel), t(pdf.Text, String(overview.stats.activeDoctors), styles.rowValue)], styles.row),
             ], styles.section),
             v([
-                t('CITAS', styles.sectionTitle),
-                v([
-                    t('Día', styles.tableCell),
-                    t('Atendidas', styles.tableCellRight),
-                    t('Canceladas', styles.tableCellRight),
+                t(pdf.Text, 'CITAS', styles.sectionTitle),
+                v(pdf.View, [
+                    t(pdf.Text, 'Día', styles.tableCell),
+                    t(pdf.Text, 'Atendidas', styles.tableCellRight),
+                    t(pdf.Text, 'Canceladas', styles.tableCellRight),
                 ], styles.tableHeader),
-                ...citas.dailyData.slice(0, 10).map((item) => v([
-                    t(item.date, styles.tableCell),
-                    t(String(item.attended), styles.tableCellRight),
-                    t(String(item.cancelled), styles.tableCellRight),
+                ...citas.dailyData.slice(0, 10).map((item) => v(pdf.View, [
+                    t(pdf.Text, item.date, styles.tableCell),
+                    t(pdf.Text, String(item.attended), styles.tableCellRight),
+                    t(pdf.Text, String(item.cancelled), styles.tableCellRight),
                 ], styles.tableRow)),
-                v([t('Total citas', styles.rowLabel), t(String(citas.stats.totalAppointments), styles.rowValue)], styles.row),
-                v([t('Completadas', styles.rowLabel), t(String(citas.stats.completedAppointments), styles.rowValue)], styles.row),
-                v([t('Canceladas', styles.rowLabel), t(String(citas.stats.cancelledAppointments), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Total citas', styles.rowLabel), t(pdf.Text, String(citas.stats.totalAppointments), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Completadas', styles.rowLabel), t(pdf.Text, String(citas.stats.completedAppointments), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Canceladas', styles.rowLabel), t(pdf.Text, String(citas.stats.cancelledAppointments), styles.rowValue)], styles.row),
             ], styles.section),
             v([
-                t('TIEMPOS', styles.sectionTitle),
-                v([
-                    t('Especialidad', styles.tableCell),
-                    t('Promedio', styles.tableCellRight),
-                    t('Consultas', styles.tableCellRight),
+                t(pdf.Text, 'TIEMPOS', styles.sectionTitle),
+                v(pdf.View, [
+                    t(pdf.Text, 'Especialidad', styles.tableCell),
+                    t(pdf.Text, 'Promedio', styles.tableCellRight),
+                    t(pdf.Text, 'Consultas', styles.tableCellRight),
                 ], styles.tableHeader),
-                ...tiempos.bySpecialty.slice(0, 8).map((item) => v([
-                    t(item.area, styles.tableCell),
-                    t(`${item.consult.toFixed(1)} min`, styles.tableCellRight),
-                    t(String(item.consultations), styles.tableCellRight),
+                ...tiempos.bySpecialty.slice(0, 8).map((item) => v(pdf.View, [
+                    t(pdf.Text, item.area, styles.tableCell),
+                    t(pdf.Text, `${item.consult.toFixed(1)} min`, styles.tableCellRight),
+                    t(pdf.Text, String(item.consultations), styles.tableCellRight),
                 ], styles.tableRow)),
-                v([t('Tiempo promedio consulta', styles.rowLabel), t(`${tiempos.stats.avgConsultTime.toFixed(1)} min`, styles.rowValue)], styles.row),
-                v([t('Hora pico', styles.rowLabel), t(tiempos.stats.peakHour, styles.rowValue)], styles.row),
-                v([t('Consultas totales', styles.rowLabel), t(String(tiempos.stats.totalConsultations), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Tiempo promedio consulta', styles.rowLabel), t(pdf.Text, `${tiempos.stats.avgConsultTime.toFixed(1)} min`, styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Hora pico', styles.rowLabel), t(pdf.Text, tiempos.stats.peakHour, styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Consultas totales', styles.rowLabel), t(pdf.Text, String(tiempos.stats.totalConsultations), styles.rowValue)], styles.row),
             ], styles.section),
             v([
-                t('PRODUCTIVIDAD', styles.sectionTitle),
-                v([
-                    t('Médico', styles.tableCell),
-                    t('Atenciones', styles.tableCellRight),
-                    t('Tiempo', styles.tableCellRight),
-                    t('Ingresos', styles.tableCellRight),
+                t(pdf.Text, 'PRODUCTIVIDAD', styles.sectionTitle),
+                v(pdf.View, [
+                    t(pdf.Text, 'Médico', styles.tableCell),
+                    t(pdf.Text, 'Atenciones', styles.tableCellRight),
+                    t(pdf.Text, 'Tiempo', styles.tableCellRight),
+                    t(pdf.Text, 'Ingresos', styles.tableCellRight),
                 ], styles.tableHeader),
-                ...productividad.byDoctor.slice(0, 8).map((item) => v([
-                    t(item.name, styles.tableCell),
-                    t(String(item.attended), styles.tableCellRight),
-                    t(`${item.avgTime.toFixed(1)} min`, styles.tableCellRight),
-                    t(moneyText(item.revenue), styles.tableCellRight),
+                ...productividad.byDoctor.slice(0, 8).map((item) => v(pdf.View, [
+                    t(pdf.Text, item.name, styles.tableCell),
+                    t(pdf.Text, String(item.attended), styles.tableCellRight),
+                    t(pdf.Text, `${item.avgTime.toFixed(1)} min`, styles.tableCellRight),
+                    t(pdf.Text, moneyText(item.revenue), styles.tableCellRight),
                 ], styles.tableRow)),
-                v([t('Médicos en turno', styles.rowLabel), t(String(productividad.stats.doctorsInShift), styles.rowValue)], styles.row),
-                v([t('Atenciones promedio', styles.rowLabel), t(productividad.stats.avgAttentions.toFixed(1), styles.rowValue)], styles.row),
-                v([t('Ingreso promedio', styles.rowLabel), t(moneyText(productividad.stats.avgRevenue), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Médicos en turno', styles.rowLabel), t(pdf.Text, String(productividad.stats.doctorsInShift), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Atenciones promedio', styles.rowLabel), t(pdf.Text, productividad.stats.avgAttentions.toFixed(1), styles.rowValue)], styles.row),
+                v(pdf.View, [t(pdf.Text, 'Ingreso promedio', styles.rowLabel), t(pdf.Text, moneyText(productividad.stats.avgRevenue), styles.rowValue)], styles.row),
             ], styles.section),
-            t('VitalFe & Alegria', styles.footer),
+            t(pdf.Text, 'VitalFe & Alegria', styles.footer),
         )
 );
 
@@ -436,13 +437,15 @@ export class OperativosService {
             this.getProductividad(params),
         ]);
 
-        const doc = React.createElement(OperativosDocument, {
+        const pdf = await import('@react-pdf/renderer');
+        const styles = createStyles(pdf.StyleSheet);
+        const doc = React.createElement(createOperativosDocument(pdf, styles), {
             overview: overview.data,
             citas: citas.data,
             tiempos: tiempos.data,
             productividad: productividad.data,
             logoDataUri
         });
-        return await renderToBuffer(doc as React.ReactElement<any>);
+        return await pdf.renderToBuffer(doc as React.ReactElement<any>);
     }
 }

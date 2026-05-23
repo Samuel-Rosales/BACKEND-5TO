@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import React from 'react';
-import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { prisma } from '@/configs';
 import { IncomeStatementSummary, IncomeStatementQueryRange } from './incomeStatement.interface';
+
+type PdfRenderer = any;
 
 const monthNames = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -32,7 +33,7 @@ const makeMonthRange = (year: number, month: number) => {
   return { from, to };
 };
 
-const styles = StyleSheet.create({
+const createStyles = (StyleSheet: PdfRenderer['StyleSheet']) => StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'Helvetica',
@@ -161,87 +162,87 @@ interface IncomeStatementDocumentProps {
   logoDataUri: string | null; 
 }
 
-const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
-const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+const t = (Text: any, content: React.ReactNode, style?: unknown) => React.createElement(Text, { style }, content);
+const v = (View: any, children: React.ReactNode[], style?: unknown) => React.createElement(View, { style }, ...children);
 
-const IncomeStatementDocument = ({ year, month, summary, logoDataUri }: IncomeStatementDocumentProps) => React.createElement(
-  Document as any,
+const createIncomeStatementDocument = (pdf: PdfRenderer, styles: ReturnType<typeof createStyles>) => ({ year, month, summary, logoDataUri }: IncomeStatementDocumentProps) => React.createElement(
+  pdf.Document as any,
   null,
   React.createElement(
-    Page as any,
+    pdf.Page as any,
     { size: 'A4', style: styles.page },
     v([
       logoDataUri 
-        ? React.createElement(Image as any, {
+        ? React.createElement(pdf.Image as any, {
             src: logoDataUri,
             style: { width: 56, height: 56 }
           })
         : null,
       
       v([
-        t('VitalFe & Alegria', styles.title),
-        t('Estado de Resultado', styles.subtitle),
-        t(`Periodo: ${monthNames[month - 1]} ${year} | Generado: ${new Date().toLocaleDateString('es-VE')}`, styles.meta),
+        t(pdf.Text, 'VitalFe & Alegria', styles.title),
+        t(pdf.Text, 'Estado de Resultado', styles.subtitle),
+        t(pdf.Text, `Periodo: ${monthNames[month - 1]} ${year} | Generado: ${new Date().toLocaleDateString('es-VE')}`, styles.meta),
       ], styles.headerTextContainer),
     ], styles.header),
 
     v([
-      t('INGRESOS', styles.sectionTitle),
+      t(pdf.Text, 'INGRESOS', styles.sectionTitle),
       v([
-        t('Ingresos Brutos (Facturas)', styles.rowLabel),
-        t(`$${summary.totalRevenueUsd.toFixed(2)}`, styles.rowValue),
+        t(pdf.Text, 'Ingresos Brutos (Facturas)', styles.rowLabel),
+        t(pdf.Text, `$${summary.totalRevenueUsd.toFixed(2)}`, styles.rowValue),
       ], styles.row),
       v([
-        t('IGTF Recaudado', styles.rowLabel),
-        t(`-$${summary.totalIgtfUsd.toFixed(2)}`, styles.rowValue),
+        t(pdf.Text, 'IGTF Recaudado', styles.rowLabel),
+        t(pdf.Text, `-$${summary.totalIgtfUsd.toFixed(2)}`, styles.rowValue),
       ], styles.row),
       v([
-        t('INGRESOS NETOS', styles.totalLabel),
-        t(`$${summary.netRevenueUsd.toFixed(2)}`, styles.totalValue),
+        t(pdf.Text, 'INGRESOS NETOS', styles.totalLabel),
+        t(pdf.Text, `$${summary.netRevenueUsd.toFixed(2)}`, styles.totalValue),
       ], styles.totalRow),
     ], styles.section),
     v([
-      t('COSTO DE BIENES VENDIDOS', styles.sectionTitle),
+      t(pdf.Text, 'COSTO DE BIENES VENDIDOS', styles.sectionTitle),
       v([
-        t('Compras de Insumos', styles.rowLabel),
-        t(`$${summary.totalCogsUsd.toFixed(2)}`, styles.rowValue),
+        t(pdf.Text, 'Compras de Insumos', styles.rowLabel),
+        t(pdf.Text, `$${summary.totalCogsUsd.toFixed(2)}`, styles.rowValue),
       ], styles.row),
       v([
-        t('TOTAL CBV', styles.totalLabel),
-        t(`$${summary.totalCogsUsd.toFixed(2)}`, styles.totalValue),
+        t(pdf.Text, 'TOTAL CBV', styles.totalLabel),
+        t(pdf.Text, `$${summary.totalCogsUsd.toFixed(2)}`, styles.totalValue),
       ], styles.totalRow),
     ], styles.section),
     v([
-      t('UTILIDAD BRUTA', styles.totalLabel),
-      t(`$${summary.grossProfitUsd.toFixed(2)}`, styles.totalValue),
+      t(pdf.Text, 'UTILIDAD BRUTA', styles.totalLabel),
+      t(pdf.Text, `$${summary.grossProfitUsd.toFixed(2)}`, styles.totalValue),
     ], styles.totalRow),
     v([
-      t('GASTOS OPERATIVOS', styles.sectionTitle),
+      t(pdf.Text, 'GASTOS OPERATIVOS', styles.sectionTitle),
       v([
-        t('Nómina Médica', styles.rowLabel),
-        t(`$${summary.medicalPayrollUsd.toFixed(2)}`, styles.rowValue),
+        t(pdf.Text, 'Nómina Médica', styles.rowLabel),
+        t(pdf.Text, `$${summary.medicalPayrollUsd.toFixed(2)}`, styles.rowValue),
       ], styles.row),
       v([
-        t('Nómina Administrativa', styles.rowLabel),
-        t(`$${summary.adminPayrollUsd.toFixed(2)}`, styles.rowValue),
+        t(pdf.Text, 'Nómina Administrativa', styles.rowLabel),
+        t(pdf.Text, `$${summary.adminPayrollUsd.toFixed(2)}`, styles.rowValue),
       ], styles.row),
       v([
-        t('Gastos por Servicios (OPEX)', styles.rowLabel),
-        t(`$${summary.opexUsd.toFixed(2)}`, styles.rowValue),
+        t(pdf.Text, 'Gastos por Servicios (OPEX)', styles.rowLabel),
+        t(pdf.Text, `$${summary.opexUsd.toFixed(2)}`, styles.rowValue),
       ], styles.row),
       v([
-        t('TOTAL GASTOS OPERATIVOS', styles.totalLabel),
-        t(`$${summary.totalExpensesUsd.toFixed(2)}`, styles.totalValue),
+        t(pdf.Text, 'TOTAL GASTOS OPERATIVOS', styles.totalLabel),
+        t(pdf.Text, `$${summary.totalExpensesUsd.toFixed(2)}`, styles.totalValue),
       ], styles.totalRow),
     ], styles.section),
     v([
-      t(summary.netProfitUsd < 0 ? 'PÉRDIDA NETA' : 'UTILIDAD NETA', styles.grandTotalLabel),
-      t(`$${summary.netProfitUsd.toFixed(2)}`, styles.grandTotalValue),
+      t(pdf.Text, summary.netProfitUsd < 0 ? 'PÉRDIDA NETA' : 'UTILIDAD NETA', styles.grandTotalLabel),
+      t(pdf.Text, `$${summary.netProfitUsd.toFixed(2)}`, styles.grandTotalValue),
     ], styles.grandTotalRow),
     v([
-      t(`Resumen: ${summary.invoiceCount} facturas | ${summary.purchaseCount} compras | ${summary.entriesCount} asientos`, styles.infoText),
+      t(pdf.Text, `Resumen: ${summary.invoiceCount} facturas | ${summary.purchaseCount} compras | ${summary.entriesCount} asientos`, styles.infoText),
     ], styles.infoBox),
-    t(`VitalFe & Alegria | Estado de Resultado | ${monthNames[month - 1]} ${year}`, styles.footer),
+    t(pdf.Text, `VitalFe & Alegria | Estado de Resultado | ${monthNames[month - 1]} ${year}`, styles.footer),
   )
 );
 
@@ -309,8 +310,9 @@ export class IncomeStatementService {
       entriesCount: invoices.length + purchases.length + payrollLines.length + salaryPayments.length + opexExpenses.length,
     };
 
-    const doc = React.createElement(IncomeStatementDocument, { year: query.year, month: query.month, summary, logoDataUri });
-    const buffer = await renderToBuffer(doc as React.ReactElement<any>);
-    return buffer;
+    const pdf = await import('@react-pdf/renderer');
+    const styles = createStyles(pdf.StyleSheet);
+    const doc = React.createElement(createIncomeStatementDocument(pdf, styles), { year: query.year, month: query.month, summary, logoDataUri });
+    return await pdf.renderToBuffer(doc as React.ReactElement<any>);
   }
 }

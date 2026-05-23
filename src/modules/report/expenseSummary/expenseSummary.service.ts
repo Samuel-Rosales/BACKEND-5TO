@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { prisma } from '@/configs';
 import React from 'react';
-import { renderToBuffer, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import {
   ExpenseSummaryAlert,
   ExpenseSummaryCategoryItem,
@@ -15,6 +14,16 @@ import {
   ExpenseSummarySalaryByRoleItem,
   ExpenseSummarySupplierItem,
 } from './expenseSummary.interface';
+
+type PdfRenderer = {
+  StyleSheet: any;
+  Text: any;
+  View: any;
+  Document: any;
+  Page: any;
+  Image: any;
+  renderToBuffer: (doc: React.ReactElement<any>) => Promise<Buffer>;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -126,7 +135,7 @@ const pctChange = (current: number, previous: number): number => {
 
 const moneyText = (value: number) => `$${roundMoney(value).toFixed(2)}`;
 
-const styles = StyleSheet.create({
+const createStyles = (StyleSheet: PdfRenderer['StyleSheet']) => StyleSheet.create({
   page: { padding: 36, fontFamily: 'Helvetica', fontSize: 10 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottom: '1 solid #cbd5e1', paddingBottom: 10 },
   headerTextContainer: { flex: 1, marginLeft: 15 },
@@ -146,95 +155,95 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 28, left: 36, right: 36, textAlign: 'center', color: '#64748b', fontSize: 8 },
 });
 
-const t = (content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
-const v = (children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
+const t = (Text: PdfRenderer['Text'], content: React.ReactNode, style?: unknown) => React.createElement(Text as any, { style }, content);
+const v = (View: PdfRenderer['View'], children: React.ReactNode[], style?: unknown) => React.createElement(View as any, { style }, ...children);
 
-const ExpenseSummaryDocument = ({ data, logoDataUri }: { data: ExpenseSummaryResponse['data'], logoDataUri: string | null }) => React.createElement(
-  Document as any,
+const createExpenseSummaryDocument = (pdf: PdfRenderer, styles: ReturnType<typeof createStyles>) => ({ data, logoDataUri }: { data: ExpenseSummaryResponse['data'], logoDataUri: string | null }) => React.createElement(
+  pdf.Document as any,
   null,
   React.createElement(
-    Page as any,
+    pdf.Page as any,
     { size: 'A4', style: styles.page },
-    v([
-      logoDataUri ? React.createElement(Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
-      v([
-        t('Reporte de Gastos', styles.title),
-        t('Resumen ejecutivo de egresos', styles.subtitle),
-        t(`Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
+    v(pdf.View, [
+      logoDataUri ? React.createElement(pdf.Image as any, { src: logoDataUri, style: { width: 56, height: 56 } }) : null,
+      v(pdf.View, [
+        t(pdf.Text, 'Reporte de Gastos', styles.title),
+        t(pdf.Text, 'Resumen ejecutivo de egresos', styles.subtitle),
+        t(pdf.Text, `Periodo: ${data.meta.from} - ${data.meta.to} | Generado: ${new Date().toLocaleString('es-VE')}`, styles.meta),
       ], styles.headerTextContainer)
     ], styles.header),
-    v([
-      t('RESUMEN', styles.sectionTitle),
-      v([t('Gasto total', styles.rowLabel), t(moneyText(data.summary.totalExpenseUsd), styles.rowValue)], styles.row),
-      v([t('OPEX', styles.rowLabel), t(moneyText(data.summary.opexUsd), styles.rowValue)], styles.row),
-      v([t('Compras', styles.rowLabel), t(moneyText(data.summary.purchasesUsd), styles.rowValue)], styles.row),
-      v([t('Nómina', styles.rowLabel), t(moneyText(data.summary.payrollUsd + data.summary.salaryAdminUsd), styles.rowValue)], styles.row),
+    v(pdf.View, [
+      t(pdf.Text, 'RESUMEN', styles.sectionTitle),
+      v(pdf.View, [t(pdf.Text, 'Gasto total', styles.rowLabel), t(pdf.Text, moneyText(data.summary.totalExpenseUsd), styles.rowValue)], styles.row),
+      v(pdf.View, [t(pdf.Text, 'OPEX', styles.rowLabel), t(pdf.Text, moneyText(data.summary.opexUsd), styles.rowValue)], styles.row),
+      v(pdf.View, [t(pdf.Text, 'Compras', styles.rowLabel), t(pdf.Text, moneyText(data.summary.purchasesUsd), styles.rowValue)], styles.row),
+      v(pdf.View, [t(pdf.Text, 'Nómina', styles.rowLabel), t(pdf.Text, moneyText(data.summary.payrollUsd + data.summary.salaryAdminUsd), styles.rowValue)], styles.row),
     ], styles.section),
-    v([
-      t('DESGLOSE POR CATEGORÍA', styles.sectionTitle),
-      ...data.breakdownByCategory.map((item) => v([t(item.category, styles.rowLabel), t(moneyText(item.amountUsd), styles.rowValue)], styles.row)),
+    v(pdf.View, [
+      t(pdf.Text, 'DESGLOSE POR CATEGORÍA', styles.sectionTitle),
+      ...data.breakdownByCategory.map((item) => v(pdf.View, [t(pdf.Text, item.category, styles.rowLabel), t(pdf.Text, moneyText(item.amountUsd), styles.rowValue)], styles.row)),
     ], styles.section),
-      v([
-        t('PROVEEDORES DE SERVICIOS', styles.sectionTitle),
-        v([
-          t('Proveedor', styles.tableCell),
-          t('Total', styles.tableCellRight),
-          t('Pagado', styles.tableCellRight),
-          t('Pendiente', styles.tableCellRight),
-          t('Facturas', styles.tableCellRight),
+      v(pdf.View, [
+        t(pdf.Text, 'PROVEEDORES DE SERVICIOS', styles.sectionTitle),
+        v(pdf.View, [
+          t(pdf.Text, 'Proveedor', styles.tableCell),
+          t(pdf.Text, 'Total', styles.tableCellRight),
+          t(pdf.Text, 'Pagado', styles.tableCellRight),
+          t(pdf.Text, 'Pendiente', styles.tableCellRight),
+          t(pdf.Text, 'Facturas', styles.tableCellRight),
         ], styles.tableHeader),
-        ...data.servicesBySupplier.slice(0, 8).map((item) => v([
-          t(item.supplier, styles.tableCell),
-          t(moneyText(item.totalUsd), styles.tableCellRight),
-          t(moneyText(item.paidUsd), styles.tableCellRight),
-          t(moneyText(item.pendingUsd), styles.tableCellRight),
-          t(String(item.invoices), styles.tableCellRight),
+        ...data.servicesBySupplier.slice(0, 8).map((item) => v(pdf.View, [
+          t(pdf.Text, item.supplier, styles.tableCell),
+          t(pdf.Text, moneyText(item.totalUsd), styles.tableCellRight),
+          t(pdf.Text, moneyText(item.paidUsd), styles.tableCellRight),
+          t(pdf.Text, moneyText(item.pendingUsd), styles.tableCellRight),
+          t(pdf.Text, String(item.invoices), styles.tableCellRight),
         ], styles.tableRow)),
       ], styles.section),
-      v([
-        t('COMPRAS POR CATEGORÍA', styles.sectionTitle),
-        v([
-          t('Categoría', styles.tableCell),
-          t('Monto', styles.tableCellRight),
-          t('%', styles.tableCellRight),
+      v(pdf.View, [
+        t(pdf.Text, 'COMPRAS POR CATEGORÍA', styles.sectionTitle),
+        v(pdf.View, [
+          t(pdf.Text, 'Categoría', styles.tableCell),
+          t(pdf.Text, 'Monto', styles.tableCellRight),
+          t(pdf.Text, '%', styles.tableCellRight),
         ], styles.tableHeader),
-        ...data.purchasesByCategory.slice(0, 8).map((item) => v([
-          t(item.category, styles.tableCell),
-          t(moneyText(item.amountUsd), styles.tableCellRight),
-          t(`${item.percentage.toFixed(1)}%`, styles.tableCellRight),
+        ...data.purchasesByCategory.slice(0, 8).map((item) => v(pdf.View, [
+          t(pdf.Text, item.category, styles.tableCell),
+          t(pdf.Text, moneyText(item.amountUsd), styles.tableCellRight),
+          t(pdf.Text, `${item.percentage.toFixed(1)}%`, styles.tableCellRight),
         ], styles.tableRow)),
       ], styles.section),
-      v([
-        t('NÓMINA POR ESPECIALIDAD', styles.sectionTitle),
-        v([
-          t('Especialidad', styles.tableCell),
-          t('Empleados', styles.tableCellRight),
-          t('Monto', styles.tableCellRight),
+      v(pdf.View, [
+        t(pdf.Text, 'NÓMINA POR ESPECIALIDAD', styles.sectionTitle),
+        v(pdf.View, [
+          t(pdf.Text, 'Especialidad', styles.tableCell),
+          t(pdf.Text, 'Empleados', styles.tableCellRight),
+          t(pdf.Text, 'Monto', styles.tableCellRight),
         ], styles.tableHeader),
-        ...data.payrollBySpecialty.slice(0, 8).map((item) => v([
-          t(item.specialty, styles.tableCell),
-          t(String(item.employees), styles.tableCellRight),
-          t(moneyText(item.amountUsd), styles.tableCellRight),
+        ...data.payrollBySpecialty.slice(0, 8).map((item) => v(pdf.View, [
+          t(pdf.Text, item.specialty, styles.tableCell),
+          t(pdf.Text, String(item.employees), styles.tableCellRight),
+          t(pdf.Text, moneyText(item.amountUsd), styles.tableCellRight),
         ], styles.tableRow)),
       ], styles.section),
-      v([
-        t('SALARIOS ADMINISTRATIVOS', styles.sectionTitle),
-        v([
-          t('Rol', styles.tableCell),
-          t('Empleados', styles.tableCellRight),
-          t('Monto', styles.tableCellRight),
+      v(pdf.View, [
+        t(pdf.Text, 'SALARIOS ADMINISTRATIVOS', styles.sectionTitle),
+        v(pdf.View, [
+          t(pdf.Text, 'Rol', styles.tableCell),
+          t(pdf.Text, 'Empleados', styles.tableCellRight),
+          t(pdf.Text, 'Monto', styles.tableCellRight),
         ], styles.tableHeader),
-        ...data.salaryByRole.slice(0, 8).map((item) => v([
-          t(item.role, styles.tableCell),
-          t(String(item.employees), styles.tableCellRight),
-          t(moneyText(item.amountUsd), styles.tableCellRight),
+        ...data.salaryByRole.slice(0, 8).map((item) => v(pdf.View, [
+          t(pdf.Text, item.role, styles.tableCell),
+          t(pdf.Text, String(item.employees), styles.tableCellRight),
+          t(pdf.Text, moneyText(item.amountUsd), styles.tableCellRight),
         ], styles.tableRow)),
       ], styles.section),
-      v([
-        t('ALERTAS', styles.sectionTitle),
-        ...data.alerts.map((item) => t(`• ${item.message}`, styles.rowLabel)),
+      v(pdf.View, [
+        t(pdf.Text, 'ALERTAS', styles.sectionTitle),
+        ...data.alerts.map((item) => t(pdf.Text, `• ${item.message}`, styles.rowLabel)),
       ], styles.section),
-      t(`Generado por VitalFe & Alegria`, styles.footer),
+      t(pdf.Text, `Generado por VitalFe & Alegria`, styles.footer),
     )
 );
 
@@ -531,7 +540,9 @@ export class ExpenseSummaryService {
   public static async generatePdf(params: Partial<ExpenseSummaryQueryRange>): Promise<Buffer> {
     const report = await this.getSummary(params);
     const logoDataUri = resolveLogoBase64();
-    const doc = React.createElement(ExpenseSummaryDocument, { data: report.data, logoDataUri });
-    return await renderToBuffer(doc as React.ReactElement<any>);
+    const pdf = await import('@react-pdf/renderer');
+    const styles = createStyles(pdf.StyleSheet);
+    const doc = React.createElement(createExpenseSummaryDocument(pdf, styles), { data: report.data, logoDataUri });
+    return await pdf.renderToBuffer(doc as React.ReactElement<any>);
   }
 }
