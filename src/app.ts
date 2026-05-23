@@ -3,12 +3,16 @@ import express from 'express';
 config({ path: '.env' });
 
 import { Server } from './server/server.server';
-import { startExchangeRateCron } from "@/cron/exchangeRate.cron";
+// OJO: En Serverless (Vercel) los cron jobs de node-cron no funcionan porque el servidor se duerme. 
+// Por ahora coméntalo para que no colapse el despliegue.
+// import { startExchangeRateCron } from "@/cron/exchangeRate.cron";
 
 void express;
 
 const server = new Server();
 
-server.listen();
+// CRÍTICO: Comenta el listen para que Vercel controle el puerto
+// server.listen();
 
-startExchangeRateCron();
+// CRÍTICO: Exporta la app compilada
+export default server.app;

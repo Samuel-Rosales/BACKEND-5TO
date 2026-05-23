@@ -1,9 +1,15 @@
 {
   "buildCommand": "npm run build",
+  "builds": [
+    {
+      "src": "dist/app.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/dist/app.js"
     }
   ]
 }
