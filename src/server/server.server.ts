@@ -11,6 +11,7 @@ import { ExchangeRateRoute, InvoicePaymentRoute, InvoiceRoute, PaymentMethodRout
 import { PurchasePaymentRoute, PurchaseRoute, SupplierRoute } from '@/modules/procurement';
 import { LoginRoute } from '@/modules/auth/login';
 import { dailyBookRouter, expenseLedgerRouter, expenseSummaryRouter, incomeSummaryRouter, monthlyRevenueRouter, operativosRouter, receptionistOverviewRouter, specialtyDemandRouter, incomeStatementRouter, doctorAppointmentsRouter, doctorFinanceRouter } from '@/modules/report';
+import { exchangeRateCron } from '@/api/cron/exchange-rate';
 
 export class Server {
 
@@ -113,6 +114,8 @@ export class Server {
         this.app.get('/health', (req, res) => {
             res.status(200).send('OK');
         });
+
+        this.app.get('/api/cron/exchange-rate', exchangeRateCron);
 
         this.app.use(this.paths.roles, RoleRoute);
         this.app.use(this.paths.users, UserRoute);        

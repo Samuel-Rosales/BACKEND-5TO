@@ -36,6 +36,6 @@ export const connectDB = async () => {
     client.release(); // ¡No olvides liberar el cliente al pool!
   } catch (error) {
     console.error('❌ Database connection failed:', error);
-    process.exit(1);
+    throw error;
   }
 };
