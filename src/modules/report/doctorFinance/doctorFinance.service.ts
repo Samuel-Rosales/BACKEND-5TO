@@ -1,4 +1,5 @@
 import { prisma } from "@/configs";
+import { resolveExchangeRate } from "@/utils/exchange-rate.util";
 import {
   DoctorFinanceQuery,
   DoctorFinanceResponse,
@@ -50,6 +51,9 @@ export class DoctorFinanceService {
       },
     });
 
+    const activeRate = await resolveExchangeRate();
+    const exchangeRate = Number(activeRate.rate) || 1;
+
     if (!doctor) {
       return {
         message: "Doctor no encontrado",
@@ -65,6 +69,7 @@ export class DoctorFinanceService {
           monthlyData: [],
           revenueSources: [],
           recentTransactions: [],
+          exchangeRate,
         },
       };
     }
@@ -185,6 +190,7 @@ export class DoctorFinanceService {
         monthlyData,
         revenueSources,
         recentTransactions,
+        exchangeRate,
       },
     };
   }

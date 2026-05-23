@@ -42,5 +42,6 @@ export type DoctorFinanceResponse = {
     monthlyData: DoctorFinanceMonthlyData[];
     revenueSources: DoctorFinanceRevenueSource[];
     recentTransactions: DoctorFinanceTransaction[];
+    exchangeRate: number;
   };
 };
