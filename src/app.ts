@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
 import express from 'express';
-config({ path: '.env' });
 
 import { Server } from './server/server.server';
 // OJO: En Serverless (Vercel) los cron jobs de node-cron no funcionan porque el servidor se duerme. 
