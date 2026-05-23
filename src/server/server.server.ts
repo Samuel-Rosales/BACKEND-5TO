@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { stream, connectDB } from '@/configs';
+import { stream } from '@/configs/logger.config';
+import { connectDB } from '@/configs/prisma.config';
 import { RoleRoute, UserRoute, RegisterRoute } from '@/modules/auth';
 import { MedicalSpecialtyRoute, PatientRoute, DoctorRoute, ConsultationRoute, PrescriptionRoute, InfoPatientRoute, SymptomsRoute, DiagnosisRoute } from '@/modules/medical';
 import { AppointmentRoute, AppointmentTypeRoute, DoctorAvailabilityRoute, DoctorScheduleOverrideRoute, DoctorScheduleRoute, StatusAppointmentRoute } from '@/modules/scheduling';
