@@ -1,6 +1,6 @@
-import serverless from 'serverless-http';
 import { Server } from '../src/server/server.server';
 
 const server = new Server();
 
-export default serverless(server.app);
+// Vercel detecta automáticamente que es una app de Express
+export default server.app;
