@@ -8,11 +8,5 @@
       "source": "/(.*)",
       "destination": "/src/server/server.server.js"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/exchange-rate",
-      "schedule": "30 8 * * *"
-    }
   ]
 }
