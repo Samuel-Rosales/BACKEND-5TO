@@ -93,6 +93,11 @@ const getMonthlyPayrollPeriod = (referenceDate: Date) => {
   return { periodStart, periodEnd };
 };
 
+const isLastDayOfMonth = (date: Date) => {
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return date.getFullYear() === lastDay.getFullYear() && date.getMonth() === lastDay.getMonth() && date.getDate() === lastDay.getDate();
+};
+
 const toMoney = (value: unknown) => money(Number(value ?? 0));
 
 const getPendingPayrollLines = async (userId: number, payrollId: number) => {
@@ -198,7 +203,20 @@ export class SalaryPaymentService {
         };
       }
 
-      const [pendingPayrollLines, salaryRoles] = await Promise.all([
+      if (payroll.status.trim().toUpperCase() === 'PAID') {
+        return {
+          status: 200,
+          message: 'La nómina ya fue pagada',
+          data: {
+            payroll,
+            items: [],
+            totalAmount: 0,
+            totalUsers: 0,
+          },
+        };
+      }
+
+      const [pendingPayrollLines, salaryPayments, salaryRoles] = await Promise.all([
         prisma.payrollLine.findMany({
           where: {
             payrollId: payroll.id,
@@ -217,6 +235,14 @@ export class SalaryPaymentService {
             },
           },
           orderBy: { id: 'asc' },
+        }),
+        prisma.salaryPayment.findMany({
+          where: {
+            payrollId: payroll.id,
+          },
+          select: {
+            userId: true,
+          },
         }),
         prisma.user.findMany({
           where: {
@@ -243,6 +269,7 @@ export class SalaryPaymentService {
         }),
       ]);
 
+      const paidUserIds = new Set(salaryPayments.map((payment) => payment.userId));
       const doctorMap = new Map<number, PendingSalarySummaryItemDto>();
 
       for (const line of pendingPayrollLines) {
@@ -274,7 +301,7 @@ export class SalaryPaymentService {
         const baseSalary = money(Number(user.role?.base_salary ?? 0));
         if (!baseSalary) continue;
 
-        if (doctorMap.has(user.id)) continue;
+        if (doctorMap.has(user.id) || paidUserIds.has(user.id)) continue;
 
         doctorMap.set(user.id, {
           userId: user.id,
@@ -334,12 +361,25 @@ export class SalaryPaymentService {
         throw new Error('La nómina no existe');
       }
 
+      if (!isLastDayOfMonth(paymentDate)) {
+        throw new Error('Solo se puede pagar la nómina el último día del mes');
+      }
+
       const { start, end } = getCurrentMonthRange(paymentDate);
       if (payroll.period_start.getTime() !== start.getTime() || payroll.period_end.getTime() !== end.getTime()) {
         throw new Error('Solo se puede pagar la nómina del mes actual');
       }
 
       const pendingLines = await getPendingPayrollLines(userId, payrollId);
+      const existingPayment = await prisma.salaryPayment.findFirst({
+        where: { payrollId, userId },
+        select: { id: true },
+      });
+
+      if (existingPayment) {
+        throw new Error('Ya existe un pago salarial para este usuario en la nómina seleccionada');
+      }
+
       const salaryBase = money(await resolveAmount(userId));
       const isDoctorPayroll = pendingLines.length > 0;
       const pendingTotal = isDoctorPayroll
@@ -384,6 +424,39 @@ export class SalaryPaymentService {
               },
             });
           }
+        }
+
+        const remainingDoctorLines = await tx.payrollLine.findMany({
+          where: {
+            payrollId,
+            payrollPayments: { none: {} },
+          },
+          select: { id: true },
+        });
+
+        const remainingSalaryPayments = await tx.user.findMany({
+          where: {
+            active: true,
+            role: {
+              base_salary: { not: null },
+            },
+          },
+          select: {
+            id: true,
+            salaryPayments: {
+              where: { payrollId },
+              select: { id: true },
+            },
+          },
+        });
+
+        const remainingSalaryUsers = remainingSalaryPayments.filter((user) => user.salaryPayments.length === 0);
+
+        if (remainingDoctorLines.length === 0 && remainingSalaryUsers.length === 0 && payroll.status.trim().toUpperCase() !== 'PAID') {
+          await tx.payroll.update({
+            where: { id: payrollId },
+            data: { status: 'Paid' },
+          });
         }
 
         return tx.salaryPayment.findUnique({
